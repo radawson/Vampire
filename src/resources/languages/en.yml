@@ -1,0 +1,49 @@
+# Vampire Plugin Language File
+# Use & for color codes
+# Use %variable% for placeholders
+
+general:
+  prefix: "&8[&cVampire&8]"
+  reload: "&aPlugin reloaded successfully!"
+  no-permission: "&cYou don't have permission to do that!"
+
+player:
+  not-found: "&cPlayer not found!"
+  offline: "&cPlayer is offline!"
+
+vampire:
+  status: "&7Vampire Status: &c%status%"
+  blood: "&7Blood Level: &c%blood%"
+  infected: "&7Infected: &c%infected%"
+  night-vision: "&7Night Vision: &c%enabled%"
+  sun-damage: "&7Sun Damage: &c%enabled%"
+
+infection:
+  start: "&cYou have been infected!"
+  end: "&aYou have been cured of infection!"
+  spread: "&c%player% has been infected!"
+
+blood:
+  low: "&cYour blood level is low!"
+  regen: "&aYou regenerated %amount% blood"
+  offer: "&aYou offered %amount% blood to %player%"
+  receive: "&aYou received %amount% blood from %player%"
+
+altar:
+  dark:
+    create: "&8Dark Altar created!"
+    destroy: "&8Dark Altar destroyed!"
+  light:
+    create: "&fLight Altar created!"
+    destroy: "&fLight Altar destroyed!"
+  cure: "&aYou have been cured at the Light Altar!"
+  infect: "&cYou have been infected at the Dark Altar!"
+
+command:
+  help: "&7=== &cVampire Commands &7==="
+  help.help: "&7/vampire help &8- &fShow help"
+  help.version: "&7/vampire version &8- &fShow version"
+  help.show: "&7/vampire show [player] &8- &fShow vampire status"
+  help.set: "&7/vampire set <type> <player> [value] &8- &fSet vampire properties"
+  help.offer: "&7/vampire offer <player> <amount> &8- &fOffer blood to a player"
+  help.reload: "&7/vampire reload &8- &fReload the plugin" 

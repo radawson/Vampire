@@ -1,0 +1,82 @@
+# Vampire Plugin Language File
+# Use & for color codes
+# Use %variable% for placeholders
+
+general:
+  prefix: "&8[&cVampire&8]"
+  reload: "&aPlugin reloaded successfully!"
+  error: "&cError: %message%"
+  success: "&aSuccess: %message%"
+  info: "&eInfo: %message%"
+
+player:
+  not_found: "&cPlayer not found: %player%"
+  not_online: "&cPlayer is not online: %player%"
+  not_vampire: "&c%player% is not a vampire"
+  already_vampire: "&c%player% is already a vampire"
+  not_enough_blood: "&cNot enough blood! Required: %amount%"
+  blood_received: "&aReceived %amount% blood from %player%"
+  blood_offered: "&aOffered %amount% blood to %player%"
+  blood_offer_received: "&aYou have received a blood offer from %player% for %amount% blood"
+  blood_offer_accepted: "&aYour blood offer to %player% has been accepted"
+  blood_offer_rejected: "&cYour blood offer to %player% has been rejected"
+  blood_offer_expired: "&cThe blood offer has expired"
+  no_pending_offer: "&cYou have no pending blood offers"
+
+vampire:
+  status:
+    header: "&7=== &cVampire Status &7==="
+    name: "&7Name: &f%player%"
+    blood: "&7Blood: &c%blood%"
+    infection: "&7Infection: &c%infection%%"
+    mode: "&7Mode: &c%mode%"
+  mode:
+    bloodlust: "&cBloodlust Mode"
+    nightvision: "&cNight Vision"
+    intent: "&cIntent Mode"
+    disabled: "&7Disabled"
+  transformed: "&cYou have been transformed into a vampire!"
+  cured: "&aYou have been cured of vampirism!"
+
+infection:
+  started: "&cYou have been infected by %player%!"
+  progress: "&cInfection progress: %progress%%"
+  complete: "&cThe infection is complete! You are now a vampire!"
+  resisted: "&aYou have resisted the infection!"
+  spread: "&cYou have infected %player%!"
+
+altar:
+  dark:
+    activated: "&8Dark altar activated!"
+    deactivated: "&8Dark altar deactivated"
+  light:
+    activated: "&fLight altar activated!"
+    deactivated: "&fLight altar deactivated"
+  not_near: "&cYou must be near an altar to use this command"
+
+command:
+  help:
+    header: "&7=== &cVampire Commands &7==="
+    info: "&7/vampire info [player] &8- &fShow vampire info for a player"
+    list: "&7/vampire list [page] &8- &fShow list of vampires"
+    offer: "&7/vampire offer <player> <amount> &8- &fOffer blood to a player"
+    accept: "&7/vampire accept &8- &fAccept a blood offer"
+    reject: "&7/vampire reject &8- &fReject a blood offer"
+    shriek: "&7/vampire shriek &8- &fShriek to infect nearby players"
+    mode: "&7/vampire mode <bloodlust|nightvision|intent> &8- &fSet vampire mode"
+    reload: "&7/vampire reload &8- &fReload plugin configuration"
+  usage:
+    offer: "&cUsage: /vampire offer <player> <amount>"
+    mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
+  no_permission: "&cYou don't have permission to use this command!"
+  player_only: "&cThis command can only be used by players!"
+
+bloodlust:
+  activated: "&cBloodlust Mode activated!"
+  deactivated: "&7Bloodlust Mode deactivated"
+  cooldown: "&cBloodlust Mode is on cooldown for %time% seconds"
+
+holy_water:
+  used: "&aYou have used holy water!"
+  hit: "&cYou have been hit by holy water!"
+  damage: "&cYou took %damage% damage from holy water"

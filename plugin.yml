@@ -35,8 +35,8 @@ permissions:
 # OTHER
   vampire.altar.dark:        {description: use an altar of darkness, default: false}
   vampire.altar.light:       {description: use an altar of light, default: false}
-  vampire.is.vampire:        {description: indicator the player is a vampire - see the uconf, default: false}
-  vampire.is.human:          {description: indicator the player is a human - see the uconf, default: false}
+  vampire.is.vampire:        {description: indicator the player is a vampire - see the configuration, default: false}
+  vampire.is.human:          {description: indicator the player is a human - see the configuration, default: false}
 # -------------------------------------------- #
 # STAR NOTATION
 # -------------------------------------------- #
