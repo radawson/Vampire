@@ -2,6 +2,10 @@
 
 A Minecraft plugin that adds vampire mechanics to your server, allowing players to become vampires, infect others, and use various vampire abilities.
 
+## Credits
+
+This plugin is a re-work of the MassiveCraft Vampire plugin. The original plugin was created by the MassiveCraft team. This version has been modernized, improved, and adapted for newer Minecraft versions with enhanced features and better code organization. It also no longer depends on the MassiveCore or other Massiver Plugins.
+
 ## Features
 
 - **Vampire Transformation**: Players can become vampires through infection or commands
@@ -14,26 +18,34 @@ A Minecraft plugin that adds vampire mechanics to your server, allowing players 
   - Shriek: Infect nearby players
 - **Holy Water**: Players can use holy water to damage vampires
 - **Altars**: Dark and light altars with special effects
-- **Database Support**: MySQL and YAML database options for persistent data
+- **Database Support**: SQLite and MySQL database options with Hibernate ORM
 - **Localization**: Full language support with customizable messages
 
 ## Commands
 
 - `/vampire help` - Show help information
-- `/vampire info [player]` - Show vampire info for a player
+- `/vampire version` - Show plugin version
+- `/vampire show [player]` - Show vampire status
 - `/vampire list [page]` - Show a list of vampires
+- `/vampire set <type> <value> [player]` - Set vampire properties
+- `/vampire reset [player]` - Reset vampire status
+- `/vampire reload` - Reload plugin configuration
 - `/vampire offer <player> <amount>` - Offer blood to another player
 - `/vampire accept` - Accept a blood offer
 - `/vampire reject` - Reject a blood offer
 - `/vampire shriek` - Shriek to infect nearby players
-- `/vampire mode <bloodlust|nightvision|intent>` - Set vampire mode
-- `/vampire reload` - Reload the plugin configuration
+- `/vampire mode <bloodlust|nightvision|intend>` - Set vampire mode
+- `/vampire stats` - Show vampire statistics
 
 ## Permissions
 
 - `vampire.admin` - Access to admin commands
 - `vampire.vampire` - Access to vampire commands
 - `vampire.bypass` - Bypass vampire restrictions
+- `vampire.set` - Access to set commands
+- `vampire.mode.*` - Access to mode commands
+- `vampire.trade.*` - Access to trade commands
+- `vampire.altar.*` - Access to altar commands
 
 ## Configuration
 
@@ -44,16 +56,16 @@ The plugin uses two main configuration files:
 
 ### Database Configuration
 
-The plugin supports SQLlite, MySQL, and YAML databases for storing player data. Configure your database settings in `config.yml`:
+The plugin supports SQLite and MySQL databases using Hibernate ORM. Configure your database settings in `config.yml`:
 
 ```yaml
 database:
-  type: mysql  # or yaml
-  host: localhost
-  port: 3306
-  name: vampire
-  username: root
-  password: ''
+  type: sqlite  # or mysql
+  url: jdbc:sqlite:plugins/Vampire/database.db  # for SQLite
+  # For MySQL:
+  # url: jdbc:mysql://localhost:3306/vampire
+  # user: root
+  # password: password
 ```
 
 ### Language Configuration
@@ -83,7 +95,7 @@ To add a new language, simply create a new YAML file in the `languages` director
   - `VampirePlugin.java` - Main plugin class
   - `entity` - Entity classes (VampirePlayer, BloodOffer)
   - `config` - Configuration classes
-  - `database` - Database managers
+  - `database` - Database managers and Hibernate configuration
   - `cmd` - Command classes
   - `listener` - Event listeners
   - `task` - Scheduled tasks
@@ -91,27 +103,21 @@ To add a new language, simply create a new YAML file in the `languages` director
 
 ### Key Components
 
-#### ResourceUtil
-
-The `ResourceUtil` class provides utility methods for:
-- Player inventory management
-- Message formatting and sending
-- Time and number formatting
-- Text colorization
-- Language message retrieval
-
-This class is the central point for accessing language messages through the `getMessage(String key)` and `getMessage(String key, String... args)` methods.
-
 #### DatabaseManager
 
 The `DatabaseManager` interface defines methods for:
+
 - Player data management
 - Blood offer handling
 - Infection tracking
+- Configuration storage
+
+The plugin uses Hibernate ORM for database operations, supporting both SQLite and MySQL backends.
 
 #### LanguageConfig
 
 The `LanguageConfig` class manages:
+
 - Loading language files
 - Retrieving localized messages
 - Message formatting with placeholders
@@ -125,6 +131,11 @@ To build the plugin, use the following command:
 ```
 
 The compiled plugin will be available in `build/libs/`.
+
+## Roadmap
+
+- Add better language support
+- Add vampire levels
 
 ## License
 
