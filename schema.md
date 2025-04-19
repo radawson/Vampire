@@ -72,11 +72,15 @@ Represents an infection event.
 | reason | string | Reason for the infection |
 | timestamp | long | When the infection occurred |
 
-## Database Tables
+## Database Structure
 
-### vampire_players
+The plugin supports multiple database backends (MySQL, SQLite) that must implement the following core functionality:
 
-Stores vampire player data.
+1. Player Data Storage
+2. Blood Offer Management
+3. Configuration Persistence
+
+### MySQL/SQLite Schema
 
 ```sql
 CREATE TABLE vampire_players (
@@ -251,7 +255,7 @@ infections:
 
 ## Database Manager Interface
 
-All database managers (MySQL, SQLite, YAML) must implement the following core functionality:
+All database managers (MySQL, SQLite) must implement the following core functionality:
 
 1. **Player Management**
    - Get player data

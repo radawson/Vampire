@@ -23,7 +23,7 @@ public class CmdVampireAccept extends VCommand {
      * @param plugin The plugin instance
      */
     public CmdVampireAccept(VampirePlugin plugin) {
-        super(plugin, "vampireaccept", "vampire.accept");
+        super(plugin, "accept", "vampire.accept");
     }
     
     @Override

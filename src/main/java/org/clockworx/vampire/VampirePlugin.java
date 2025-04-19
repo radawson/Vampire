@@ -2,7 +2,7 @@ package org.clockworx.vampire;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.clockworx.vampire.altar.AltarManager;
-import org.clockworx.vampire.cmd.VampireCommand;
+import org.clockworx.vampire.cmd.*;
 import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.database.DatabaseManager;
@@ -46,16 +46,19 @@ public class VampirePlugin extends JavaPlugin {
         // Save default config if it doesn't exist
         saveDefaultConfig();
         
-        // Initialize components
+        // Initialize configs
         initializeConfigs();
-        initializeDatabase();
-        initializeUtils();
-        initializeCommands();
-        initializeListeners();
-        initializeTasks();
-        initializeAltars();
         
-        getLogger().info("Vampire plugin has been enabled!");
+        // Initialize database
+        initializeDatabase();
+        
+        // Register commands
+        registerCommands();
+        
+        // Start tasks
+        startTasks();
+        
+        getLogger().info("Vampire plugin enabled!");
     }
     
     @Override
@@ -85,14 +88,6 @@ public class VampirePlugin extends JavaPlugin {
     }
     
     /**
-     * Initialize database connection
-     */
-    private void initializeDatabase() {
-        databaseManager = new HibernateDatabaseManager(this);
-        databaseManager.initialize().join();
-    }
-    
-    /**
      * Initialize utility classes
      */
     private void initializeUtils() {
@@ -107,6 +102,12 @@ public class VampirePlugin extends JavaPlugin {
         vampireCommand = new VampireCommand(this);
         getCommand("vampire").setExecutor(vampireCommand);
         getCommand("vampire").setTabCompleter(vampireCommand);
+        
+        getCommand("vampiremode").setExecutor(new CmdVampireModeBloodlust(this));
+        getCommand("vampirelist").setExecutor(new CmdVampireList(this));
+        getCommand("vampirereload").setExecutor(new CmdVampireReload(this));
+        getCommand("vampiresetvampire").setExecutor(new CmdVampireSetVampire(this));
+        getCommand("vampiremodeintend").setExecutor(new CmdVampireModeIntend(this));
     }
     
     /**
@@ -130,6 +131,14 @@ public class VampirePlugin extends JavaPlugin {
      */
     private void initializeAltars() {
         altarManager = new AltarManager();
+    }
+    
+    /**
+     * Initialize database
+     */
+    private void initializeDatabase() {
+        databaseManager = new HibernateDatabaseManager(this);
+        databaseManager.initialize().join();
     }
     
     /**
@@ -253,5 +262,18 @@ public class VampirePlugin extends JavaPlugin {
      */
     public void error(String message, Throwable throwable) {
         getLogger().log(Level.SEVERE, message, throwable);
+    }
+
+    private void startTasks() {
+        // Start vampire task
+        VampireTask vampireTask = new VampireTask(this);
+        vampireTask.start();
+    }
+
+    private void registerCommands() {
+        // Create and register the main vampire command
+        vampireCommand = new VampireCommand(this);
+        getCommand("vampire").setExecutor(vampireCommand);
+        getCommand("vampire").setTabCompleter(vampireCommand);
     }
 } 

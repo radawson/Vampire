@@ -18,26 +18,30 @@ import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * The Light Altar allows players to heal their vampirism infection.
+ * The Light Altar allows players to decrease their infection or cure themselves of vampirism.
  * This altar requires specific materials to construct and resources to activate.
  * 
- * Infection Healing Mechanics:
- * 1. If player is not infected (infection = 0.0): No effect
+ * Infection Mechanics:
+ * 1. If player is not infected (infection = 0.0):
+ *    - No effect (already cured)
  * 2. If player is infected (0.0 < infection < 1.0):
- *    - Reduces infection by 0.2
- *    - If infection drops to 0.0 or below, player is cured
+ *    - Decreases infection by 0.2
+ *    - If infection reaches 0.0, player is cured
  *    - Triggers EventVampirePlayerInfectionChange
  * 3. If player is fully infected (infection = 1.0):
- *    - No effect (must use other means to cure full vampirism)
+ *    - Decreases infection to 0.8
+ *    - Player is no longer a vampire
+ *    - Triggers EventVampirePlayerInfectionChange
  * 
  * When used, it will:
  * 1. Check if the player is infected
  * 2. Apply visual and sound effects
  * 3. Consume required resources
- * 4. Reduce the player's infection level
- * 5. Heal the player
+ * 4. Decrease the player's infection rate
+ * 5. If infection reaches 0.0, cure the player
  */
 public class AltarLight extends AltarAbstract {
     
@@ -46,23 +50,47 @@ public class AltarLight extends AltarAbstract {
      */
     public AltarLight() {
         this.name = "Light Altar";
-        this.desc = "An altar that can heal vampirism infection.";
+        this.desc = "An altar that can decrease a player's infection or cure them of vampirism.";
         
-        this.coreMaterial = Material.DIAMOND_BLOCK;
+        // Get configuration
+        VampirePlugin plugin = VampirePlugin.getInstance();
+        Map<String, Object> config = plugin.getVampireConfig().getLightAltarConfig();
         
+        // Set core material
+        String coreMaterialStr = (String) config.getOrDefault("core-material", "DIAMOND_BLOCK");
+        this.coreMaterial = Material.valueOf(coreMaterialStr);
+        
+        // Set materials
         this.materialCounts = new HashMap<>();
-        this.materialCounts.put(Material.GLOWSTONE, 1);
-        this.materialCounts.put(Material.QUARTZ_BLOCK, 16);
-        this.materialCounts.put(Material.SEA_LANTERN, 8);
-        this.materialCounts.put(Material.DIAMOND_BLOCK, 2);
-        this.materialCounts.put(Material.GOLD_BLOCK, 4);
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> materials = (Map<String, Integer>) config.getOrDefault("materials", new HashMap<>());
+        for (Map.Entry<String, Integer> entry : materials.entrySet()) {
+            try {
+                Material material = Material.valueOf(entry.getKey().toUpperCase());
+                this.materialCounts.put(material, entry.getValue());
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid material in light altar config: " + entry.getKey());
+            }
+        }
         
-        this.resources = List.of(
-            new ItemStack(Material.GOLDEN_APPLE, 1),
-            new ItemStack(Material.GLOWSTONE_DUST, 16),
-            new ItemStack(Material.SUGAR, 32),
-            new ItemStack(Material.BLAZE_POWDER, 8)
-        );
+        // Set resources
+        @SuppressWarnings("unchecked")
+        List<String> resourceStrings = (List<String>) config.getOrDefault("resources", List.of());
+        this.resources = resourceStrings.stream()
+            .map(str -> {
+                String[] parts = str.split(":");
+                if (parts.length != 2) return null;
+                try {
+                    Material material = Material.valueOf(parts[0].toUpperCase());
+                    int amount = Integer.parseInt(parts[1]);
+                    return new ItemStack(material, amount);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid resource in light altar config: " + str);
+                    return null;
+                }
+            })
+            .filter(item -> item != null)
+            .toList();
     }
     
     /**

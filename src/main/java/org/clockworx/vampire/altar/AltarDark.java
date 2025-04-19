@@ -14,6 +14,7 @@ import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The Dark Altar allows players to become infected with vampirism or increase their infection.
@@ -46,21 +47,45 @@ public class AltarDark extends AltarAbstract {
         this.name = "Dark Altar";
         this.desc = "An altar that can infect players with vampirism or increase their infection.";
         
-        this.coreMaterial = Material.OBSIDIAN;
+        // Get configuration
+        VampirePlugin plugin = VampirePlugin.getInstance();
+        Map<String, Object> config = plugin.getVampireConfig().getDarkAltarConfig();
         
+        // Set core material
+        String coreMaterialStr = (String) config.getOrDefault("core-material", "OBSIDIAN");
+        this.coreMaterial = Material.valueOf(coreMaterialStr);
+        
+        // Set materials
         this.materialCounts = new HashMap<>();
-        this.materialCounts.put(Material.OBSIDIAN, 1);
-        this.materialCounts.put(Material.NETHERRACK, 16);
-        this.materialCounts.put(Material.SOUL_SAND, 8);
-        this.materialCounts.put(Material.DIAMOND_BLOCK, 2);
-        this.materialCounts.put(Material.GOLD_BLOCK, 4);
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> materials = (Map<String, Integer>) config.getOrDefault("materials", new HashMap<>());
+        for (Map.Entry<String, Integer> entry : materials.entrySet()) {
+            try {
+                Material material = Material.valueOf(entry.getKey().toUpperCase());
+                this.materialCounts.put(material, entry.getValue());
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("Invalid material in dark altar config: " + entry.getKey());
+            }
+        }
         
-        this.resources = List.of(
-            new ItemStack(Material.ROTTEN_FLESH, 16),
-            new ItemStack(Material.SPIDER_EYE, 8),
-            new ItemStack(Material.BONE, 16),
-            new ItemStack(Material.BLAZE_POWDER, 8)
-        );
+        // Set resources
+        @SuppressWarnings("unchecked")
+        List<String> resourceStrings = (List<String>) config.getOrDefault("resources", List.of());
+        this.resources = resourceStrings.stream()
+            .map(str -> {
+                String[] parts = str.split(":");
+                if (parts.length != 2) return null;
+                try {
+                    Material material = Material.valueOf(parts[0].toUpperCase());
+                    int amount = Integer.parseInt(parts[1]);
+                    return new ItemStack(material, amount);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid resource in dark altar config: " + str);
+                    return null;
+                }
+            })
+            .filter(item -> item != null)
+            .toList();
     }
     
     /**

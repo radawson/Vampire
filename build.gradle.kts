@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.clockworx"
-version = "2.15.1-SNAPSHOT"
+version = "3.0.2"
 
 repositories {
     mavenCentral()
@@ -28,6 +28,10 @@ dependencies {
     
     // SQLite Dialect
     implementation("com.github.gwenn:sqlite-dialect:0.1.2")
+    
+    // Logging
+    implementation("org.jboss.logging:jboss-logging:3.4.3.Final")
+    implementation("org.jboss.logging:jboss-logging-annotations:2.2.1.Final")
     
     // Add any additional dependencies here
     // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -63,7 +67,7 @@ tasks {
                 "Name" to project.name,
                 "Version" to project.version,
                 "Description" to "A modern vampire plugin for Minecraft",
-                "Author" to "Clockworx",
+                "Authors" to "MassiveCraft, Clockworx",
                 "Main" to "org.clockworx.vampire.VampirePlugin"
             )
         }

@@ -23,9 +23,10 @@ public class VampireConfig {
     
     // Database settings
     private String databaseType;
-    private Map<String, Object> mysqlConfig;
-    private Map<String, Object> sqliteConfig;
-    private Map<String, Object> yamlConfig;
+    private Map<String, Object> databaseConfig;
+    private String databaseUrl;
+    private String databaseUser;
+    private String databasePassword;
     
     // General settings
     private boolean debug;
@@ -76,9 +77,9 @@ public class VampireConfig {
     
     public VampireConfig(VampirePlugin plugin) {
         this.plugin = plugin;
-        this.mysqlConfig = new HashMap<>();
-        this.sqliteConfig = new HashMap<>();
-        this.yamlConfig = new HashMap<>();
+        this.config = null;
+        this.databaseType = "sqlite";
+        this.databaseConfig = new HashMap<>();
         this.darkAltarConfig = new HashMap<>();
         this.lightAltarConfig = new HashMap<>();
         this.blockOpacity = new HashMap<>();
@@ -165,35 +166,20 @@ public class VampireConfig {
         ConfigurationSection dbSection = config.getConfigurationSection("database");
         if (dbSection == null) {
             plugin.getLogger().warning("Database section not found in config.yml, using defaults");
-            databaseType = "yaml";
+            databaseType = "sqlite";
+            databaseUrl = "jdbc:sqlite:plugins/Vampire/database.db";
+            databaseUser = "";
+            databasePassword = "";
             return;
         }
         
-        databaseType = dbSection.getString("type", "yaml");
+        databaseType = dbSection.getString("type", "sqlite");
+        databaseUrl = dbSection.getString("url", "jdbc:sqlite:plugins/Vampire/database.db");
+        databaseUser = dbSection.getString("user", "");
+        databasePassword = dbSection.getString("password", "");
         
-        // Load MySQL config
-        ConfigurationSection mysqlSection = dbSection.getConfigurationSection("mysql");
-        if (mysqlSection != null) {
-            mysqlConfig.put("host", mysqlSection.getString("host", "localhost"));
-            mysqlConfig.put("port", mysqlSection.getInt("port", 3306));
-            mysqlConfig.put("database", mysqlSection.getString("database", "vampire"));
-            mysqlConfig.put("username", mysqlSection.getString("username", "root"));
-            mysqlConfig.put("password", mysqlSection.getString("password", "password"));
-        }
-        
-        // Load SQLite config
-        ConfigurationSection sqliteSection = dbSection.getConfigurationSection("sqlite");
-        if (sqliteSection != null) {
-            sqliteConfig.put("file", sqliteSection.getString("file", "vampire.db"));
-        }
-        
-        // Load YAML config
-        ConfigurationSection yamlSection = dbSection.getConfigurationSection("yaml");
-        if (yamlSection != null) {
-            yamlConfig.put("players-folder", yamlSection.getString("players-folder", "players"));
-            yamlConfig.put("config-file", yamlSection.getString("config-file", "config.yml"));
-            yamlConfig.put("language-file", yamlSection.getString("language-file", "language.yml"));
-        }
+        // Load config
+        databaseConfig = dbSection.getValues(false);
     }
     
     private void loadGeneralSettings() {
@@ -300,6 +286,8 @@ public class VampireConfig {
             altarsEnabled = true;
             altarSearchRadius = 3;
             altarMinRatio = 0.5;
+            darkAltarConfig = new HashMap<>();
+            lightAltarConfig = new HashMap<>();
             return;
         }
         
@@ -310,41 +298,13 @@ public class VampireConfig {
         // Load dark altar config
         ConfigurationSection darkSection = altarSection.getConfigurationSection("dark");
         if (darkSection != null) {
-            darkAltarConfig.put("core-material", darkSection.getString("core-material", "GOLD_BLOCK"));
-            
-            // Load materials
-            ConfigurationSection materialsSection = darkSection.getConfigurationSection("materials");
-            if (materialsSection != null) {
-                Map<String, Integer> materials = new HashMap<>();
-                for (String key : materialsSection.getKeys(false)) {
-                    materials.put(key, materialsSection.getInt(key));
-                }
-                darkAltarConfig.put("materials", materials);
-            }
-            
-            // Load resources
-            List<String> resources = darkSection.getStringList("resources");
-            darkAltarConfig.put("resources", resources);
+            darkAltarConfig = darkSection.getValues(true);
         }
         
         // Load light altar config
         ConfigurationSection lightSection = altarSection.getConfigurationSection("light");
         if (lightSection != null) {
-            lightAltarConfig.put("core-material", lightSection.getString("core-material", "LAPIS_BLOCK"));
-            
-            // Load materials
-            ConfigurationSection materialsSection = lightSection.getConfigurationSection("materials");
-            if (materialsSection != null) {
-                Map<String, Integer> materials = new HashMap<>();
-                for (String key : materialsSection.getKeys(false)) {
-                    materials.put(key, materialsSection.getInt(key));
-                }
-                lightAltarConfig.put("materials", materials);
-            }
-            
-            // Load resources
-            List<String> resources = lightSection.getStringList("resources");
-            lightAltarConfig.put("resources", resources);
+            lightAltarConfig = lightSection.getValues(true);
         }
     }
     
@@ -393,16 +353,24 @@ public class VampireConfig {
         return databaseType;
     }
     
-    public Map<String, Object> getMysqlConfig() {
-        return mysqlConfig;
+    public String getDatabaseUrl() {
+        return databaseUrl;
     }
     
-    public Map<String, Object> getSqliteConfig() {
-        return sqliteConfig;
+    public String getDatabaseUser() {
+        return databaseUser;
     }
     
-    public Map<String, Object> getYamlConfig() {
-        return yamlConfig;
+    public String getDatabasePassword() {
+        return databasePassword;
+    }
+    
+    public FileConfiguration getConfig() {
+        return config;
+    }
+    
+    public Map<String, Object> getDatabaseConfig() {
+        return databaseConfig;
     }
     
     // Getters for general settings
@@ -528,7 +496,8 @@ public class VampireConfig {
     }
     
     private PotionEffect createEffect(String path) {
-        PotionEffectType type = PotionEffectType.getByName(config.getString(path + ".type"));
+        String effectName = config.getString(path + ".type").toLowerCase();
+        PotionEffectType type = PotionEffectType.getByKey(org.bukkit.NamespacedKey.minecraft(effectName));
         int duration = config.getInt(path + ".duration");
         int amplifier = config.getInt(path + ".amplifier");
         return new PotionEffect(type, duration, amplifier);

@@ -1,10 +1,10 @@
-main: ${project.groupId}.${project.name}
-name: ${project.name}
-version: ${project.version}
-website: ${project.url}
-description: ${project.description}
-authors: [Cayorion]
-depend: [MassiveCore]
+main: org.clockworx.vampire.VampirePlugin
+name: Vampire
+version: '${project.version}'
+api-version: '1.20'
+website: https://github.com/clockworx/vampire
+description: A vampire plugin for Minecraft servers
+authors: [MassiveCraft, Clockworx]
 permissions:
 # -------------------------------------------- #
 # THE REAL NODES

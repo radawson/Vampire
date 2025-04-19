@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Interface for database operations related to vampire players.
  * All database operations should go through this interface, which will delegate
- * to the appropriate backend implementation (MySQL, SQLite, YAML, etc.).
+ * to the appropriate backend implementation (MySQL, SQLite).
  */
 public interface DatabaseManager {
     

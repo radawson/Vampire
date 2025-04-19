@@ -39,20 +39,33 @@ This plugin is a re-work of the MassiveCraft Vampire plugin. The original plugin
 
 ## Permissions
 
-- `vampire.admin` - Access to admin commands
-- `vampire.vampire` - Access to vampire commands
-- `vampire.bypass` - Bypass vampire restrictions
-- `vampire.set` - Access to set commands
-- `vampire.mode.*` - Access to mode commands
-- `vampire.trade.*` - Access to trade commands
-- `vampire.altar.*` - Access to altar commands
+- `vampire.use` - Allows use of basic vampire commands
+- `vampire.admin` - Allows use of admin commands
+- `vampire.trade.offer` - Allows offering blood to other players
+- `vampire.trade.accept` - Allows accepting blood offers
+- `vampire.mode.bloodlust` - Allows toggling bloodlust mode
+- `vampire.mode.nightvision` - Allows toggling nightvision mode
+- `vampire.mode.intend` - Allows toggling infection intent mode
+- `vampire.list` - Allows viewing the vampire list
+- `vampire.show` - Allows viewing vampire status
+- `vampire.show.other` - Allows viewing other players' vampire status
+- `vampire.shriek` - Allows using the vampire shriek ability
+- `vampire.set` - Allows setting player vampire status
+- `vampire.is.vampire` - Allows becoming a vampire
+- `vampire.is.human` - Allows remaining human
+- `vampire.config` - Allows modifying plugin configuration
+- `vampire.lang` - Allows modifying plugin language
+- `vampire.bypass` - Allows bypassing vampire restrictions
+- `vampire.flask` - Allows using vampire flask
+- `vampire.reset` - Allows resetting vampire status
 
 ## Configuration
 
-The plugin uses two main configuration files:
+The plugin uses YAML format for configuration files and language files. Database storage is handled by either MySQL or SQLite backends.
 
-1. `config.yml` - General plugin settings
-2. `languages/en.yml` - Language messages
+### Language Files
+
+Language files are stored in YAML format in the `languages` directory. To add a new language, simply create a new YAML file in the `languages` directory (e.g., `fr.yml` for French) and translate all the messages.
 
 ### Database Configuration
 
