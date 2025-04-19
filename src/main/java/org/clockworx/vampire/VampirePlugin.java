@@ -1,138 +1,78 @@
 package org.clockworx.vampire;
 
-import org.bukkit.plugin.java.JavaPlugin;
-import org.clockworx.vampire.altar.AltarManager;
-import org.clockworx.vampire.cmd.*;
-import org.clockworx.vampire.config.LanguageConfig;
+import io.papermc.paper.plugin.bootstrap.BootstrapContext;
+import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
+import io.papermc.paper.plugin.configuration.PluginMeta;
+import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
+import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
+import io.papermc.paper.plugin.PaperPlugin;
+import org.clockworx.vampire.cmd.VampireCommand;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.database.DatabaseManager;
 import org.clockworx.vampire.database.HibernateDatabaseManager;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.listener.VampireListener;
+import org.clockworx.vampire.manager.AltarManager;
+import org.clockworx.vampire.manager.BloodManager;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.task.BloodRegenerationTask;
+import org.clockworx.vampire.task.DaylightTask;
 import org.clockworx.vampire.task.VampireTask;
-import org.clockworx.vampire.util.BloodFlaskUtil;
-import org.clockworx.vampire.util.HolyWaterUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 /**
  * Main plugin class for the Vampire plugin.
  * This class serves as the entry point and central manager for the plugin.
  */
-public class VampirePlugin extends JavaPlugin {
+public final class VampirePlugin extends PaperPlugin {
     
-    private static VampirePlugin instance;
     private VampireConfig config;
-    private LanguageConfig language;
     private DatabaseManager databaseManager;
-    private VampireTask task;
-    private VampireListener listener;
-    private BloodFlaskUtil bloodFlaskUtil;
-    private HolyWaterUtil holyWaterUtil;
-    private VampireCommand vampireCommand;
+    private VampireManager vampireManager;
+    private BloodManager bloodManager;
     private AltarManager altarManager;
-    
-    // Cache of online vampire players
-    private final Map<UUID, VampirePlayer> playerCache = new HashMap<>();
-    
+    private VampireCommand vampireCommand;
+
     @Override
     public void onEnable() {
-        instance = this;
-        
-        // Save default config if it doesn't exist
-        saveDefaultConfig();
-        
         // Initialize configs
         initializeConfigs();
-        
+
         // Initialize database
         initializeDatabase();
-        
+
+        // Initialize managers
+        initializeManagers();
+
         // Register commands
         registerCommands();
-        
+
         // Start tasks
         startTasks();
-        
+
         getLogger().info("Vampire plugin enabled!");
     }
-    
+
     @Override
     public void onDisable() {
-        // Shutdown components
-        if (task != null) {
-            task.shutdown();
-        }
-        
         if (databaseManager != null) {
-            databaseManager.shutdown().join();
+            databaseManager.shutdown();
         }
 
-        
-        // Clear player cache
-        playerCache.clear();
-        
-        getLogger().info("Vampire plugin has been disabled!");
+        if (vampireManager != null) {
+            vampireManager.shutdown();
+        }
+
+        getLogger().info("Vampire plugin disabled!");
     }
-    
+
     /**
-     * Initialize configuration files
+     * Initialize configurations
      */
     private void initializeConfigs() {
         config = new VampireConfig(this);
-        language = new LanguageConfig(this);
+        config.load();
     }
-    
-    /**
-     * Initialize utility classes
-     */
-    private void initializeUtils() {
-        bloodFlaskUtil = new BloodFlaskUtil(this);
-        holyWaterUtil = new HolyWaterUtil(this);
-    }
-    
-    /**
-     * Initialize commands
-     */
-    private void initializeCommands() {
-        vampireCommand = new VampireCommand(this);
-        getCommand("vampire").setExecutor(vampireCommand);
-        getCommand("vampire").setTabCompleter(vampireCommand);
-        
-        getCommand("vampiremode").setExecutor(new CmdVampireModeBloodlust(this));
-        getCommand("vampirelist").setExecutor(new CmdVampireList(this));
-        getCommand("vampirereload").setExecutor(new CmdVampireReload(this));
-        getCommand("vampiresetvampire").setExecutor(new CmdVampireSetVampire(this));
-        getCommand("vampiremodeintend").setExecutor(new CmdVampireModeIntend(this));
-    }
-    
-    /**
-     * Initialize event listeners
-     */
-    private void initializeListeners() {
-        listener = new VampireListener(this);
-        getServer().getPluginManager().registerEvents(listener, this);
-    }
-    
-    /**
-     * Initialize tick-based tasks
-     */
-    private void initializeTasks() {
-        task = new VampireTask(this);
-        task.start();
-    }
-    
-    /**
-     * Initialize altar manager
-     */
-    private void initializeAltars() {
-        altarManager = new AltarManager();
-    }
-    
+
     /**
      * Initialize database
      */
@@ -140,140 +80,72 @@ public class VampirePlugin extends JavaPlugin {
         databaseManager = new HibernateDatabaseManager(this);
         databaseManager.initialize().join();
     }
-    
+
     /**
-     * Get a player's vampire data, loading it from the database if necessary
-     * 
-     * @param uuid The player's UUID
-     * @return A CompletableFuture that will complete with the player's vampire data
+     * Initialize managers
      */
-    public CompletableFuture<VampirePlayer> getVampirePlayer(UUID uuid) {
-        // Check cache first
-        if (playerCache.containsKey(uuid)) {
-            return CompletableFuture.completedFuture(playerCache.get(uuid));
-        }
-        
-        // Load from database
-        return databaseManager.getPlayer(uuid).thenApply(player -> {
-            if (player != null) {
-                playerCache.put(uuid, player);
-            }
-            return player;
-        });
-    }
-    
-    /**
-     * Save a player's vampire data to the database
-     * 
-     * @param player The player to save
-     * @return A CompletableFuture that will complete when the save is done
-     */
-    public CompletableFuture<Void> saveVampirePlayer(VampirePlayer player) {
-        return databaseManager.savePlayer(player);
-    }
-    
-    /**
-     * Remove a player from the cache
-     * 
-     * @param uuid The player's UUID
-     */
-    public void removeFromCache(UUID uuid) {
-        playerCache.remove(uuid);
-    }
-    
-    /**
-     * Get the plugin instance
-     * 
-     * @return The plugin instance
-     */
-    public static VampirePlugin getInstance() {
-        return instance;
-    }
-    
-    /**
-     * Get the plugin configuration
-     * 
-     * @return The plugin configuration
-     */
-    public VampireConfig getVampireConfig() {
-        return config;
-    }
-    
-    /**
-     * Get the language configuration
-     * 
-     * @return The language configuration
-     */
-    public LanguageConfig getLanguageConfig() {
-        return language;
-    }
-    
-    /**
-     * Get the database manager
-     * 
-     * @return The database manager
-     */
-    public DatabaseManager getDatabaseManager() {
-        return databaseManager;
-    }
-    
-    /**
-     * Get the blood flask utility
-     * 
-     * @return The blood flask utility
-     */
-    public BloodFlaskUtil getBloodFlaskUtil() {
-        return bloodFlaskUtil;
-    }
-    
-    /**
-     * Get the holy water utility
-     * 
-     * @return The holy water utility
-     */
-    public HolyWaterUtil getHolyWaterUtil() {
-        return holyWaterUtil;
-    }
-    
-    /**
-     * Get the altar manager
-     * @return The altar manager
-     */
-    public AltarManager getAltarManager() {
-        return altarManager;
-    }
-    
-    /**
-     * Log a debug message
-     * 
-     * @param message The message to log
-     */
-    public void debug(String message) {
-        if (config.isDebugEnabled()) {
-            getLogger().info("[DEBUG] " + message);
-        }
-    }
-    
-    /**
-     * Log an error message
-     * 
-     * @param message The message to log
-     * @param throwable The throwable to log
-     */
-    public void error(String message, Throwable throwable) {
-        getLogger().log(Level.SEVERE, message, throwable);
+    private void initializeManagers() {
+        vampireManager = new VampireManager(this);
+        bloodManager = new BloodManager(this);
+        altarManager = new AltarManager(this);
     }
 
-    private void startTasks() {
-        // Start vampire task
-        VampireTask vampireTask = new VampireTask(this);
-        vampireTask.start();
-    }
-
+    /**
+     * Register commands
+     */
     private void registerCommands() {
-        // Create and register the main vampire command
         vampireCommand = new VampireCommand(this);
         getCommand("vampire").setExecutor(vampireCommand);
         getCommand("vampire").setTabCompleter(vampireCommand);
+    }
+
+    /**
+     * Start tasks
+     */
+    private void startTasks() {
+        new BloodRegenerationTask(this).runTaskTimer(this, 20L, 20L);
+        new DaylightTask(this).runTaskTimer(this, 20L, 20L);
+        new VampireTask(this).runTaskTimer(this, 20L, 20L);
+    }
+
+    /**
+     * Debug message
+     */
+    public void debug(String message) {
+        if (config.isDebug()) {
+            getLogger().info("[DEBUG] " + message);
+        }
+    }
+
+    /**
+     * Error message
+     */
+    public void error(String message, Throwable t) {
+        getLogger().log(Level.SEVERE, message, t);
+    }
+
+    // Getters
+    public VampireConfig getVampireConfig() {
+        return config;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
+    }
+
+    public VampireManager getVampireManager() {
+        return vampireManager;
+    }
+
+    public BloodManager getBloodManager() {
+        return bloodManager;
+    }
+
+    public AltarManager getAltarManager() {
+        return altarManager;
+    }
+
+    public VampireCommand getVampireCommand() {
+        return vampireCommand;
     }
 } 
