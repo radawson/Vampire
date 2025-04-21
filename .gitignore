@@ -43,6 +43,9 @@ tmp/
 .vscode/
 *.code-workspace
 
+# Cursor
+.cursor
+
 # Minecraft server files
 server/
 spigot.jar

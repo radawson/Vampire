@@ -96,7 +96,7 @@ public class VampirePermission {
     /** Allows creating Holy Water via command. */
     public static final String FLASK_HOLYWATER = "vampire.flask.holywater";
     
-    /** 
+    /**
      * Stores registered permission objects (Node -> Permission). 
      * Used internally to manage parent-child relationships during registration. 
      */
@@ -224,7 +224,7 @@ public class VampirePermission {
             }
             if (parentPerm != null) {
                 // Add parent-child relationship
-                permission.addParent(parentPerm, true); 
+                permission.addParent(parentPerm, true);
             } else {
                  // Optional: Log a warning if a potential parent node doesn't exist
                  // VampireMessages.debug("[VampirePermission] Parent node '" + parentNode + "' not found for '" + node + "'.");
@@ -236,7 +236,7 @@ public class VampirePermission {
         // Store it in our map for potential future parent lookups
         PERMISSIONS.put(node, permission);
     }
-
+    
     /**
      * Explicitly links a child permission node to a parent node.
      * Useful when the automatic dot-based hierarchy isn't sufficient or desired.

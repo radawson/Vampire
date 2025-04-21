@@ -32,7 +32,7 @@ public class VampireMessages {
     
     /** Private constructor to prevent instantiation of utility class. */
     private VampireMessages() {}
-
+    
     /**
      * Initializes the messaging system with the main plugin instance.
      * Loads the messages from the configured language file into the cache.
@@ -214,7 +214,7 @@ public class VampireMessages {
                 // Log a warning if formatting fails (e.g., wrong number/type of args).
                 plugin.getLogger().log(Level.WARNING, "Error formatting message key '" + key + "' with String.format (Check arguments and format specifiers): " + e.getMessage());
                 // Fallback to the raw message if formatting fails.
-                formattedMessage = rawMessage; 
+                formattedMessage = rawMessage;
             }
         }
         

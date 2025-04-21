@@ -289,7 +289,7 @@ public class VampireTask extends BukkitRunnable {
         if (!plugin.getVampireConfig().isSunDamage()) {
             return;
         }
-
+        
         double irradiation = SunUtil.calcPlayerIrradiation(player);
 
         if (irradiation <= 0) {
@@ -309,10 +309,10 @@ public class VampireTask extends BukkitRunnable {
             } else if (irradiation > 0.2) {
                 VampireMessages.sendLocalized(player, "sunlight.uncomfortable");
             }
-
+                
             if (irradiation > 0.8) { 
                 FxUtil.ensureBurn(player, Math.max(1, (int)(20 * deltaSeconds))); 
-            }
+                }
             
             int particleCount = (int) Math.max(1, Math.min(20, irradiation * 15));
             FxUtil.playParticle(player.getEyeLocation(), org.bukkit.Particle.FLAME, particleCount, 0.3, 0.3, 0.3, 0.05);

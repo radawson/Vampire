@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.clockworx.vampire.VampirePlugin;
 import org.bukkit.entity.EntityType;
 import org.clockworx.vampire.util.VampireMessages;
+import org.bukkit.Particle;
 
 import java.io.File;
 import java.io.IOException;
@@ -981,6 +982,10 @@ public class VampireConfig {
         if (bsSection == null) {
             plugin.getLogger().warning("Blood sources section (vampire.blood_sources) not found in config.yml, using defaults.");
             setDefaultBloodSourceSettings();
+            // Load stray settings from root as fallback if section is missing
+            playerHealthCostOnHit = config.getDouble("damage_per_hit", 0.0); // Load damage_per_hit from root
+            // anger_on_hit isn't stored in a field currently, maybe add later?
+            // boolean angerOnHit = config.getBoolean("anger_on_hit", true); 
             return;
         }
 
@@ -1009,7 +1014,13 @@ public class VampireConfig {
             plugin.getLogger().warning("Invalid negative player health cost: " + playerHealthCostOnHit + ", setting to 0.");
             playerHealthCostOnHit = 0.0;
         }
-         VampireMessages.debug("Loaded player health cost on hit: " + playerHealthCostOnHit);
+        VampireMessages.debug("Loaded player health cost on hit: " + playerHealthCostOnHit);
+
+        // Load stray settings from root level as they are misplaced in the current config
+        // These override the default if the main section was found but they exist at root
+        playerHealthCostOnHit = config.getDouble("damage_per_hit", playerHealthCostOnHit); // Read from root, fallback to section default
+        // boolean angerOnHit = config.getBoolean("anger_on_hit", true); // Read from root, maybe store later?
+        VampireMessages.debug("Final player health cost (considering root damage_per_hit): " + playerHealthCostOnHit);
     }
 
     /** Sets default values for the blood source settings. */
@@ -1142,5 +1153,98 @@ public class VampireConfig {
 
     public double getCombatInfectionChance() {
         return config.getDouble("vampire.combat.infectRisk.withIntent", 0.3);
+    }
+
+    /**
+     * Gets the sound key string for the infection effect.
+     * Defaults to "minecraft:entity.zombie.infect".
+     * @return The sound key string.
+     */
+    public String getInfectionSoundKey() {
+        return config.getString("vampire.effects.infection.sound_key", "minecraft:entity.zombie.infect");
+    }
+
+    /**
+     * Gets the sound key string for the cure effect.
+     * Defaults to "minecraft:entity.zombie_villager.cure".
+     * @return The sound key string.
+     */
+    public String getCureSoundKey() {
+        return config.getString("vampire.effects.cure.sound_key", "minecraft:entity.zombie_villager.cure");
+    }
+
+    // --- Particle Settings Getters ---
+
+    private Map<String, Object> getParticleSettings(String path, Map<String, Object> defaults) {
+        ConfigurationSection section = config.getConfigurationSection(path);
+        if (section == null) {
+            plugin.getLogger().warning("Particle settings section not found: " + path + ". Using defaults.");
+            return defaults;
+        }
+        // Merge defaults with actual values found, giving priority to actual values
+        Map<String, Object> settings = new HashMap<>(defaults); 
+        settings.putAll(section.getValues(false)); 
+        return settings;
+    }
+
+    private Map<String, Object> getDefaultInfectionParticleSettings() {
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put("type", "WITCH");
+        defaults.put("count", 30);
+        defaults.put("offset_x", 0.5);
+        defaults.put("offset_y", 1.0);
+        defaults.put("offset_z", 0.5);
+        defaults.put("speed", 0.1);
+        return defaults;
+    }
+
+    public Map<String, Object> getInfectionParticleSettings() {
+        return getParticleSettings("vampire.effects.infection.particles", getDefaultInfectionParticleSettings());
+    }
+
+    private Map<String, Object> getDefaultCureParticleSettings() {
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put("type", "ENTITY_EFFECT");
+        defaults.put("count", 30);
+        defaults.put("offset_x", 0.5);
+        defaults.put("offset_y", 1.0);
+        defaults.put("offset_z", 0.5);
+        defaults.put("speed", 0.1);
+        return defaults;
+    }
+
+    public Map<String, Object> getCureParticleSettings() {
+        return getParticleSettings("vampire.effects.cure.particles", getDefaultCureParticleSettings());
+    }
+
+    /** Helper to safely get Particle from config settings map */
+    public Particle getParticleType(Map<String, Object> settings, Particle defaultType) {
+        String typeName = (String) settings.getOrDefault("type", defaultType.name());
+        try {
+            return Particle.valueOf(typeName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid particle type: " + typeName + ". Defaulting to " + defaultType.name());
+            return defaultType;
+        }
+    }
+
+    /** Helper to safely get integer from config settings map */
+    public int getParticleInt(Map<String, Object> settings, String key, int defaultValue) {
+        Object value = settings.getOrDefault(key, defaultValue);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        plugin.getLogger().warning("Invalid integer value for particle setting '" + key + "': " + value + ". Using default: " + defaultValue);
+        return defaultValue;
+    }
+
+    /** Helper to safely get double from config settings map */
+    public double getParticleDouble(Map<String, Object> settings, String key, double defaultValue) {
+        Object value = settings.getOrDefault(key, defaultValue);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        plugin.getLogger().warning("Invalid double value for particle setting '" + key + "': " + value + ". Using default: " + defaultValue);
+        return defaultValue;
     }
 } 

@@ -7,9 +7,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.config.VampireConfig;
 import org.bukkit.Color;
 import org.bukkit.Particle.DustOptions;
 
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -373,11 +375,22 @@ public class FxUtil
 	public static void playInfectionEffect(Player player) {
 		// Safety check for null player
 		if (player == null) return;
-		Location loc = player.getLocation(); // Get player location
-		playParticle(loc, Particle.WITCH, 30, 0.5, 1, 0.5, 0.1); // Witch particles spread vertically
-		// Assuming infection effect sound is not configurable, keep using enum for now
-		// location.getWorld().playSound(loc, "minecraft:sound.entity.zombie.infect", 0.5f, 2.0f); // Quieter wither sound, high pitch
-		loc.getWorld().playSound(loc, "minecraft:entity.zombie.infect", 0.5f, 2.0f); // Use loc and corrected sound key
+		Location loc = player.getLocation();
+		VampireConfig config = plugin.getVampireConfig();
+
+		// Play Sound from Config
+		String soundKey = config.getInfectionSoundKey();
+		playSound(loc, soundKey, 0.5f, 2.0f); // Example volume/pitch
+
+		// Play Particles from Config
+		Map<String, Object> particleSettings = config.getInfectionParticleSettings();
+		Particle particleType = config.getParticleType(particleSettings, Particle.WITCH);
+		int count = config.getParticleInt(particleSettings, "count", 30);
+		double offsetX = config.getParticleDouble(particleSettings, "offset_x", 0.5);
+		double offsetY = config.getParticleDouble(particleSettings, "offset_y", 1.0);
+		double offsetZ = config.getParticleDouble(particleSettings, "offset_z", 0.5);
+		double speed = config.getParticleDouble(particleSettings, "speed", 0.1);
+		playParticle(loc, particleType, count, offsetX, offsetY, offsetZ, speed);
 	}
 
 	/**
@@ -389,11 +402,26 @@ public class FxUtil
 	public static void playCureEffect(Player player) {
 		// Safety check for null player
 		if (player == null) return;
-		Location loc = player.getLocation(); // Get player location
-		playParticle(loc, Particle.ENTITY_EFFECT, 30, 0.5, 1, 0.5, 0.1); // Potion swirls spread vertically
-		// Assuming cure effect sound is not configurable, keep using enum for now
-		// location.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f); // Default level up sound
-		loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f); // Use loc
+		Location loc = player.getLocation();
+		VampireConfig config = plugin.getVampireConfig();
+
+		// Play Sound from Config
+		String soundKey = config.getCureSoundKey();
+		playSound(loc, soundKey, 1.0f, 1.0f); // Example volume/pitch
+
+		// Play Particles from Config
+		Map<String, Object> particleSettings = config.getCureParticleSettings();
+		Particle particleType = config.getParticleType(particleSettings, Particle.ENTITY_EFFECT);
+		int count = config.getParticleInt(particleSettings, "count", 30);
+		double offsetX = config.getParticleDouble(particleSettings, "offset_x", 0.5);
+		double offsetY = config.getParticleDouble(particleSettings, "offset_y", 1.0);
+		double offsetZ = config.getParticleDouble(particleSettings, "offset_z", 0.5);
+		double speed = config.getParticleDouble(particleSettings, "speed", 0.1);
+		playParticle(loc, particleType, count, offsetX, offsetY, offsetZ, speed);
+
+		// Old hardcoded calls:
+		// playParticle(loc, Particle.ENTITY_EFFECT, 30, 0.5, 1, 0.5, 0.1);
+		// loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 	}
 
 	// --- New Centralized Effect Methods ---

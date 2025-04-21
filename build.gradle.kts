@@ -1,11 +1,11 @@
 plugins {
     id("java")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.6"
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
 }
 
 group = "org.clockworx"
-version = "3.1.0"
+version = "3.1.2"
 
 repositories {
     mavenCentral()
@@ -49,8 +49,8 @@ tasks {
 
     // Configure shadowJar
     shadowJar {
+        enableRelocation = true
         archiveClassifier.set("")
-        minimize()
     }
 
     // Configure jar task
