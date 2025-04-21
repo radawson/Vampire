@@ -6,18 +6,14 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.Sound;
-import org.bukkit.World;
 import org.clockworx.vampire.VampirePlugin;
 import org.bukkit.entity.EntityType;
 import org.clockworx.vampire.util.VampireMessages;
 import org.bukkit.Particle;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 

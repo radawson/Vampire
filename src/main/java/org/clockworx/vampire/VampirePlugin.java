@@ -27,9 +27,6 @@ import java.util.logging.Level;
  * This class serves as the entry point and central manager for the plugin.
  */
 public final class VampirePlugin extends JavaPlugin {
-    
-   // Define the expected config version
-    private static final int CURRENT_CONFIG_VERSION = 1; 
 
     private static VampirePlugin plugin; // Declare static plugin instance
     private VampireConfig config;
@@ -89,17 +86,22 @@ public final class VampirePlugin extends JavaPlugin {
         // VampireMessages.init(this); // This call remains in onEnable, but must happen AFTER initializeConfigs
 
         // --- Config Version Check ---
-        int loadedConfigVersion = config.getConfig().getInt("config-version", 0); // Read version, default to 0 if missing
-        if (loadedConfigVersion < CURRENT_CONFIG_VERSION) {
+        // Read the "version" key (which is injected by Gradle from project version)
+        // Use a default that won't match the current version if the key is missing.
+        String loadedConfigVersionStr = config.getConfig().getString("version", "0.0.0"); 
+        
+        // Compare the loaded version string from the config with the plugin's version
+        if (!getPluginMeta().getVersion().equals(loadedConfigVersionStr)) {
             getLogger().log(Level.WARNING, "*********************************************************************");
-            getLogger().log(Level.WARNING, "Your config.yml is outdated (Version: " + loadedConfigVersion + ", Expected: " + CURRENT_CONFIG_VERSION + ")!");
+            getLogger().log(Level.WARNING, "Your config.yml version does not match the plugin version!");
+            getLogger().log(Level.WARNING, "Config Version: " + loadedConfigVersionStr + ", Plugin Version: " + getPluginMeta().getVersion());
             getLogger().log(Level.WARNING, "Please backup your current config.yml, delete it, and let the plugin generate a new one.");
-            getLogger().log(Level.WARNING, "You can then manually merge your old settings into the new file.");
-            getLogger().log(Level.WARNING, "Some features might not work correctly until the config is updated.");
+            getLogger().log(Level.WARNING, "Then, manually merge your old settings into the new file.");
+            getLogger().log(Level.WARNING, "Using a mismatched config may cause errors or unexpected behavior.");
             getLogger().log(Level.WARNING, "*********************************************************************");
-            // Optionally, you could disable the plugin here if the config is too old
-            // getServer().getPluginManager().disablePlugin(this);
-            // return true; // Indicate failure
+            // You could still add a separate check for EXPECTED_CONFIG_STRUCTURE_VERSION if needed
+            // int structureVersion = config.getConfig().getInt("config-structure-version", 0); // Example key
+            // if (structureVersion < EXPECTED_CONFIG_STRUCTURE_VERSION) { ... }
         }
 
         getLogger().info("Configurations initialized!");

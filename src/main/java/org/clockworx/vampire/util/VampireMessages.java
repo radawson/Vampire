@@ -1,5 +1,7 @@
 package org.clockworx.vampire.util;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -7,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.config.LanguageConfig;
+import org.clockworx.vampire.config.VampireConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -230,7 +233,9 @@ public class VampireMessages {
      * @return The message string with color codes translated.
      */
     private static String formatMessage(String message) {
-        return ChatColor.translateAlternateColorCodes('&', message);
+        // Use Adventure API to parse legacy codes (&) and serialize back to legacy format (§)
+        Component component = LegacyComponentSerializer.legacyAmpersand().deserialize(message);
+        return LegacyComponentSerializer.legacySection().serialize(component);
     }
     
     /**
@@ -240,10 +245,22 @@ public class VampireMessages {
      * @param message The debug message to log.
      */
     public static void debug(String message) {
-        // Check if debug mode is enabled in the main config.
-        if (plugin.getVampireConfig() != null && plugin.getVampireConfig().isDebug()) {
+        // Default to not logging if plugin or config is unavailable
+        boolean shouldLog = false;
+        if (plugin != null) { // Check if VampireMessages.init() has been called
+            VampireConfig config = plugin.getVampireConfig();
+            // Check if config object exists AND its debug flag is true
+            if (config != null && config.isDebug()) {
+                shouldLog = true;
+            }
+        }
+
+        if (shouldLog) {
+            // We already know plugin is not null if shouldLog is true
             plugin.getLogger().info("[DEBUG] " + message);
         }
+        // If shouldLog is false (due to plugin being null, config being null,
+        // or debug being false), nothing is logged.
     }
     
     /**

@@ -49,8 +49,16 @@ tasks {
 
     // Configure shadowJar
     shadowJar {
-        enableRelocation = true
         archiveClassifier.set("")
+        
+        // Relocate common dependencies to avoid conflicts
+        relocate("com.zaxxer.hikari", "org.clockworx.vampire.lib.hikari")
+        relocate("org.hibernate", "org.clockworx.vampire.lib.hibernate")
+        relocate("javax.persistence", "org.clockworx.vampire.lib.persistence")
+        relocate("jakarta.persistence", "org.clockworx.vampire.lib.jakarta.persistence") // For newer Hibernate
+        relocate("org.sqlite", "org.clockworx.vampire.lib.sqlite")
+        relocate("org.jboss.logging", "org.clockworx.vampire.lib.jboss.logging")
+        // Add other potential conflicts if needed (e.g., Jackson, Guava, etc.)
     }
 
     // Configure jar task
@@ -81,7 +89,7 @@ tasks {
     
     // Process resources
     processResources {
-        filesMatching("plugin.yml") {
+        filesMatching(listOf("plugin.yml", "config.yml",)) {
             expand(
                 "version" to project.version
             )
