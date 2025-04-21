@@ -8,6 +8,7 @@ import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.util.VampireMessages;
+import org.clockworx.vampire.util.FxUtil;
 
 import java.util.UUID;
 import java.util.Map;
@@ -538,10 +539,7 @@ public class VampireManager {
         vp.setLastShriekTime(now); // Update timestamp
 
         // Apply Effects (Sound, Particles, Debuffs)
-        // Maybe move this to a separate FxUtil or keep in manager?
-        player.getWorld().playSound(player.getLocation(), plugin.getVampireConfig().getShriekSound(), 1.0f, 1.0f);
-        player.getWorld().strikeLightningEffect(player.getLocation()); // Optional flashy effect
-        player.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, player.getLocation(), 50, 1, 1, 1, 0.1);
+        FxUtil.playShriekEffect(player); // Use centralized method
         
         // Apply effects to nearby players (configurable radius?)
         int radius = 10; // Example radius

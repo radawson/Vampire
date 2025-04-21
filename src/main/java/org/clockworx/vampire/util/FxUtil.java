@@ -317,22 +317,23 @@ public class FxUtil
 	}
 
 	/**
-	 * Plays a sound at a specific location.
+	 * Plays a sound at a specific location using its string key.
 	 * 
 	 * @param location The {@link Location} to play the sound at. Can be null.
-	 * @param sound The {@link Sound} to play.
+	 * @param soundKey The string key of the sound (e.g., "minecraft:entity.player.levelup").
 	 * @param volume The volume of the sound (1.0 is default).
 	 * @param pitch The pitch of the sound (1.0 is default).
 	 */
-	public static void playSound(Location location, Sound sound, float volume, float pitch) {
-		// Safety check for null location
-		if (location == null) return;
-		location.getWorld().playSound(location, sound, volume, pitch);
+	public static void playSound(Location location, String soundKey, float volume, float pitch) {
+		// Safety check for null location or empty key
+		if (location == null || soundKey == null || soundKey.isEmpty()) return;
+		// Use the version of playSound that accepts a String key
+		location.getWorld().playSound(location, soundKey, volume, pitch);
 	}
 
 	/**
-	 * Plays a combined particle and sound effect typically used for vampire transformation.
-	 * Spawns smoke particles and plays an Enderman teleport sound.
+	 * Plays the combined particle and sound effect for vampire transformation.
+	 * Uses LARGE_SMOKE particles and the sound defined by config `vampire.shriek.sound_key`.
 	 * 
 	 * @param player The {@link Player} undergoing the effect. Can be null.
 	 */
@@ -342,7 +343,9 @@ public class FxUtil
 		Location loc = player.getLocation();
 		// Use the generic particle and sound methods for consistency.
 		playParticle(loc, Particle.LARGE_SMOKE, 20, 0.5, 1, 0.5, 0.1); // Smoke spread wider vertically
-		playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 0.5f); // Low pitch teleport sound
+		// Get sound key from config
+		String soundKey = plugin.getVampireConfig().getShriekSoundKey(); // Use the new method
+		playSound(loc, soundKey, 1.0f, 0.5f); // Low pitch teleport sound (NOTE: Config defaults to ghast scream, sound here is enderman teleport pitch - consider aligning config/code)
 	}
 
 	/**
@@ -357,7 +360,8 @@ public class FxUtil
 		// Specific options for red dust particles.
 		DustOptions dustOptions = new DustOptions(Color.RED, 1.0f); // Red color, size 1.0
 		location.getWorld().spawnParticle(Particle.DUST, location, 10, 0.2, 0.2, 0.2, 0, dustOptions); // Tight cluster, no speed, specific data
-		playSound(location, Sound.ENTITY_PLAYER_HURT, 0.5f, 1.0f); // Quieter hurt sound, default pitch
+		// Assuming blood effect sound is not configurable, keep using enum for now
+		location.getWorld().playSound(location, Sound.ENTITY_PLAYER_HURT, 0.5f, 1.0f); // Quieter hurt sound, default pitch 
 	}
 
 	/**
@@ -369,9 +373,11 @@ public class FxUtil
 	public static void playInfectionEffect(Player player) {
 		// Safety check for null player
 		if (player == null) return;
-		Location loc = player.getLocation();
+		Location loc = player.getLocation(); // Get player location
 		playParticle(loc, Particle.WITCH, 30, 0.5, 1, 0.5, 0.1); // Witch particles spread vertically
-		playSound(loc, Sound.ENTITY_WITHER_AMBIENT, 0.5f, 2.0f); // Quieter wither sound, high pitch
+		// Assuming infection effect sound is not configurable, keep using enum for now
+		// location.getWorld().playSound(loc, "minecraft:sound.entity.zombie.infect", 0.5f, 2.0f); // Quieter wither sound, high pitch
+		loc.getWorld().playSound(loc, "minecraft:entity.zombie.infect", 0.5f, 2.0f); // Use loc and corrected sound key
 	}
 
 	/**
@@ -383,8 +389,73 @@ public class FxUtil
 	public static void playCureEffect(Player player) {
 		// Safety check for null player
 		if (player == null) return;
-		Location loc = player.getLocation();
+		Location loc = player.getLocation(); // Get player location
 		playParticle(loc, Particle.ENTITY_EFFECT, 30, 0.5, 1, 0.5, 0.1); // Potion swirls spread vertically
-		playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f); // Default level up sound
+		// Assuming cure effect sound is not configurable, keep using enum for now
+		// location.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f); // Default level up sound
+		loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f); // Use loc
+	}
+
+	// --- New Centralized Effect Methods ---
+
+	/**
+	 * Plays the sound and particle effects associated with a successful Dark Altar ritual.
+	 * Uses sound key from config: `altar.dark.success_sound_key`
+	 * 
+	 * @param player The player who successfully used the altar.
+	 */
+	public static void playAltarDarkSuccessEffect(Player player) {
+		if (player == null) return;
+		Location loc = player.getLocation();
+		String soundKey = plugin.getVampireConfig().getAltarDarkSuccessSoundKey();
+		playSound(loc, soundKey, 1.0f, 0.5f); // Example volume/pitch
+		// Add associated particles (e.g., the Wither ambient particles from original code)
+		playParticle(loc, Particle.WITCH, 20, 0.5, 0.8, 0.5, 0.1);
+	}
+
+	/**
+	 * Plays the sound and particle effects associated with a successful Light Altar ritual.
+	 * Uses sound key from config: `altar.light.success_sound_key`
+	 * 
+	 * @param player The player who successfully used the altar.
+	 */
+	public static void playAltarLightSuccessEffect(Player player) {
+		if (player == null) return;
+		Location loc = player.getLocation();
+		String soundKey = plugin.getVampireConfig().getAltarLightSuccessSoundKey();
+		playSound(loc, soundKey, 1.0f, 1.2f); // Example volume/pitch
+		// Add associated particles (e.g., beacon power select particles?)
+		// FxUtil.runHeal(player); // Or maybe the heal particles?
+		playParticle(loc, Particle.HAPPY_VILLAGER, 25, 0.5, 0.8, 0.5, 0.1); // From original weaken curse case
+
+	}
+	
+	/**
+	 * Plays the sound effect for a failed altar ritual (e.g., player moved).
+	 * Uses sound key from config: `altar.fail_sound_key`
+	 * 
+	 * @param location The location where the failure occurred.
+	 */
+	public static void playAltarFailEffect(Location location) {
+		if (location == null) return;
+		String soundKey = plugin.getVampireConfig().getAltarFailSoundKey();
+		playSound(location, soundKey, 0.5f, 0.5f); // Example volume/pitch (low pitch teleport)
+		// Optional: Add failure particles?
+	}
+
+	/**
+	 * Plays the sound and particle effects associated with the Shriek ability.
+	 * Uses sound key from config: `vampire.shriek.sound_key`
+	 * 
+	 * @param player The player performing the shriek.
+	 */
+	public static void playShriekEffect(Player player) {
+		if (player == null) return;
+		Location loc = player.getLocation();
+		String soundKey = plugin.getVampireConfig().getShriekSoundKey();
+		playSound(loc, soundKey, 1.0f, 1.0f); // Default volume/pitch for shriek sound
+		// Add particles from original shriek code
+		player.getWorld().strikeLightningEffect(loc); 
+		playParticle(loc, Particle.LARGE_SMOKE, 50, 1, 1, 1, 0.1);
 	}
 }

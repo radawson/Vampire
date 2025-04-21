@@ -290,7 +290,7 @@ public class AltarManager {
                 // Check: Did the player move? 
                 if (altar.hasPlayerMoved(currentPlayer)) {
                     VampireMessages.sendLocalized(currentPlayer, "altar.fail.moved");
-                    FxUtil.playSound(currentPlayer.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 0.5f); // Fail sound
+                    FxUtil.playAltarFailEffect(currentPlayer.getLocation()); // Use centralized method
                     altar.unregisterPlayerLocation(currentPlayer); // Clean up tracking data
                     return; // Stop the task
                 }
@@ -300,7 +300,7 @@ public class AltarManager {
                 if (!altar.consumeResources(currentVP, currentPlayer)) {
                     // Specific message should be sent by consumeResources method
                     VampireMessages.debug("Resource consumption failed for " + currentPlayer.getName() + " at the last moment.");
-                    // Play fail sound? Already handled by consumeResources likely.
+                    FxUtil.playAltarFailEffect(currentPlayer.getLocation()); // Play fail effect on resource consumption failure too
                     altar.unregisterPlayerLocation(currentPlayer);
                     return; 
                 }

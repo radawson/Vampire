@@ -79,7 +79,6 @@ public class AltarDark extends AltarAbstract {
         
         // --- Set Abstract Properties ---
         this.usePermission = VampirePermission.ALTAR_DARK; // Reference permission constant
-        this.successSound = Sound.ENTITY_WITHER_SPAWN; // Example sound
         this.successMessageKey = "altar.dark.success"; // Need to add this key to en.yml
 
         // --- Configure Channeling --- (Needs config keys: altars.dark.channeling_delay_ticks, altars.dark.max_movement_distance)
@@ -167,7 +166,7 @@ public class AltarDark extends AltarAbstract {
     public void applyStartEffects(VampirePlayer vp, Player player) {
         VampireMessages.sendLocalized(player, "altar.dark.start_ritual"); 
         FxUtil.ensure(PotionEffectType.BLINDNESS, player, getChannelingDelayTicks() + 20);
-        FxUtil.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.0f, 0.5f);
+        FxUtil.playSound(player.getLocation(), "minecraft:sound.respawn_anchor_charge", 1.0f, 0.5f);
         FxUtil.playParticle(player.getEyeLocation(), Particle.SMOKE, 10, 0.5, 0.5, 0.5, 0.01); 
     }
 
@@ -232,22 +231,22 @@ public class AltarDark extends AltarAbstract {
             } else if (!wasInfected && finalInfectionLevel > 0) {
                  VampireMessages.sendLocalized(player, "altar.dark.effect.initial_infection"); 
                  FxUtil.playInfectionEffect(player);
-            } else {
-                 FxUtil.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.8f, 1.5f);
-                 FxUtil.playParticle(player.getEyeLocation(), Particle.WITCH, 20, 0.5, 0.8, 0.5, 0.1);
             }
 
+            // Play specific success effect IF the player wasn't just turned into a vampire
+            // (playVampireEffect already includes sounds/particles)
             if (!(finalInfectionLevel >= 1.0 && !vampirePlayer.isVampire())) {
-                 FxUtil.playSound(player.getLocation(), getSound(), 1.0f, 0.5f);
+                 FxUtil.playAltarDarkSuccessEffect(player); // Use centralized method
             }
-             if(getSuccessMessageKey() != null && !getSuccessMessageKey().isEmpty()){
+
+            if(getSuccessMessageKey() != null && !getSuccessMessageKey().isEmpty()){
                  VampireMessages.sendLocalized(player, getSuccessMessageKey());
              }
 
         } else {
             VampireMessages.sendLocalized(player, "altar.fail.cancelled"); 
             ResourceUtil.playerAdd(player, this.resources);
-             FxUtil.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 0.5f);
+            FxUtil.playAltarFailEffect(player.getLocation()); // Use centralized method
         }
     }
 } 

@@ -100,7 +100,6 @@ public class AltarLight extends AltarAbstract {
         
         // --- Set Abstract Properties ---
         this.usePermission = VampirePermission.ALTAR_LIGHT; // Reference permission constant
-        this.successSound = Sound.ENTITY_PLAYER_LEVELUP; // Example sound
         this.successMessageKey = "altar.light.success"; // Need to add this key to en.yml
 
         // --- Configure Channeling --- (Needs config keys: altars.light.channeling_delay_ticks, altars.light.max_movement_distance)
@@ -184,7 +183,7 @@ public class AltarLight extends AltarAbstract {
     public void applyStartEffects(VampirePlayer vp, Player player) {
         VampireMessages.sendLocalized(player, "altar.light.start_ritual");
         FxUtil.ensure(PotionEffectType.GLOWING, player, getChannelingDelayTicks() + 20);
-        FxUtil.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.5f);
+        FxUtil.playSound(player.getLocation(), "minecraft:sound.beacon.activate", 0.8f, 1.5f);
         FxUtil.playParticle(player.getEyeLocation(), Particle.END_ROD, 15, 0.5, 0.5, 0.5, 0.01);
     }
 
@@ -240,11 +239,8 @@ public class AltarLight extends AltarAbstract {
             } else if (wasVampire && finalInfectionLevel < 1.0) {
                  manager.setVampireStatus(vampirePlayer.getUuid(), false, "Infection reduced by Light Altar");
                  VampireMessages.sendLocalized(player, "altar.light.effect.weakened_curse");
-                 FxUtil.playSound(player.getLocation(), Sound.ENTITY_ZOMBIE_VILLAGER_CURE, 1.0f, 1.2f);
-                 FxUtil.playParticle(player.getEyeLocation(), Particle.HAPPY_VILLAGER, 25, 0.5, 0.8, 0.5, 0.1);
             } else {
                 VampireMessages.sendLocalized(player, "altar.light.effect.decrease_infection");
-                FxUtil.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 1.5f);
                 FxUtil.runHeal(player);
             }
             
@@ -256,17 +252,18 @@ public class AltarLight extends AltarAbstract {
                 player.setHealth(Math.min(maxHealth, player.getHealth() + 4.0));
             }
             
-            if (finalInfectionLevel > 0.0) { 
-                FxUtil.playSound(player.getLocation(), getSound(), 1.0f, 1.2f);
+            if (!(finalInfectionLevel <= 0.0)) { 
+                FxUtil.playAltarLightSuccessEffect(player);
             }
-             if(getSuccessMessageKey() != null && !getSuccessMessageKey().isEmpty()){
-                 VampireMessages.sendLocalized(player, getSuccessMessageKey());
-             }
+
+            if(getSuccessMessageKey() != null && !getSuccessMessageKey().isEmpty()){
+                VampireMessages.sendLocalized(player, getSuccessMessageKey());
+            }
 
         } else {
              VampireMessages.sendLocalized(player, "altar.fail.cancelled");
             ResourceUtil.playerAdd(player, this.resources);
-            FxUtil.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 0.5f);
+            FxUtil.playAltarFailEffect(player.getLocation());
         }
     }
 } 

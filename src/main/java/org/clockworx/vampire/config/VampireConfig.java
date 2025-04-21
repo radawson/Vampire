@@ -7,6 +7,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.clockworx.vampire.VampirePlugin;
 import org.bukkit.entity.EntityType;
 import org.clockworx.vampire.util.VampireMessages;
@@ -753,11 +754,17 @@ public class VampireConfig {
     }
     
     public long getShriekCooldown() {
-        return config.getLong("vampire.shriek.cooldown");
+        return config.getLong("vampire.shriek.cooldown_seconds", 60) * 1000L; // Convert seconds to ms
     }
     
-    public Sound getShriekSound() {
-        return Sound.valueOf(config.getString("vampire.shriek.sound"));
+    /**
+     * Gets the sound key string to play when a player uses the shriek ability.
+     * Defaults to "minecraft:entity.ghast.scream".
+     * @return The sound key string.
+     */
+    public String getShriekSoundKey() {
+        // Read the key string directly, remove Sound.valueOf
+        return config.getString("vampire.shriek.sound_key", "minecraft:entity.ghast.scream");
     }
     
     public long getTradeOfferTolerance() {
@@ -1104,5 +1111,36 @@ public class VampireConfig {
     // --- Getter for Sunlight Base Damage --- 
     public double getSunlightBaseDamage() {
         return sunlightBaseDamage;
+    }
+
+    /**
+     * Gets the sound key string for successful Dark Altar activation.
+     * Defaults to "minecraft:entity.wither.spawn".
+     * @return The sound key string.
+     */
+    public String getAltarDarkSuccessSoundKey() {
+        return config.getString("altar.dark.success_sound_key", "minecraft:entity.wither.spawn");
+    }
+
+    /**
+     * Gets the sound key string for successful Light Altar activation.
+     * Defaults to "minecraft:entity.player.levelup".
+     * @return The sound key string.
+     */
+    public String getAltarLightSuccessSoundKey() {
+        return config.getString("altar.light.success_sound_key", "minecraft:entity.player.levelup");
+    }
+
+    /**
+     * Gets the sound key string for failed altar rituals (movement, etc.).
+     * Defaults to "minecraft:entity.enderman.teleport".
+     * @return The sound key string.
+     */
+    public String getAltarFailSoundKey() {
+        return config.getString("altar.fail_sound_key", "minecraft:entity.enderman.teleport");
+    }
+
+    public double getCombatInfectionChance() {
+        return config.getDouble("vampire.combat.infectRisk.withIntent", 0.3);
     }
 } 
