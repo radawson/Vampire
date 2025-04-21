@@ -6,8 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.FxUtil;
-import org.clockworx.vampire.util.ResourceUtil;
+import org.clockworx.vampire.util.SunUtil;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class VampireTask extends BukkitRunnable {
     
     private final VampirePlugin plugin;
+    private final VampireManager vampireManager;
     private int taskId = -1;
     private long lastRun = 0;
     
@@ -29,6 +32,7 @@ public class VampireTask extends BukkitRunnable {
      */
     public VampireTask(VampirePlugin plugin) {
         this.plugin = plugin;
+        this.vampireManager = plugin.getVampireManager();
     }
     
     /**
@@ -60,21 +64,18 @@ public class VampireTask extends BukkitRunnable {
     public void run() {
         long now = System.currentTimeMillis();
         long delta = now - lastRun;
+        if (delta <= 0) delta = 1;
         lastRun = now;
         
-        // Update all online players
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
             
-            // Load player data asynchronously
-            plugin.getVampirePlayer(uuid).thenAccept(vampirePlayer -> {
-                if (vampirePlayer == null) {
-                    return;
-                }
-                
-                // Update player state
-                updatePlayer(vampirePlayer, delta);
-            });
+            VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(uuid);
+            if (vampirePlayer == null) {
+                continue;
+            }
+            
+            updatePlayer(vampirePlayer, delta);
         }
     }
     
@@ -90,67 +91,48 @@ public class VampireTask extends BukkitRunnable {
             return;
         }
         
-        // Skip if player is in creative mode or has permission to bypass
         if (player.getGameMode() == org.bukkit.GameMode.CREATIVE || 
             player.hasPermission("vampire.bypass")) {
             return;
         }
         
-        // Convert delta to seconds
         double deltaSeconds = delta / 1000.0;
         
-        // Update blood management
-        updateBlood(vampirePlayer, deltaSeconds);
-        
-        // Update bloodlust
-        updateBloodlust(vampirePlayer, deltaSeconds);
-        
-        // Update night vision
-        updateNightVision(vampirePlayer, deltaSeconds);
-        
-        // Update infection progression
-        updateInfection(vampirePlayer, deltaSeconds);
-        
-        // Update environmental damage
-        updateEnvironmentalDamage(vampirePlayer, deltaSeconds);
-        
-        // Save player data periodically
-        if (System.currentTimeMillis() % 60000 < delta) { // Save every minute
-            vampirePlayer.save();
-        }
+        updateBlood(vampirePlayer, player, deltaSeconds);
+        updateBloodlust(vampirePlayer, player, deltaSeconds);
+        updateNightVision(vampirePlayer, player, deltaSeconds);
+        updateInfection(vampirePlayer, player, deltaSeconds);
+        updateEnvironmentalDamage(vampirePlayer, player, deltaSeconds);
+
+        // NEW: Update food bar visual
+        updateFoodBarVisual(vampirePlayer, player);
     }
     
     /**
      * Updates a player's blood management.
      * 
      * @param vampirePlayer The player to update
+     * @param player The player object
      * @param deltaSeconds The time since the last update in seconds
      */
-    private void updateBlood(VampirePlayer vampirePlayer, double deltaSeconds) {
+    private void updateBlood(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
         if (!vampirePlayer.isVampire()) {
             return;
         }
         
-        Player player = vampirePlayer.getPlayer();
-        if (player == null) {
-            return;
-        }
-        
-        // Decrease blood over time
         double bloodDecrease = plugin.getVampireConfig().getBloodDecreaseRate() * deltaSeconds;
-        vampirePlayer.setBlood(Math.max(0, vampirePlayer.getBlood() - bloodDecrease));
+        vampirePlayer.setBloodInternal(vampirePlayer.getBlood() - bloodDecrease);
         
-        // Apply effects based on blood level
         if (vampirePlayer.getBlood() < plugin.getVampireConfig().getLowBloodThreshold()) {
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                 org.bukkit.potion.PotionEffectType.WEAKNESS,
-                (int)(20 * deltaSeconds),
+                (int)(40 * deltaSeconds),
                 1,
-                false,
+                true,
                 false
             ));
             
-            ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("blood.low"));
+            VampireMessages.sendLocalized(player, "blood.low");
         }
     }
     
@@ -158,52 +140,47 @@ public class VampireTask extends BukkitRunnable {
      * Updates a player's bloodlust state.
      * 
      * @param vampirePlayer The player to update
+     * @param player The player object
      * @param deltaSeconds The time since the last update in seconds
      */
-    private void updateBloodlust(VampirePlayer vampirePlayer, double deltaSeconds) {
+    private void updateBloodlust(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
         if (!vampirePlayer.isVampire()) {
             return;
         }
         
-        Player player = vampirePlayer.getPlayer();
-        if (player == null) {
-            return;
-        }
+        boolean currentlyBloodlusting = vampirePlayer.isBloodlusting();
+        boolean shouldBeBloodlusting = vampirePlayer.getBlood() < plugin.getVampireConfig().getBloodlustThreshold();
         
-        // Check if player should enter bloodlust
-        if (!vampirePlayer.isBloodlusting() && vampirePlayer.getBlood() < plugin.getVampireConfig().getBloodlustThreshold()) {
+        if (!currentlyBloodlusting && shouldBeBloodlusting) {
             vampirePlayer.setBloodlusting(true);
-            ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("bloodlust.start"));
+            VampireMessages.sendLocalized(player, "bloodlust.start");
             FxUtil.playVampireEffect(player);
+            currentlyBloodlusting = true;
         }
         
-        // Apply bloodlust effects
-        if (vampirePlayer.isBloodlusting()) {
-            // Increase speed and strength
-            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                org.bukkit.potion.PotionEffectType.SPEED, 
-                (int)(20 * deltaSeconds), 
-                1, 
-                false, 
-                false
-            ));
-            
-            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                org.bukkit.potion.PotionEffectType.INCREASE_DAMAGE, 
-                (int)(20 * deltaSeconds), 
-                0, 
-                false, 
-                false
-            ));
-            
-            // Decrease blood over time during bloodlust
+        if (currentlyBloodlusting) {
             double bloodDecrease = plugin.getVampireConfig().getBloodlustBloodDecrease() * deltaSeconds;
-            vampirePlayer.setBlood(Math.max(0, vampirePlayer.getBlood() - bloodDecrease));
+            vampirePlayer.setBloodInternal(vampirePlayer.getBlood() - bloodDecrease);
             
-            // Exit bloodlust if blood is restored
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.SPEED,
+                (int)(40 * deltaSeconds),
+                1,
+                true,
+                false
+            ));
+            
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.STRENGTH,
+                (int)(40 * deltaSeconds),
+                0,
+                true,
+                false
+            ));
+            
             if (vampirePlayer.getBlood() >= plugin.getVampireConfig().getBloodlustThreshold()) {
                 vampirePlayer.setBloodlusting(false);
-                ResourceUtil.sendSuccess(player, plugin.getLanguageConfig().getMessage("bloodlust.end"));
+                VampireMessages.sendLocalized(player, "bloodlust.end");
             }
         }
     }
@@ -212,43 +189,43 @@ public class VampireTask extends BukkitRunnable {
      * Updates a player's night vision state.
      * 
      * @param vampirePlayer The player to update
+     * @param player The player object
      * @param deltaSeconds The time since the last update in seconds
      */
-    private void updateNightVision(VampirePlayer vampirePlayer, double deltaSeconds) {
+    private void updateNightVision(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
         if (!vampirePlayer.isVampire()) {
             return;
         }
         
-        Player player = vampirePlayer.getPlayer();
-        if (player == null) {
+        if (!plugin.getVampireConfig().isNightVisionEnabled()) {
             return;
         }
         
         World world = player.getWorld();
         boolean isNight = world.getTime() >= 13000 || world.getTime() <= 23000;
+        boolean currentlyUsing = vampirePlayer.isUsingNightVision();
         
-        // Check if player should use night vision
-        if (!vampirePlayer.isUsingNightVision() && isNight) {
+        if (!currentlyUsing && isNight) {
             vampirePlayer.setUsingNightVision(true);
-            ResourceUtil.sendInfo(player, plugin.getLanguageConfig().getMessage("nightvision.start"));
+            VampireMessages.sendLocalized(player, "nightvision.start");
+            currentlyUsing = true;
         }
         
-        // Apply night vision
-        if (vampirePlayer.isUsingNightVision() && isNight) {
+        if (currentlyUsing && isNight) {
+            int level = plugin.getVampireConfig().getNightVisionLevel();
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                org.bukkit.potion.PotionEffectType.NIGHT_VISION, 
-                (int)(20 * deltaSeconds), 
-                0, 
-                false, 
+                org.bukkit.potion.PotionEffectType.NIGHT_VISION,
+                (int)(40 * deltaSeconds),
+                level - 1,
+                true,
                 false
             ));
         }
         
-        // Disable night vision during day
-        if (vampirePlayer.isUsingNightVision() && !isNight) {
+        if (currentlyUsing && !isNight) {
             vampirePlayer.setUsingNightVision(false);
             player.removePotionEffect(org.bukkit.potion.PotionEffectType.NIGHT_VISION);
-            ResourceUtil.sendInfo(player, plugin.getLanguageConfig().getMessage("nightvision.end"));
+            VampireMessages.sendLocalized(player, "nightvision.end");
         }
     }
     
@@ -256,42 +233,43 @@ public class VampireTask extends BukkitRunnable {
      * Updates a player's infection progression.
      * 
      * @param vampirePlayer The player to update
+     * @param player The player object
      * @param deltaSeconds The time since the last update in seconds
      */
-    private void updateInfection(VampirePlayer vampirePlayer, double deltaSeconds) {
+    private void updateInfection(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
         if (vampirePlayer.isVampire() || !vampirePlayer.isInfected()) {
             return;
         }
         
-        Player player = vampirePlayer.getPlayer();
-        if (player == null) {
-            return;
-        }
-        
-        // Increase infection over time
         double infectionIncrease = plugin.getVampireConfig().getInfectionRate() * deltaSeconds;
-        vampirePlayer.setInfectionLevel(Math.min(1.0, vampirePlayer.getInfectionLevel() + infectionIncrease));
+        vampirePlayer.setInfectionLevelInternal(vampirePlayer.getInfectionLevel() + infectionIncrease);
         
-        // Check infection level
         if (vampirePlayer.getInfectionLevel() > 0.5) {
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                org.bukkit.potion.PotionEffectType.WEAKNESS, 
-                (int)(20 * deltaSeconds), 
-                0, 
-                false, 
+                org.bukkit.potion.PotionEffectType.WEAKNESS,
+                (int)(40 * deltaSeconds),
+                0,
+                true,
                 false
             ));
         }
         
-        // Convert to vampire if infection reaches 100%
+        if (vampirePlayer.getInfectionLevel() > 0.8) {
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.SLOWNESS,
+                (int)(40 * deltaSeconds),
+                0,
+                true,
+                false
+            ));
+        }
+        
         if (vampirePlayer.getInfectionLevel() >= 1.0) {
-            vampirePlayer.setVampire(true);
-            vampirePlayer.setInfectionLevel(0.0);
-            ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("infection.complete"));
+            VampireMessages.debug("Player " + player.getName() + " reached full infection. Converting...");
+            vampireManager.setVampireStatus(vampirePlayer.getUuid(), true, "Infection");
             FxUtil.playVampireEffect(player);
             
-            // Broadcast to server
-            ResourceUtil.broadcastMessage(plugin.getLanguageConfig().getMessage("infection.broadcast")
+            VampireMessages.broadcast(plugin.getLanguageConfig().getMessage("infection.broadcast")
                 .replace("%player%", player.getName()));
         }
     }
@@ -300,47 +278,78 @@ public class VampireTask extends BukkitRunnable {
      * Updates a player's environmental damage.
      * 
      * @param vampirePlayer The player to update
+     * @param player The player object
      * @param deltaSeconds The time since the last update in seconds
      */
-    private void updateEnvironmentalDamage(VampirePlayer vampirePlayer, double deltaSeconds) {
+    private void updateEnvironmentalDamage(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
         if (!vampirePlayer.isVampire()) {
             return;
         }
         
-        Player player = vampirePlayer.getPlayer();
-        if (player == null) {
+        if (!plugin.getVampireConfig().isSunDamage()) {
+            return;
+        }
+
+        double irradiation = SunUtil.calcPlayerIrradiation(player);
+
+        if (irradiation <= 0) {
             return;
         }
         
-        World world = player.getWorld();
-        boolean isNight = world.getTime() >= 13000 || world.getTime() <= 23000;
-        
-        // Apply sunlight damage during day
-        if (!isNight && player.getLocation().getBlock().getLightFromSky() > 10) {
-            // Check if player is in water or has protection
-            if (player.isInWater() || player.getLocation().getBlock().getType().name().contains("WATER")) {
-                // Water provides some protection but still causes damage
-                double damage = plugin.getVampireConfig().getSunlightDamage() * 0.5 * deltaSeconds;
-                player.damage(damage);
-                ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("sunlight.water"));
-            } else if (player.getInventory().getHelmet() != null && 
-                      player.getInventory().getHelmet().getType().name().contains("HELMET")) {
-                // Helmets provide some protection
-                double damage = plugin.getVampireConfig().getSunlightDamage() * 0.7 * deltaSeconds;
-                player.damage(damage);
-                ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("sunlight.helmet"));
-            } else {
-                // Full sunlight damage
-                double damage = plugin.getVampireConfig().getSunlightDamage() * deltaSeconds;
-                player.damage(damage);
-                ResourceUtil.sendWarning(player, plugin.getLanguageConfig().getMessage("sunlight.damage"));
-                
-                // Set player on fire
-                FxUtil.ensureBurn(player, (int)(20 * deltaSeconds));
+        double baseDamagePerSecond = plugin.getVampireConfig().getSunlightBaseDamage();
+
+        double damage = baseDamagePerSecond * irradiation * deltaSeconds;
+
+        if (damage > 0) {
+            VampireMessages.debug("Applying sun damage to " + player.getName() + ": " + damage + ", Irradiation: " + irradiation);
+            player.damage(damage); 
+            
+            if (irradiation > 0.7) {
+                VampireMessages.sendLocalized(player, "sunlight.burning");
+            } else if (irradiation > 0.2) {
+                VampireMessages.sendLocalized(player, "sunlight.uncomfortable");
+            }
+
+            if (irradiation > 0.8) { 
+                FxUtil.ensureBurn(player, Math.max(1, (int)(20 * deltaSeconds))); 
             }
             
-            // Play effects
-            FxUtil.playParticle(player.getLocation(), org.bukkit.Particle.FLAME, 10, 0.2, 0.2, 0.2, 0.1);
+            int particleCount = (int) Math.max(1, Math.min(20, irradiation * 15));
+            FxUtil.playParticle(player.getEyeLocation(), org.bukkit.Particle.FLAME, particleCount, 0.3, 0.3, 0.3, 0.05);
+        }
+    }
+
+    /**
+     * Updates the player's food bar to visually represent their blood level.
+     *
+     * @param vampirePlayer The player to update.
+     * @param player The player object.
+     */
+    private void updateFoodBarVisual(VampirePlayer vampirePlayer, Player player) {
+        if (!vampirePlayer.isVampire()) {
+            // If somehow called for a non-vampire, do nothing or reset to default?
+            // For now, do nothing.
+            return;
+        }
+
+        double currentBlood = vampirePlayer.getBlood();
+        double maxBlood = vampireManager.getEffectiveMaxBlood(vampirePlayer);
+        double bloodPercentage = (maxBlood > 0) ? (currentBlood / maxBlood) : 0.0;
+
+        // Scale to the 0-20 food bar range
+        int visualFoodLevel = (int) Math.round(bloodPercentage * 20.0);
+        visualFoodLevel = Math.max(0, Math.min(20, visualFoodLevel)); // Clamp just in case
+
+        // Only update if the visual level needs changing
+        if (player.getFoodLevel() != visualFoodLevel) {
+            player.setFoodLevel(visualFoodLevel);
+             VampireMessages.debug("Set food bar visual for " + player.getName() + " to " + visualFoodLevel + " based on blood " + currentBlood + "/" + maxBlood);
+        }
+        
+        // Keep saturation high to prevent visual shaking/regen attempts
+        // (Set it even if food level didn't change, as saturation might drop otherwise)
+        if (player.getSaturation() < 10f) { // Only set if it's low to avoid unnecessary updates
+             player.setSaturation(20f);
         }
     }
 } 

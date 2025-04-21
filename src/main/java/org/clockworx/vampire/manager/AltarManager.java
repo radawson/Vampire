@@ -1,92 +1,42 @@
-package org.clockworx.vampire.altar;
+package org.clockworx.vampire.manager;
 
-import org.bukkit.Bukkit;
+import org.clockworx.vampire.VampirePlugin;
+import org.bukkit.block.Block;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.event.EventAltarUse;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.FxUtil;
-import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.VampirePermission;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.Sound;
+import org.bukkit.event.block.Action;
+import org.bukkit.inventory.ItemStack;
+import org.clockworx.vampire.altar.AltarAbstract;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.util.VampireMessages;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.event.EventAltarUse;
+import org.clockworx.vampire.util.FxUtil;
 
-/**
- * Manages the registration and interaction logic for all defined Altars 
- * within the Vampire plugin.
- * 
- * <p>This class is typically instantiated once by the main plugin class. 
- * It initializes all known altar types (e.g., {@link AltarDark}, {@link AltarLight}) 
- * and provides a central point ({@link #handleBlockInteract(Block, Player)}) 
- * for checking if a player interaction corresponds to the use of any valid altar structure.</p>
- */
 public class AltarManager {
-    
-    /** Reference to the main VampirePlugin instance. */
     private final VampirePlugin plugin;
-    /** Reference to the VampireManager for accessing player data. */
     private final VampireManager vampireManager;
-    /** Reference to the VampireConfig. */
-    private final VampireConfig config;
-    
-    /** 
-     * A list holding all registered AltarAbstract instances. 
-     * Interactions are checked against each altar in this list.
-     */
     private final List<AltarAbstract> altars;
-    
-    /**
-     * Constructs a new AltarManager.
-     * Initializes the list of altars and registers the default altar types 
-     * (currently AltarDark and AltarLight).
-     * 
-     * @param plugin The main {@link VampirePlugin} instance.
-     */
+
     public AltarManager(VampirePlugin plugin) {
         this.plugin = plugin;
-        // Get manager/config references from the plugin
-        this.vampireManager = plugin.getVampireManager(); 
-        this.config = plugin.getVampireConfig();
-        this.altars = new ArrayList<>();
-        
-        // --- Register all known Altar types ---
-        // Each altar reads its own configuration upon instantiation.
-        if (config.isAltarsEnabled()) { // Only register if altars are enabled in config
-            registerAltar(new AltarDark(plugin));
-            registerAltar(new AltarLight(plugin));
-            // Add future altars here...
-            plugin.getLogger().info("Registered " + altars.size() + " altars.");
-        } else {
-            plugin.getLogger().info("Altars are disabled in the config. No altars registered.");
-        }
-    }
-    
-    /**
-     * Registers a new altar instance to be managed.
-     * Adds the altar to the internal list, making it available for interaction checks.
-     * 
-     * @param altar The {@link AltarAbstract} instance to register.
-     */
-    public void registerAltar(AltarAbstract altar) {
-        if (altar != null) {
-            altars.add(altar);
-            VampireMessages.debug("Registered altar: " + altar.getName());
-        } else {
-            VampireMessages.error("Attempted to register a null altar!", null);
-        }
+        this.vampireManager = plugin.getVampireManager();
+        this.altars = Collections.unmodifiableList(plugin.getAltarManager().getAltarList());
     }
 
-    // --- Altar Determination and Validation --- (Helper Methods) ---
+    public List<AltarAbstract> getAltarList() {
+        return Collections.unmodifiableList(altars);
+    }
+    
+    // --- Altar Determination and Validation ---
 
     /**
      * Determines if the given block could be the core of any registered altar
@@ -97,7 +47,7 @@ public class AltarManager {
      *         and the structure matches, otherwise null.
      */
     private AltarAbstract determineAltarType(Block coreBlock) {
-        if (coreBlock == null || altars.isEmpty()) return null;
+        if (coreBlock == null) return null;
         Material coreMaterial = coreBlock.getType();
 
         for (AltarAbstract altar : altars) {
@@ -105,7 +55,7 @@ public class AltarManager {
             if (altar.getCoreMaterial() == coreMaterial) {
                 VampireMessages.debug("Potential " + altar.getName() + " altar found based on core material: " + coreMaterial);
                 // If core matches, validate the surrounding structure
-                if (isValidAltarStructure(coreBlock, altar)) {
+                if (isValidAltarStructure(coreBlock.getLocation(), altar)) {
                     VampireMessages.debug("Structure validated for " + altar.getName() + ".");
                     return altar; // Found a matching and valid altar
                 }
@@ -117,48 +67,38 @@ public class AltarManager {
     /**
      * Checks if the blocks around the core location form a valid altar structure
      * based on the specific altar's configuration.
-     * Uses helper methods from AltarAbstract for block scanning and counting.
      * 
-     * @param coreBlock The potential core block.
+     * @param coreLocation The location of the potential core block.
      * @param altar The specific AltarAbstract instance (used to get required materials/counts).
      * @return true if the structure is valid according to the altar's definition, false otherwise.
      */
-    private boolean isValidAltarStructure(Block coreBlock, AltarAbstract altar) {
+    private boolean isValidAltarStructure(Location coreLocation, AltarAbstract altar) {
         Map<Material, Integer> requiredCounts = altar.getMaterialCounts();
-        // If only the core material is required (or nothing specific), structure is inherently valid here.
         if (requiredCounts == null || requiredCounts.isEmpty() || (requiredCounts.size() == 1 && requiredCounts.containsKey(altar.getCoreMaterial()))) {
-             VampireMessages.debug("Altar " + altar.getName() + " has no specific structure requirements beyond the core block.");
-             return true; 
+             VampireMessages.debug("Altar " + altar.getName() + " has no required materials defined (excluding core). Assuming valid structure.");
+             return true; // No specific structure required beyond the core block itself.
         }
 
-        int searchRadius = config.getAltarSearchRadius();
-        double minRatio = config.getAltarMinRatio();
+        int searchRadius = plugin.getVampireConfig().getAltarSearchRadius();
+        double minRatio = plugin.getVampireConfig().getAltarMinRatio();
 
-        // 1. Get all non-air blocks within the search radius (excluding the core block itself for counting purposes? TBD)
-        // Let's use the static helper from AltarAbstract for now.
-        ArrayList<Block> blocks = AltarAbstract.getCubeBlocks(coreBlock, searchRadius);
+        // 1. Get all blocks within the search radius.
+        ArrayList<Block> blocks = AltarAbstract.getCubeBlocks(coreLocation.getBlock(), searchRadius);
 
         // 2. Count the materials found nearby that are required by this altar.
-        // We need the *deprecated* static countMaterials here, or reimplement its logic.
-        // Let's assume AltarAbstract still has the static helper for now.
-        @SuppressWarnings("deprecation")
         Map<Material, Integer> nearbyMaterialCounts = AltarAbstract.countMaterials(blocks, requiredCounts.keySet());
 
         // 3. Check overall ratio.
-        // Use the helper from AltarAbstract instance to calculate sum.
-        int requiredMaterialCountSum = altar.sumCollection(requiredCounts.values()); 
+        int requiredMaterialCountSum = altar.sumCollection(requiredCounts.values());
         int nearbyMaterialCountSum = altar.sumCollection(nearbyMaterialCounts.values());
-        
-        // Adjust required sum if core is part of the count, as it's not included in nearbyMaterialCountSum?
-        // This depends on whether getCubeBlocks includes the center block. Let's assume it does for now.
 
-        // Handle edge case where only the core block is listed in materials (should have been caught above, but defense)
+        // Handle edge case where only the core block is required (sum=1)
         if (requiredMaterialCountSum <= 1 && nearbyMaterialCountSum >= 1) {
-             return true; // Only core needed, and it's present
+             return true; // Only core needed, and it's present (implicit from initial check)
         }
         
         // Check ratio if more than just the core is needed
-        if (requiredMaterialCountSum > 0 && // Avoid division by zero
+        if (requiredMaterialCountSum > 1 && 
             (double)nearbyMaterialCountSum / requiredMaterialCountSum < minRatio) {
             VampireMessages.debug("Altar structure failed ratio check for " + altar.getName() + ". Found: " + nearbyMaterialCountSum + ", Required: " + requiredMaterialCountSum + ", Ratio Needed: " + minRatio);
             return false;
@@ -172,17 +112,16 @@ public class AltarManager {
              // This handles cases where the core block might be included in the configured count.
              if (missingCounts.size() == 1 && missingCounts.containsKey(altar.getCoreMaterial())) {
                  // The only missing block is the core, which isn't actually missing. Structure is valid.
-                  VampireMessages.debug("Altar structure specific counts check for " + altar.getName() + " passed (only core was technically missing in radius scan). Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
+                  VampireMessages.debug("Altar structure specific counts check for " + altar.getName() + " passed (only core was technically missing in radius scan).");
              } else {
-                 VampireMessages.debug("Altar structure failed specific counts check for " + altar.getName() + ". Missing: " + missingCounts + ". Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
+                 VampireMessages.debug("Altar structure failed specific counts check for " + altar.getName() + ". Missing: " + missingCounts);
                  return false;
              }
         }
 
-        VampireMessages.debug("Altar structure passed all checks for " + altar.getName() + ". Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
         return true; // All checks passed
     }
-    
+
     /**
      * Handles a player interacting with a block, checking if it triggers any registered altar.
      * This method should be called from a relevant event listener (e.g., PlayerInteractEvent).
@@ -195,15 +134,10 @@ public class AltarManager {
      *         {@code false} if it wasn't an altar interaction at all.
      */
     public boolean handleBlockInteract(Block block, Player player) {
-        // Optimization: Check if altars are enabled globally first
-        if (!config.isAltarsEnabled() || altars.isEmpty()) {
-            return false;
-        }
-
         VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(player.getUniqueId()); 
         if (vampirePlayer == null) {
              VampireMessages.debug("Altar interaction cancelled: VampirePlayer data not cached for " + player.getName());
-             return false; // Cannot proceed without player data
+             return false; 
         }
         
         // --- Determine Altar Type and Structure --- 
@@ -221,16 +155,14 @@ public class AltarManager {
         // --- Check Cancellation --- 
         if (event.isCancelled()) {
             VampireMessages.debug("Altar use event cancelled by listener for " + player.getName());
-            // Optionally send a generic cancelled message?
-            // VampireMessages.sendLocalized(player, "altar.fail.cancelled_by_event"); 
-            return true; // Mark as handled (was an altar attempt), but cancelled by event
+            return true; // Mark as handled (was an altar attempt), but cancelled
         }
 
         // --- Initial Checks (Post-Event) --- 
 
         // 1. Permission Check
-        if (!VampirePermission.has(player, altar.getUsePermission(), true)) { // Sends default no-perm message on fail
-             VampireMessages.debug("Player " + player.getName() + " lacks permission " + altar.getUsePermission() + " for " + altar.getName());
+        if (!VampirePermission.has(player, altar.getUsePermission(), true)) { // Send message on fail
+             VampireMessages.debug("Player " + player.getName() + " lacks permission " + altar.getUsePermission());
              return true; // Handled, but failed due to permissions
         }
         
@@ -263,26 +195,25 @@ public class AltarManager {
      * @param player The Player using the altar.
      */
     private void startAltarRitual(AltarAbstract altar, VampirePlayer vp, Player player) {
-        // Apply initial cosmetic/feedback effects (blindness, glowing, messages, sounds)
+        // Apply initial cosmetic/feedback effects (blindness, glowing, messages)
         altar.applyStartEffects(vp, player); // Delegate starting effects
         
         // Register location *before* scheduling the delayed task.
         altar.registerPlayerLocation(player); 
         
-        // Schedule the final effect application after the configured delay.
-        long delayTicks = altar.getChannelingDelayTicks();
+        // Schedule the final effect application after a delay.
+        long delayTicks = 60L; // TODO: Make this configurable (e.g., per altar or global)
         new BukkitRunnable() {
             @Override
             public void run() {
                 // Re-fetch player and VP data in case they logged off etc.
-                // Crucial: Use the UUID to get the current player instance
-                Player currentPlayer = Bukkit.getPlayer(vp.getUuid()); 
+                Player currentPlayer = Bukkit.getPlayer(vp.getUuid());
                 VampirePlayer currentVP = (currentPlayer != null) ? vampireManager.getCachedVampirePlayer(vp.getUuid()) : null;
 
                 // Check if player is still valid and online
-                if (currentPlayer == null || !currentPlayer.isValid() || currentVP == null) {
-                    VampireMessages.debug("Altar ritual cancelled for " + vp.getName() + ": Player logged off or became invalid.");
-                    altar.unregisterPlayerLocation(player); // Use original player ref for unregister if current is null
+                if (currentPlayer == null || currentVP == null) {
+                    VampireMessages.debug("Altar ritual cancelled for " + vp.getName() + ": Player logged off.");
+                    altar.unregisterPlayerLocation(player); // Clean up tracking data
                     return; 
                 }
 
@@ -296,36 +227,25 @@ public class AltarManager {
 
                 // --- Consume Resources --- 
                 // Consume resources ONLY if the player didn't move.
+                // Let the specific altar handle how resources are consumed.
                 if (!altar.consumeResources(currentVP, currentPlayer)) {
-                    // Specific message should be sent by consumeResources method
+                    // This check is slightly redundant if checkResources passed earlier,
+                    // but good practice in case inventory changed during the delay.
                     VampireMessages.debug("Resource consumption failed for " + currentPlayer.getName() + " at the last moment.");
-                    // Play fail sound? Already handled by consumeResources likely.
                     altar.unregisterPlayerLocation(currentPlayer);
                     return; 
                 }
-                // Update client inventory view *after* successful consumption
-                currentPlayer.updateInventory(); 
+                currentPlayer.updateInventory(); // Update client view
 
                 // --- Apply Final Effects --- 
                 // Player didn't move, resources consumed, apply the core altar effects.
-                VampireMessages.debug("Applying final effects for " + altar.getName() + " ritual for " + currentPlayer.getName());
-                // Pass the core block location or the player's current location? Let's pass player loc block.
+                // Note: applyEffects might still contain its own event firing for sub-actions
+                // like infection change, which should also be checked for cancellation.
                 altar.applyEffects(currentVP, currentPlayer, currentPlayer.getLocation().getBlock(), vampireManager);
                 
                 // --- Cleanup --- 
                 altar.unregisterPlayerLocation(currentPlayer); // Clean up tracking data after success
             }
         }.runTaskLater(plugin, delayTicks);
-    }
-    
-    /**
-     * Gets an unmodifiable list of all registered altars.
-     * Useful for commands or other parts of the plugin that might need to list available altars.
-     * 
-     * @return An unmodifiable {@link List} of all registered {@link AltarAbstract} instances.
-     */
-    public List<AltarAbstract> getAltars() {
-        // Return an unmodifiable view to prevent external modification of the internal list.
-        return Collections.unmodifiableList(altars);
     }
 } 

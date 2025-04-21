@@ -10,9 +10,11 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.event.EventAltarUse;
-import org.clockworx.vampire.util.TextUtil;
+import org.clockworx.vampire.util.ResourceUtil;
+import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.VampireMessages;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.manager.VampireManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,330 +24,393 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Abstract base class for all altars in the Vampire plugin.
- * Altars are special structures that players can build and use for various effects.
- * This class provides the core functionality for altar construction validation and usage.
+ * Abstract base class defining the structure and common functionality for all Altars 
+ * within the Vampire plugin. Altars are multi-block structures players interact with 
+ * for specific plugin effects or rituals.
+ * 
+ * <p>This class handles:</p>
+ * <ul>
+ *   <li>Storing basic altar properties (name, description, core block).</li>
+ *   <li>Defining required materials for construction and resources for usage.</li>
+ *   <li>Validating the structural integrity of a potential altar location.</li>
+ *   <li>Checking player resources and conditions before allowing usage.</li>
+ *   <li>Tracking player movement to cancel rituals if they move.</li>
+ *   <li>Calling the {@link EventAltarUse} event.</li>
+ *   <li>Providing helper methods for block scanning and material counting.</li>
+ * </ul>
+ * 
+ * Subclasses must implement {@link #applyEffects(VampirePlayer, Player, Block, VampireManager)} 
+ * to define the specific actions performed when the altar is successfully used.
  */
 public abstract class AltarAbstract {
     
-    /**
-     * The name of the altar.
-     */
+    /** The main VampirePlugin instance, providing access to configuration and managers. */
+    protected final VampirePlugin plugin;
+    /** Cached reference to the plugin's main configuration. */
+    protected final VampireConfig config;
+    /** Cached reference to the {@link VampireManager}. */
+    protected final VampireManager manager;
+
+    /** The display name of the altar (e.g., "Dark Altar"). */
     protected String name;
     
-    /**
-     * The description of the altar.
-     */
+    /** A short description of the altar's purpose or function. */
     protected String desc;
     
-    /**
-     * The core material of the altar (the block that players interact with).
-     */
+    /** The specific {@link Material} of the central block that players interact with to use the altar. */
     protected Material coreMaterial;
     
-    /**
-     * The materials required to build the altar and their quantities.
+    /** 
+     * A map defining the required materials and their minimum counts within the search radius 
+     * for the altar structure to be considered valid. Key: {@link Material}, Value: Minimum Count.
      */
     protected Map<Material, Integer> materialCounts;
     
-    /**
-     * The resources required to use the altar.
+    /** 
+     * A list of {@link ItemStack}s representing the items consumed when the altar is used. 
+     * The check verifies the player has at least the specified amount of each item (matching type and potentially meta).
      */
     protected List<ItemStack> resources;
     
-    /**
-     * Map of player UUIDs to their initial locations when using altars.
+    /** 
+     * Tracks the initial location of players when they start using an altar.
+     * Used by {@link #hasPlayerMoved(Player)} to detect movement during a ritual.
+     * Key: Player UUID, Value: Initial {@link Location}.
      */
     private static final Map<UUID, Location> playerLocations = new HashMap<>();
     
+    /** The permission node required to use this specific altar. */
+    protected String usePermission;
+    
+    /** The sound effect played upon successful activation. */
+    protected Sound successSound;
+
+    /** The localization key for the message sent on successful activation. */
+    protected String successMessageKey;
+
+    /** The delay in ticks before the ritual effect applies after starting. */
+    protected int channelingDelayTicks;
+
+    /** The maximum allowed movement distance (squared) before the ritual is cancelled. */
+    protected double maxMovementDistanceSquared;
+
     /**
-     * Registers a player's location for movement tracking.
-     * 
-     * @param player The player to track
+     * Constructor for concrete Altar implementations.
+     * Initializes plugin references and collections. Subclasses should call this and then
+     * populate the name, desc, coreMaterial, materialCounts, and resources fields.
+     *
+     * @param plugin The main {@link VampirePlugin} instance.
      */
-    protected void registerPlayerLocation(Player player) {
-        playerLocations.put(player.getUniqueId(), player.getLocation());
+    protected AltarAbstract(VampirePlugin plugin) {
+        this.plugin = plugin;
+        // Cache frequently accessed objects
+        this.config = plugin.getVampireConfig();
+        this.manager = plugin.getVampireManager();
+        // Initialize collections
+        this.materialCounts = new HashMap<>();
+        this.resources = new ArrayList<>();
     }
     
     /**
-     * Unregisters a player's location from movement tracking.
+     * Registers the player's current location when they begin using the altar.
+     * Stored in the static {@link #playerLocations} map.
      * 
-     * @param player The player to stop tracking
+     * @param player The {@link Player} starting the altar use.
      */
-    protected void unregisterPlayerLocation(Player player) {
+    public void registerPlayerLocation(Player player) {
+        playerLocations.put(player.getUniqueId(), player.getLocation().clone()); // Clone to prevent modification
+    }
+    
+    /**
+     * Unregisters the player's location tracking data after altar use completes or is cancelled.
+     * Removes the player's entry from the static {@link #playerLocations} map.
+     * 
+     * @param player The {@link Player} finishing altar use.
+     */
+    public void unregisterPlayerLocation(Player player) {
         playerLocations.remove(player.getUniqueId());
     }
     
     /**
-     * Checks if a player has moved from their initial location.
-     * Only checks for position changes, not rotation changes.
+     * Checks if a player has moved significantly from their registered starting location.
+     * Compares world and block coordinates (X, Y, Z). Does not check pitch/yaw.
+     * Returns true if the player is not tracked or their location differs.
      * 
-     * @param player The player to check
-     * @return true if the player has moved, false otherwise
+     * @param player The {@link Player} to check for movement.
+     * @return {@code true} if the player has moved from their registered location or is not tracked, {@code false} otherwise.
      */
-    protected boolean hasPlayerMoved(Player player) {
+    public boolean hasPlayerMoved(Player player) {
         Location initialLocation = playerLocations.get(player.getUniqueId());
-        if (initialLocation == null) return false;
+        // If player wasn't registered, technically they haven't "moved" from a registered spot in context of the ritual.
+        // However, the calling context (`use` method) implies they *should* be registered, so this might indicate an issue.
+        // Let's return true if not found, indicating an invalid state or movement.
+        if (initialLocation == null) return true; 
         
         Location currentLocation = player.getLocation();
-        return !initialLocation.getWorld().equals(currentLocation.getWorld()) ||
-               initialLocation.getX() != currentLocation.getX() ||
-               initialLocation.getY() != currentLocation.getY() ||
-               initialLocation.getZ() != currentLocation.getZ();
-    }
-    
-    /**
-     * Evaluates if a player can use the altar at the given block.
-     * This method performs the following checks:
-     * 1. Validates the player and block
-     * 2. Verifies the core material
-     * 3. Checks the altar structure completeness
-     * 4. Triggers the altar use event if all checks pass
-     * 
-     * @param coreBlock The block the player is interacting with
-     * @param player The player attempting to use the altar
-     * @return true if the player can use the altar, false otherwise
-     */
-    public boolean evalBlockUse(Block coreBlock, Player player) {
-        // Check if the player is valid
-        if (player == null) return false;
         
-        // Check if the core block is the correct material
-        if (coreBlock.getType() != coreMaterial) return false;
-        
-        // Get the player's configuration
-        VampirePlayer vampirePlayer = VampirePlayer.get(player);
-        VampirePlugin plugin = VampirePlugin.getInstance();
-        
-        // Make sure we include the coreBlock material in the wanted ones
-        if (!this.materialCounts.containsKey(this.coreMaterial)) {
-            this.materialCounts.put(this.coreMaterial, 1);
-        }
-        
-        // Get all blocks in the altar's area
-        ArrayList<Block> blocks = getCubeBlocks(coreBlock, plugin.getVampireConfig().getAltarSearchRadius());
-        
-        // Count the materials in the altar's area
-        Map<Material, Integer> nearbyMaterialCounts = countMaterials(blocks, this.materialCounts.keySet());
-        
-        // Calculate the total required and nearby material counts
-        int requiredMaterialCountSum = sumCollection(this.materialCounts.values());
-        int nearbyMaterialCountSum = sumCollection(nearbyMaterialCounts.values());
-        
-        // If the blocks are too far from looking anything like an altar, skip
-        if (nearbyMaterialCountSum < requiredMaterialCountSum * plugin.getVampireConfig().getAltarMinRatio()) return false;
-        
-        // What altar blocks are missing?
-        Map<Material, Integer> missingMaterialCounts = getMissingMaterialCounts(nearbyMaterialCounts);
-        
-        // Is the altar complete?
-        if (sumCollection(missingMaterialCounts.values()) > 0) {
-            // Send info on what to do to finish the altar
-            player.sendMessage(TextUtil.parse("The altar is incomplete. You need:"));
-            
-            for (Entry<Material, Integer> entry : missingMaterialCounts.entrySet()) {
-                Material material = entry.getKey();
-                int count = entry.getValue();
-                player.sendMessage(TextUtil.parse("%d %s", count, TextUtil.getMaterialName(material)));
-            }
-            
-            return false;
-        }
-        
-        // Fire the altar use event
-        EventAltarUse event = new EventAltarUse(this, vampirePlayer, player);
-        plugin.getServer().getPluginManager().callEvent(event);
-        
-        // If the event was cancelled, don't use the altar
-        if (event.isCancelled()) {
-            return false;
-        }
-        
-        // Use the altar
-        return use(vampirePlayer, player, coreBlock);
-    }
-    
-    /**
-     * Uses the altar with the specified player.
-     * This method should be called when a player interacts with the altar's core block.
-     * 
-     * @param vampirePlayer The VampirePlayer instance of the player
-     * @param player The Bukkit Player instance
-     * @param block The block that was interacted with
-     * @return true if the altar was used successfully, false otherwise
-     */
-    public boolean use(VampirePlayer vampirePlayer, Player player, Block block) {
-        // Create and fire the altar use event
-        EventAltarUse event = new EventAltarUse(this, vampirePlayer, player);
-        VampirePlugin.getInstance().getServer().getPluginManager().callEvent(event);
-        
-        // Check if the event was cancelled
-        if (event.isCancelled()) {
-            return false;
-        }
-        
-        // Register player location for movement tracking
-        registerPlayerLocation(player);
-        
-        try {
-            // Check if player has moved
-            if (hasPlayerMoved(player)) {
-                VampireMessages.send(vampirePlayer, "You moved! The ritual has been interrupted.");
-                return false;
-            }
-            
-            // Consume resources
-            for (ItemStack resource : resources) {
-                player.getInventory().removeItem(resource);
-            }
-            
-            // Apply effects
-            applyEffects(vampirePlayer, player, block);
-            
+        // Check for world change or significant distance change.
+        if (!initialLocation.getWorld().equals(currentLocation.getWorld())) {
             return true;
-        } finally {
-            // Always unregister the player's location
-            unregisterPlayerLocation(player);
         }
+        
+        // Check distance squared to avoid square root calculation.
+        return initialLocation.distanceSquared(currentLocation) > getMaxMovementDistanceSquared();
     }
     
     /**
-     * Applies the altar's effects to the player.
-     * This method should be implemented by subclasses to provide specific altar functionality.
+     * Abstract method to be implemented by subclasses. Defines the specific actions, 
+     * effects, or state changes that occur when the altar is successfully used 
+     * (after validation, event call, resource consumption, and delay/movement checks).
      * 
-     * @param vampirePlayer The VampirePlayer instance of the player
-     * @param player The Bukkit Player instance
-     * @param block The block that was interacted with
+     * @param vampirePlayer The {@link VampirePlayer} instance of the player.
+     * @param player The Bukkit {@link Player} instance.
+     * @param block The core altar {@link Block} interacted with.
+     * @param manager The {@link VampireManager} instance.
      */
-    protected abstract void applyEffects(VampirePlayer vampirePlayer, Player player, Block block);
+    protected abstract void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager);
     
     /**
-     * Sends a message to the player about the altar.
+     * Sends the altar's description message to the player.
+     * Typically called when a player simply looks at or right-clicks the altar without meeting usage criteria.
      * 
-     * @param vampirePlayer The VampirePlayer instance of the player
-     * @param player The Bukkit Player instance
+     * @param vampirePlayer The {@link VampirePlayer} instance (potentially unused, context?).
+     * @param player The Bukkit {@link Player} instance to send the message to.
      */
     public void watch(VampirePlayer vampirePlayer, Player player) {
-        vampirePlayer.msg(this.desc);
+        // Send the stored description, assuming it's already formatted/colorized if needed.
+        // Consider making description a localization key.
+        VampireMessages.send(player, this.desc); 
     }
     
+    // --- Getters ---
+
     /**
-     * Gets the name of the altar.
-     * 
-     * @return The altar's name
+     * Gets the display name of this altar.
+     * @return The altar's name.
      */
     public String getName() {
         return this.name;
     }
     
     /**
-     * Gets the description of the altar.
-     * 
-     * @return The altar's description
+     * Gets the description of this altar.
+     * @return The altar's description.
      */
     public String getDescription() {
         return this.desc;
     }
     
     /**
-     * Gets the core material of the altar.
-     * 
-     * @return The altar's core material
+     * Gets the core {@link Material} required for this altar's interaction block.
+     * @return The core material.
      */
     public Material getCoreMaterial() {
         return this.coreMaterial;
     }
     
     /**
-     * Gets the required materials for the altar.
-     * 
-     * @return Map of materials and their required quantities
+     * Gets the map defining the minimum counts of materials required for the altar structure.
+     * @return A Map where Key is {@link Material} and Value is the minimum count required.
      */
     public Map<Material, Integer> getMaterialCounts() {
-        return new HashMap<>(this.materialCounts);
+        return this.materialCounts;
     }
     
     /**
-     * Gets the required resources for the altar.
-     * 
-     * @return List of required ItemStacks
+     * Gets the list of {@link ItemStack}s required as resources to use the altar.
+     * @return A List of required item stacks.
      */
     public List<ItemStack> getResources() {
-        return new ArrayList<>(this.resources);
+        return this.resources;
     }
     
     /**
-     * Sums the values in a collection of integers.
-     * 
-     * @param collection The collection to sum
-     * @return The sum of the values in the collection
+     * Gets the specific permission node required to use this altar.
+     * Should be defined by subclasses.
+     * @return The permission node string (e.g., "vampire.altar.dark").
      */
-    protected int sumCollection(Collection<Integer> collection) {
-        int ret = 0;
-        for (Integer i : collection) ret += i;
-        return ret;
+    public String getUsePermission() {
+        return this.usePermission;
     }
+
+    /**
+     * Gets the Sound enum to be played on successful altar activation.
+     * Should be defined by subclasses.
+     * @return The Sound enum.
+     */
+    public Sound getSound() {
+        return this.successSound;
+    }
+
+    /**
+     * Gets the localization key for the message sent upon successful activation.
+     * Should be defined by subclasses.
+     * @return The localization key string (e.g., "altar.dark.success").
+     */
+    public String getSuccessMessageKey() {
+        return this.successMessageKey;
+    }
+
+    /**
+     * Gets the configured channeling delay in server ticks for this altar.
+     * @return The delay in ticks.
+     */
+    public int getChannelingDelayTicks() {
+        return this.channelingDelayTicks;
+    }
+
+    /**
+     * Gets the configured maximum allowed movement distance (squared) during channeling.
+     * @return The maximum distance squared.
+     */
+    public double getMaxMovementDistanceSquared() {
+        return this.maxMovementDistanceSquared;
+    }
+
+    // --- New Abstract/Overridable Methods for Manager Delegation ---
+
+    /**
+     * Checks altar-specific preconditions before initiating the ritual.
+     * (e.g., Is the player already a vampire for AltarDark? Is the player already cured for AltarLight?)
+     * Should send appropriate failure messages to the player if checks fail.
+     * 
+     * @param vp The VampirePlayer using the altar.
+     * @param player The Player using the altar.
+     * @return true if preconditions are met, false otherwise.
+     */
+    public abstract boolean checkPreconditions(VampirePlayer vp, Player player);
+
+    /**
+     * Checks if the player has the required resources (items, blood) for this altar.
+     * Should send appropriate failure messages to the player if checks fail.
+     * 
+     * @param vp The VampirePlayer using the altar.
+     * @param player The Player using the altar.
+     * @return true if the player has the required resources, false otherwise.
+     */
+    public abstract boolean checkResources(VampirePlayer vp, Player player);
     
     /**
-     * Gets the missing material counts for an altar.
+     * Applies initial visual/audio/feedback effects when the ritual starts 
+     * (after event check, permission check, resource check).
      * 
-     * @param nearbyMaterialCounts The material counts nearby
-     * @return The missing material counts
+     * @param vp The VampirePlayer starting the ritual.
+     * @param player The Player starting the ritual.
      */
-    protected Map<Material, Integer> getMissingMaterialCounts(Map<Material, Integer> nearbyMaterialCounts) {
-        Map<Material, Integer> ret = new HashMap<>();
-        
-        for (Entry<Material, Integer> entry : materialCounts.entrySet()) {
-            Material material = entry.getKey();
-            int required = entry.getValue();
-            int nearby = nearbyMaterialCounts.getOrDefault(material, 0);
-            int missing = Math.max(0, required - nearby);
-            ret.put(material, missing);
+    public abstract void applyStartEffects(VampirePlayer vp, Player player);
+
+    /**
+     * Consumes the required resources (items, blood) from the player.
+     * Called only if the player did not move during the ritual delay.
+     * 
+     * @param vp The VampirePlayer using the altar.
+     * @param player The Player using the altar.
+     * @return true if resources were consumed successfully, false otherwise (e.g., items disappeared during delay).
+     */
+    public abstract boolean consumeResources(VampirePlayer vp, Player player);
+    
+    // --- Helper Methods ---
+    
+    /**
+     * Calculates the sum of all integer values in a collection.
+     * 
+     * @param collection A collection of integers.
+     * @return The sum of the integers in the collection.
+     */
+    public int sumCollection(Collection<Integer> collection) {
+        if (collection == null) {
+            return 0;
         }
-        
-        return ret;
+        return collection.stream().mapToInt(Integer::intValue).sum();
     }
     
     /**
-     * Counts the materials in a collection of blocks.
+     * Compares the required material counts with the counts found nearby and returns
+     * a map detailing the materials that are missing and by how much.
      * 
-     * @param blocks The blocks to count
-     * @param materialsToCount The materials to count
-     * @return The material counts
+     * @param nearbyMaterialCounts A map of materials found nearby and their counts.
+     * @return A map where keys are missing materials and values are the number still needed.
+     *         Returns an empty map if all required materials are present in sufficient quantities.
      */
-    protected static Map<Material, Integer> countMaterials(Collection<Block> blocks, Set<Material> materialsToCount) {
-        Map<Material, Integer> ret = new HashMap<>();
+    public Map<Material, Integer> getMissingMaterialCounts(Map<Material, Integer> nearbyMaterialCounts) {
+        Map<Material, Integer> missing = new HashMap<>();
+        if (this.materialCounts == null || this.materialCounts.isEmpty()) {
+            return missing; // No materials required, so none are missing.
+        }
+
+        for (Entry<Material, Integer> requiredEntry : this.materialCounts.entrySet()) {
+            Material requiredMaterial = requiredEntry.getKey();
+            int requiredAmount = requiredEntry.getValue();
+            int foundAmount = nearbyMaterialCounts.getOrDefault(requiredMaterial, 0);
+            
+            if (foundAmount < requiredAmount) {
+                missing.put(requiredMaterial, requiredAmount - foundAmount);
+            }
+        }
+        return missing;
+    }
+    
+    /**
+     * Counts the occurrences of specified materials within a collection of blocks.
+     * 
+     * @param blocks The collection of blocks to scan.
+     * @param materialsToCount A set of materials to look for and count.
+     * @return A map where keys are the materials found and values are their counts within the block collection.
+     * @deprecated Visibility should be public for use in AltarManager.
+     */
+    @Deprecated
+    public static Map<Material, Integer> countMaterials(Collection<Block> blocks, Set<Material> materialsToCount) {
+        Map<Material, Integer> counts = new HashMap<>();
+        if (blocks == null || materialsToCount == null) {
+            return counts;
+        }
         
         for (Block block : blocks) {
             Material material = block.getType();
-            if (!materialsToCount.contains(material)) continue;
-            
-            ret.merge(material, 1, Integer::sum);
+            if (materialsToCount.contains(material)) {
+                counts.put(material, counts.getOrDefault(material, 0) + 1);
+            }
         }
-        
-        return ret;
+        return counts;
     }
     
     /**
-     * Gets all blocks in a cube around a center block.
+     * Retrieves a list of all blocks within a cubic radius around a central block.
      * 
-     * @param centerBlock The center block
-     * @param radius The radius of the cube
-     * @return The blocks in the cube
+     * @param centerBlock The block at the center of the cube.
+     * @param radius The distance from the center block to scan in each direction (X, Y, Z).
+     * @return An {@link ArrayList} of {@link Block} objects within the specified cube.
      */
-    protected static ArrayList<Block> getCubeBlocks(Block centerBlock, int radius) {
+    public static ArrayList<Block> getCubeBlocks(Block centerBlock, int radius) {
         ArrayList<Block> blocks = new ArrayList<>();
-        
-        for (int y = -radius; y <= radius; y++) {
-            for (int z = -radius; z <= radius; z++) {
-                for (int x = -radius; x <= radius; x++) {
-                    blocks.add(centerBlock.getRelative(x, y, z));
+        Location centerLoc = centerBlock.getLocation();
+        int centerX = centerLoc.getBlockX();
+        int centerY = centerLoc.getBlockY();
+        int centerZ = centerLoc.getBlockZ();
+        // Add null check for world
+        org.bukkit.World world = centerLoc.getWorld(); 
+        if (world == null) {
+            VampireMessages.error("Cannot get blocks for altar check, world is null for location: " + centerLoc, null);
+            return blocks; 
+        }
+
+        // Iterate through the cubic area defined by the radius.
+        for (int x = centerX - radius; x <= centerX + radius; x++) {
+            for (int y = centerY - radius; y <= centerY + radius; y++) {
+                for (int z = centerZ - radius; z <= centerZ + radius; z++) {
+                    // Get the block at the current coordinates.
+                    Block block = world.getBlockAt(x, y, z);
+                    // Add the block to the list if it's not air.
+                    // Also check if the block's material is valid (not null)
+                    if (block != null && block.getType() != Material.AIR && block.getBlockData().getMaterial() != null) {
+                        blocks.add(block);
+                    }
                 }
             }
         }
-        
         return blocks;
     }
 } 

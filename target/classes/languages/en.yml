@@ -25,11 +25,17 @@ player:
 
 vampire:
   status:
-    header: "&7=== &cVampire Status &7==="
+    header: "&7=== &cVampire Status [%player%] &7==="
     name: "&7Name: &f%player%"
-    blood: "&7Blood: &c%blood%"
-    infection: "&7Infection: &c%infection%%"
+    blood: "&7Blood: &c%1%&7/&c%2%"
+    infection: "&7Infection: &c%1%%%"
+    infection_reason: "&7(Reason: &f%1%&7)"
+    level: "&7Level: &e%1%"
+    is_vampire: "&7Vampire: %1%"
     mode: "&7Mode: &c%mode%"
+    mode_bloodlust: "&7 - Bloodlust: %1%"
+    mode_intent: "&7 - Intent: %1%"
+    mode_nightvision: "&7 - Night Vision: %1%"
   mode:
     bloodlust: "&cBloodlust Mode"
     nightvision: "&cNight Vision"
@@ -37,6 +43,13 @@ vampire:
     disabled: "&7Disabled"
   transformed: "&cYou have been transformed into a vampire!"
   cured: "&aYou have been cured of vampirism!"
+  cannot_eat_food: "&cVampires do not gain energy from consuming mortal food."
+  blood_gain: "&aYou have gained %amount% blood from %victim%!"
+
+# Sunlight messages
+sunlight:
+  burning: "&cThe sun burns intensely! Find cover!"
+  uncomfortable: "&eThe sunlight feels uncomfortable on your skin."
 
 infection:
   started: "&cYou have been infected by %player%!"
@@ -49,10 +62,34 @@ altar:
   dark:
     activated: "&8Dark altar activated!"
     deactivated: "&8Dark altar deactivated"
+    success: "&8The dark ritual is complete."
+    fail:
+      already_vampire: "&cYou are already a vampire."
+    start_ritual: "&8You feel a dark energy begin to coalesce..."
+    effect:
+      increase_infection: "&7You feel the dark energy intensifying within you..."
+      initial_infection: "&cYou feel a chilling darkness seep into your veins... You are infected!"
+      became_vampire: "&4You have succumbed... The darkness claims you! You are VAMPIRE!"
   light:
     activated: "&fLight altar activated!"
     deactivated: "&fLight altar deactivated"
+    success: "&fThe light ritual is complete."
+    fail:
+      already_cured: "&aYou are already free of infection."
+    start_ritual: "&fYou feel a cleansing energy begin to gather..."
+    effect:
+      cured_vampire: "&aThe light surges through you, cleansing the curse! You are no longer a vampire!"
+      cured_infection: "&aThe warmth of the light washes over you. The infection is gone!"
+      weakened_curse: "&eThe light weakens the vampiric curse, but the infection remains..."
+      decrease_infection: "&7You feel the light energy pushing back the darkness slightly..."
   not_near: "&cYou must be near an altar to use this command"
+
+  # Altar interaction messages
+  fail:
+    resources: "&cYou lack the required resources: %d %s."
+    resource_missing_last_moment: "&cThe required resources vanished! Ritual failed."
+    cancelled: "&cSomething interfered with the ritual's final moments..."
+    moved: "&cYou moved too much! The ritual is broken."
 
 command:
   help:
@@ -65,11 +102,48 @@ command:
     shriek: "&7/vampire shriek &8- &fShriek to infect nearby players"
     mode: "&7/vampire mode <bloodlust|nightvision|intent> &8- &fSet vampire mode"
     reload: "&7/vampire reload &8- &fReload plugin configuration"
+    reset:
+      not_needed: "&ePlayer %1% is already human."
+      success_sender: "&aSuccessfully reset vampire data for %1%."
+      success_target: "&aYour vampire status has been reset by an administrator."
+    lore:
+      # Example entry for blood regeneration
+      blood_regeneration:
+        - "&7--- &cBlood Regeneration Lore &7---"
+        - "&eVampires slowly regenerate blood over time."
+        - "&eRate: &f%regen_rate% blood/sec (configured by admin)"
+        - "&6Modifiers:"
+        - "  &f- Resting (Sleeping): &aIncreased regen."
+        - "  &f- Satiated (High Food): &aMinorly increased regen."
+        - "  &f- Hungry (Low Food): &cSignificantly decreased regen."
+        - "&cHalting Conditions:"
+        - "  &f- Sunlight: &cRegen stops if exposed to direct sun."
+        - "  &f- Recent Damage: &cRegen stops for a few seconds after taking damage."
+      # Add entries for other topics like sunlight, infection, combat, altars etc.
+      sunlight:
+        - "&7--- &cSunlight Lore &7---"
+        - "&cVampires burn in direct sunlight unless protected."
+        - "&eProtection: &fWater, Helmets (partial), Being Indoors/Underground."
+        - "&eRegeneration: &cBlood regeneration stops in direct sun."
+      infection:
+        - "&7--- &cInfection Lore &7---"
+        - "&eVampires can infect others by attacking with &cIntent Mode&e active."
+        - "&eCost: &fInfecting costs the vampire blood."
+        - "&eProgression: &fInfection increases over time, applying Weakness."
+        - "&eResult: &fAt 100% infection, the victim becomes a full vampire."
+      # Generic topic not found message
+      topic_not_found: "&cUnknown help topic: %topic%"
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
   no_permission: "&cYou don't have permission to use this command!"
   player_only: "&cThis command can only be used by players!"
+  error:
+    must_be_player_or_specify: "&cYou must be a player or specify a player name."
+    player_data_not_found: "&cCould not find vampire data for that player."
+    missing_argument: "&cMissing argument: <%1%>"
+    too_many_arguments: "&cToo many arguments provided."
+    must_be_player: "&cThis command can only be run by a player."
 
 bloodlust:
   activated: "&cBloodlust Mode activated!"
@@ -80,3 +154,51 @@ holy_water:
   used: "&aYou have used holy water!"
   hit: "&cYou have been hit by holy water!"
   damage: "&cYou took %damage% damage from holy water"
+
+# Gift Offer Feature Messages
+gift:
+  error:
+    disabled: "&cThe Dark Gift feature is currently disabled."
+    self: "&cYou cannot offer the Dark Gift to yourself."
+    sender_not_vampire: "&cOnly vampires can offer the Dark Gift."
+    target_not_human: "&c%player% is not a suitable human target (already vampire or infected)."
+    target_has_offer: "&c%player% already has a pending Dark Gift offer."
+    too_far: "&cYou are too far away from %player%."
+    low_blood: "&cYou don't have enough blood (%amount% required) to offer the Dark Gift."
+    no_offer: "&cYou have no pending Dark Gift offer to accept or reject."
+    offer_expired: "&cThe Dark Gift offer has expired."
+    sender_invalid: "&cThe vampire who offered the gift is no longer valid (offline or cured)."
+    sender_low_blood: "&c%player% no longer has enough blood to complete the transformation."
+    accept_fail_low_blood: "&cYou did not have enough blood when %player% tried to accept the gift."
+    accept_fail_unknown: "&cFailed to accept the Dark Gift due to an unknown error."
+    accept_fail_unknown_sender: "&cFailed to complete the gift for %player% due to an unknown error."
+  offer:
+    sent: "&aYou have offered the Dark Gift to %player%."
+    received: "&c%player% has offered you the Dark Gift! Type &a/vampire acceptgift&c or &a/vampire rejectgift&c."
+  accept:
+    success_target: "&aYou have accepted the Dark Gift! You feel a dark power awaken within..."
+    success_sender: "&a%player% has accepted your Dark Gift! They are now one of us."
+  reject:
+    success_target: "&aYou have rejected the Dark Gift offer."
+    success_sender: "&c%player% has rejected your Dark Gift offer."
+
+# Item names and lore
+item:
+  blood_vial:
+    name: "&cBlood Vial"
+    lore1: "&7A vial filled with potent vampire blood."
+    lore2: "&7Right-click to throw..."
+  holy_water:
+    name: "&bHoly Water"
+    lore1: "&7Blessed water, harmful to the undead."
+    lore2: "&7Right-click to throw..."
+
+# Command specific messages
+command:
+  flask:
+    not_vampire: "&cOnly vampires can create blood vials."
+    need_water_bottle: "&cYou must be holding a water bottle to create a blood vial."
+    not_enough_blood: "&cYou need at least %1% blood to create a vial."
+    blood_use_failed: "&cFailed to draw blood for the vial. Please try again."
+    inventory_full: "&cInventory full! Blood vial dropped nearby."
+    success: "&aYou sacrifice some of your blood to create a Blood Vial."

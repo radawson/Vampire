@@ -6,9 +6,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Abstract base class for vampire set commands.
@@ -16,6 +19,8 @@ import java.util.List;
  */
 public abstract class CmdVampireSetAbstract extends VCommand {
     
+    protected final VampireManager vampireManager;
+
     /**
      * Creates a new vampire set command.
      * 
@@ -25,65 +30,65 @@ public abstract class CmdVampireSetAbstract extends VCommand {
      */
     public CmdVampireSetAbstract(VampirePlugin plugin, String name, String permission) {
         super(plugin, name, permission);
+        this.vampireManager = plugin.getVampireManager();
     }
     
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        // Check arguments
+        // Permission check already done by VCommand
+        
+        // Argument validation (expecting at least <player> <value>, type is implied by command name)
         if (args.length < 2) {
-            sendError(sender, getMessage("command.set.usage")
-                .replace("%command%", getName()));
-            return false;
+            // TODO: Improve usage message based on specific command
+            sendError(sender, "Usage: /vampire set " + getName() + " <player> <value>");
+            return true;
         }
         
-        // Get target player
-        String targetName = args[1];
+        String targetName = args[0]; // Argument 0 is player name
+        String valueStr = args[1];   // Argument 1 is the value
+
         Player targetPlayer = Bukkit.getPlayer(targetName);
-        
         if (targetPlayer == null) {
-            sendError(sender, getMessage("command.player_not_found")
-                .replace("%player%", targetName));
-            return false;
+            sendError(sender, getMessage("player.not_online").replace("%player%", targetName));
+            return true;
         }
         
-        // Get vampire player data
-        plugin.getVampirePlayer(targetPlayer.getUniqueId()).thenAccept(targetVampirePlayer -> {
-            if (targetVampirePlayer == null) {
-                sendError(sender, getMessage("command.player_data_not_found"));
-                return;
-            }
+        // Get vampire player data synchronously
+        VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
+        if (targetVampirePlayer == null) {
+            sendError(sender, getMessage("command.player_data_not_found")); // Need lang key
+            return true;
+        }
+        
+        // Call subclass to parse and set the value, passing the manager
+        boolean success = setValue(targetVampirePlayer, targetPlayer, valueStr, sender, vampireManager);
             
-            // Parse value if provided
-            String valueStr = args.length > 2 ? args[2] : null;
-            
-            // Set the value
-            boolean success = setValue(targetVampirePlayer, targetPlayer, valueStr, sender);
-            
-            if (success) {
-                sendSuccess(sender, getMessage("command.set.success")
-                    .replace("%property%", getValueName())
-                    .replace("%player%", targetPlayer.getName()));
-            }
-        });
+        // Subclass should handle feedback messages
+        // if (success) {
+        //     sendSuccess(sender, getMessage("command.set.success") // Generic success?
+        //         .replace("%property%", getValueName())
+        //         .replace("%player%", targetPlayer.getName()));
+        // }
         
         return true;
     }
     
     @Override
     protected List<String> tabComplete(CommandSender sender, Command command, String label, String[] args) {
+        // Permission check done by VCommand
         List<String> completions = new ArrayList<>();
         
-        if (args.length == 2) {
-            // Complete player names
-            String partial = args[1].toLowerCase();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase().startsWith(partial)) {
-                    completions.add(player.getName());
-                }
-            }
-        } else if (args.length == 3) {
-            // Complete value suggestions
-            addValueCompletions(completions);
+        if (args.length == 1) {
+            // Complete player names (Arg 0)
+            String partial = args[0].toLowerCase();
+            return Bukkit.getOnlinePlayers().stream()
+                       .map(Player::getName)
+                       .filter(name -> name.toLowerCase().startsWith(partial))
+                       .collect(Collectors.toList());
+
+        } else if (args.length == 2) {
+            // Complete value suggestions (Arg 1)
+            addValueCompletions(completions, args[1]); // Pass current value for filtering
         }
         
         return completions;
@@ -91,14 +96,16 @@ public abstract class CmdVampireSetAbstract extends VCommand {
     
     /**
      * Sets the value for the target player.
+     * Implementations should parse valueStr and call the appropriate VampireManager method.
      * 
-     * @param vampirePlayer The target VampirePlayer
-     * @param player The target Player
-     * @param valueStr The value as a string, or null if not provided
-     * @param sender The command sender
-     * @return true if successful, false otherwise
+     * @param targetVampirePlayer The target VampirePlayer POJO
+     * @param targetPlayer The target Player entity
+     * @param valueStr The value as a string
+     * @param sender The command sender (for feedback)
+     * @param manager The VampireManager instance
+     * @return true if successful, false otherwise (subclass should send error messages)
      */
-    protected abstract boolean setValue(VampirePlayer vampirePlayer, Player player, String valueStr, CommandSender sender);
+    protected abstract boolean setValue(VampirePlayer targetVampirePlayer, Player targetPlayer, String valueStr, CommandSender sender, VampireManager manager);
     
     /**
      * Gets the name of this set command.
@@ -117,9 +124,10 @@ public abstract class CmdVampireSetAbstract extends VCommand {
     protected abstract String getValueName();
     
     /**
-     * Adds value completions to the list.
+     * Adds value completions to the list based on the current partial input.
      * 
      * @param completions The list to add completions to
+     * @param currentInput The current value string typed by the user
      */
-    protected abstract void addValueCompletions(List<String> completions);
+    protected abstract void addValueCompletions(List<String> completions, String currentInput);
 } 

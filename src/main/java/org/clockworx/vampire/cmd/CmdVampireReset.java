@@ -1,99 +1,90 @@
 package org.clockworx.vampire.cmd;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.ResourceUtil;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Command class for resetting vampire status.
+ * Command class for resetting a player's vampire data (curing, removing infection/blood).
  */
 public class CmdVampireReset extends VCommand {
-    
-    /**
-     * Creates a new reset command.
-     * 
-     * @param plugin The plugin instance
-     */
+
+    private final VampireManager vampireManager;
+
     public CmdVampireReset(VampirePlugin plugin) {
-        super(plugin, "reset", "vampire.reset");
+        // Use the specific permission constant
+        super(plugin, "reset", VampirePermission.RESET);
+        this.vampireManager = plugin.getVampireManager();
     }
-    
+
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        // Check if sender has permission
-        if (!sender.hasPermission("vampire.reset")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+        // Permission already checked by VCommand
+
+        if (args.length < 1) {
+            sendError(sender, ResourceUtil.getMessage("command.error.missing_argument", "player"));
+            // Optional: Send usage message
             return true;
         }
-        
-        // Get target player
-        Player targetPlayer;
-        if (args.length > 0) {
-            targetPlayer = Bukkit.getPlayer(args[0]);
-            if (targetPlayer == null) {
-                sender.sendMessage(ChatColor.RED + "Player not found: " + args[0]);
-                return true;
-            }
-        } else {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "You must specify a player when using this command from console.");
-                return true;
-            }
-            targetPlayer = (Player) sender;
-        }
-        
-        // Get the VampirePlayer instance
-        VampirePlayer vampirePlayer = plugin.getVampirePlayer(targetPlayer.getUniqueId()).join();
-        if (vampirePlayer == null) {
-            sender.sendMessage(ChatColor.RED + "Player data not found.");
+
+        String targetName = args[0];
+        Player targetPlayer = Bukkit.getPlayer(targetName);
+
+        if (targetPlayer == null || !targetPlayer.isOnline()) {
+            sendError(sender, ResourceUtil.getMessage("player.not_online", targetName));
             return true;
         }
-        
-        // Reset vampire status
-        boolean wasVampire = vampirePlayer.isVampire();
-        boolean wasInfected = vampirePlayer.isInfected();
-        
-        vampirePlayer.setVampire(false);
-        vampirePlayer.setInfectionLevel(0.0);
-        
-        // Notify the player
-        if (targetPlayer.isOnline()) {
-            if (wasVampire || wasInfected) {
-                targetPlayer.sendMessage(ChatColor.GREEN + "Your vampire status has been reset.");
-            } else {
-                targetPlayer.sendMessage(ChatColor.YELLOW + "You were not a vampire or infected.");
-            }
+
+        VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
+        if (targetVampirePlayer == null) {
+            sendError(sender, ResourceUtil.getMessage("command.error.player_data_not_found"));
+            return true;
         }
-        
-        // Notify the sender if different from target
-        if (sender != targetPlayer) {
-            sender.sendMessage(ChatColor.GREEN + "Reset vampire status for " + targetPlayer.getName() + ".");
+
+        // Check if player actually needs resetting
+        boolean wasVampire = targetVampirePlayer.isVampire();
+        boolean wasInfected = targetVampirePlayer.isInfected();
+
+        if (!wasVampire && !wasInfected) {
+            VampireMessages.sendLocalized(sender, "command.reset.not_needed", targetName); // Need lang key
+            return true;
         }
+
+        // Perform the reset using VampireManager
+        String reason = "Reset by command by " + sender.getName();
+        // Setting status to false handles removing vampirism, infection, blood, modes.
+        vampireManager.setVampireStatus(targetVampirePlayer.getUuid(), false, reason); 
+
+        // Send feedback
+        VampireMessages.sendLocalized(sender, "command.reset.success_sender", targetName);
+        VampireMessages.sendLocalized(targetPlayer, "command.reset.success_target");
         
+        VampireMessages.debug("Reset player " + targetName + " requested by " + sender.getName());
+
         return true;
     }
-    
+
     @Override
     protected List<String> tabComplete(CommandSender sender, Command command, String label, String[] args) {
-        List<String> completions = new ArrayList<>();
-        
         if (args.length == 1) {
             // Complete player names
-            String partial = args[0].toLowerCase();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase().startsWith(partial)) {
-                    completions.add(player.getName());
-                }
-            }
+            String input = args[0].toLowerCase();
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(input))
+                    .collect(Collectors.toList());
         }
-        
-        return completions;
+        return new ArrayList<>();
     }
 } 

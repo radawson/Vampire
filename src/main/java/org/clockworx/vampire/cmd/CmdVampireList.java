@@ -6,86 +6,110 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
- * Command for listing vampires and infected players.
- * Shows both online and offline vampires/infected players.
+ * Command for listing online vampires and infected players.
+ * Retrieves data from cached online players via VampireManager.
  */
 public class CmdVampireList extends VCommand {
 
+    private final VampireManager vampireManager;
+    private static final int PAGE_SIZE = 10;
+
     /**
      * Creates a new list command.
-     * 
-     * @param plugin The plugin instance
      */
     public CmdVampireList(VampirePlugin plugin) {
-        super(plugin, "list", "vampire.list");
+        super(plugin, "list", VampirePermission.LIST);
+        this.vampireManager = plugin.getVampireManager();
     }
 
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        // Get page number
-        int pageNum = 1;
+        int page = 1;
         if (args.length > 0) {
             try {
-                int parsedPage = Integer.parseInt(args[0]);
-                if (parsedPage >= 1) {
-                    pageNum = parsedPage;
-                }
+                page = Integer.parseInt(args[0]);
+                if (page < 1) page = 1;
             } catch (NumberFormatException e) {
                 sendError(sender, getMessage("command.list.invalid_page"));
                 return true;
             }
         }
 
-        final int page = pageNum;
+        Collection<VampirePlayer> onlineData = vampireManager.getCachedOnlinePlayers();
 
-        // Get player data asynchronously
-        CompletableFuture<VampirePlayer> future = plugin.getVampirePlayer(sender instanceof Player ? ((Player) sender).getUniqueId() : null);
-        future.thenAccept(vampirePlayer -> {
-            // Get all online players
-            List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
-            
-            // Separate vampires and infected
-            List<String> onlineVampires = new ArrayList<>();
-            List<String> onlineInfected = new ArrayList<>();
-            List<String> offlineVampires = new ArrayList<>();
-            List<String> offlineInfected = new ArrayList<>();
-            
-            // Process online players
-            for (Player player : onlinePlayers) {
-                CompletableFuture<VampirePlayer> playerFuture = plugin.getVampirePlayer(player.getUniqueId());
-                playerFuture.thenAccept(playerData -> {
-                    if (playerData != null) {
-                        if (playerData.isVampire()) {
-                            onlineVampires.add(player.getName());
-                        } else if (playerData.isInfected()) {
-                            onlineInfected.add(player.getName());
-                        }
-                    }
-                });
-            }
-            
-            // Display results
-            sendInfo(sender, getMessage("command.list.header").replace("%page%", String.valueOf(page)));
-            sendInfo(sender, getMessage("command.list.online_vampires").replace("%players%", String.join(", ", onlineVampires)));
-            sendInfo(sender, getMessage("command.list.online_infected").replace("%players%", String.join(", ", onlineInfected)));
-            sendInfo(sender, getMessage("command.list.offline_vampires").replace("%players%", String.join(", ", offlineVampires)));
-            sendInfo(sender, getMessage("command.list.offline_infected").replace("%players%", String.join(", ", offlineInfected)));
-        });
-        
+        List<String> onlineVampires = onlineData.stream()
+                .filter(VampirePlayer::isVampire)
+                .map(VampirePlayer::getName)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+
+        List<String> onlineInfected = onlineData.stream()
+                .filter(vp -> !vp.isVampire() && vp.isInfected())
+                .map(vp -> vp.getName() + String.format(" (%.0f%%)", vp.getInfectionLevel() * 100))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+
+        List<String> combinedList = new ArrayList<>();
+        if (!onlineVampires.isEmpty()) {
+            combinedList.add("&cVampires (&aOnline&c):");
+            combinedList.addAll(onlineVampires);
+        }
+        if (!onlineInfected.isEmpty()) {
+            combinedList.add("&eInfected (&aOnline&e):");
+            combinedList.addAll(onlineInfected);
+        }
+
+        if (combinedList.isEmpty()) {
+            sendInfo(sender, getMessage("command.list.none_found"));
+            return true;
+        }
+
+        int totalItems = combinedList.size();
+        int totalPages = (int) Math.ceil((double) totalItems / PAGE_SIZE);
+
+        if (page > totalPages) {
+            page = totalPages;
+        }
+
+        int startIndex = (page - 1) * PAGE_SIZE;
+        int endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+
+        sendInfo(sender, getMessage("command.list.header")
+            .replace("%page%", String.valueOf(page))
+            .replace("%totalpages%", String.valueOf(totalPages)));
+
+        for (int i = startIndex; i < endIndex; i++) {
+            String prefix = combinedList.get(i).startsWith("&c") || combinedList.get(i).startsWith("&e") ? "" : "  &f- ";
+            sendInfo(sender, prefix + combinedList.get(i));
+        }
+
+        if (totalPages > 1) {
+            String paginationHelp = (page > 1 ? "&e/vampire list " + (page - 1) + " &7(Prev)  " : "") +
+                                   (page < totalPages ? "&e/vampire list " + (page + 1) + " &7(Next)" : "");
+            sendInfo(sender, paginationHelp);
+        }
+
         return true;
     }
 
     @Override
     protected List<String> tabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) {
-            return List.of("1", "2", "3", "4", "5");
+            return Arrays.asList("1", "2", "3").stream()
+                       .filter(p -> p.startsWith(args[0]))
+                       .collect(Collectors.toList());
         }
         return new ArrayList<>();
     }

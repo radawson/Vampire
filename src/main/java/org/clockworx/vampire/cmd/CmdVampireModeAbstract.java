@@ -5,10 +5,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Abstract base class for vampire mode commands.
@@ -16,8 +17,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class CmdVampireModeAbstract extends VCommand {
 
-    protected final VampirePlugin plugin;
     protected final String modeName;
+    protected final VampireManager vampireManager;
 
     /**
      * Creates a new vampire mode command.
@@ -28,27 +29,26 @@ public abstract class CmdVampireModeAbstract extends VCommand {
      */
     public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission) {
         super(plugin, modeName.toLowerCase(), permission);
-        this.plugin = plugin;
         this.modeName = modeName;
+        this.vampireManager = plugin.getVampireManager();
     }
 
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(getMessage("player-only"));
+            VampireMessages.sendLocalized(sender, "command.player_only");
             return true;
         }
 
         Player player = (Player) sender;
-        CompletableFuture<VampirePlayer> future = plugin.getVampirePlayer(player.getUniqueId());
+        VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(player.getUniqueId());
         
-        future.thenAccept(vampirePlayer -> {
-            if (vampirePlayer == null) {
-                player.sendMessage(getMessage("not-vampire"));
-                return;
-            }
-            executeMode(player, vampirePlayer, args);
-        });
+        if (vampirePlayer == null || !vampirePlayer.isVampire()) {
+            sendError(sender, getMessage("vampire.not_vampire").replace("%player%", "You"));
+            return true;
+        }
+        
+        executeMode(player, vampirePlayer, vampireManager, args);
         
         return true;
     }
@@ -56,6 +56,10 @@ public abstract class CmdVampireModeAbstract extends VCommand {
     @Override
     protected List<String> tabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
+            return new ArrayList<>();
+        }
+        VampirePlayer vp = vampireManager.getCachedVampirePlayer(((Player) sender).getUniqueId());
+        if (vp == null || !vp.isVampire()) {
             return new ArrayList<>();
         }
 
@@ -71,9 +75,10 @@ public abstract class CmdVampireModeAbstract extends VCommand {
      * 
      * @param player The player executing the command
      * @param vampirePlayer The vampire player data
+     * @param manager The VampireManager instance
      * @param args The command arguments
      */
-    protected abstract void executeMode(Player player, VampirePlayer vampirePlayer, String[] args);
+    protected abstract void executeMode(Player player, VampirePlayer vampirePlayer, VampireManager manager, String[] args);
 
     /**
      * Get tab completions for the mode argument.

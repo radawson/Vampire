@@ -6,25 +6,39 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.config.LanguageConfig;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * Centralized messaging system for the Vampire plugin.
- * This class handles all message output to players, other players, and the console.
- * It also supports localization through message keys.
+ * Centralized utility for handling localized messages within the Vampire plugin.
+ * Provides static methods to send messages to various recipients (Players, Console, Broadcast)
+ * using keys defined in the language configuration file.
+ * 
+ * <p>Ensures consistent message formatting (color codes) and facilitates easy localization 
+ * by loading messages from {@link LanguageConfig}.</p>
+ * 
+ * <p>Usage: Call {@link #init(VampirePlugin)} during plugin startup, then use the static 
+ * {@code send()}, {@code sendLocalized()}, {@code broadcast()}, etc. methods.</p>
  */
 public class VampireMessages {
     
+    /** The VampirePlugin instance, used for accessing config, logger, and server resources. */
     private static VampirePlugin plugin;
-    private static final Map<String, String> messageCache = new HashMap<>();
+    /** Cache holding the loaded messages from the language file (Key -> Message String). */
+    private static Map<String, String> messageCache = new HashMap<>();
     
+    /** Private constructor to prevent instantiation of utility class. */
+    private VampireMessages() {}
+
     /**
-     * Initializes the messaging system.
+     * Initializes the messaging system with the main plugin instance.
+     * Loads the messages from the configured language file into the cache.
+     * This must be called once during plugin startup (e.g., in onEnable).
      * 
-     * @param plugin The VampirePlugin instance
+     * @param plugin The {@link VampirePlugin} instance.
      */
     public static void init(VampirePlugin plugin) {
         VampireMessages.plugin = plugin;
@@ -32,19 +46,38 @@ public class VampireMessages {
     }
     
     /**
-     * Loads messages from the config.
+     * Loads messages from the plugin's {@link LanguageConfig} into the internal cache.
+     * Clears any existing messages before loading.
+     * Logs the number of messages loaded or a warning if the config is unavailable.
      */
     private static void loadMessages() {
-        // Load messages from config
-        // This is a placeholder for actual implementation
-        // In a real implementation, you would load messages from a config file
+        messageCache.clear();
+        LanguageConfig langConfig = plugin.getLanguageConfig();
+        if (langConfig != null) {
+            // Get all messages from the language config and store them in the cache.
+            messageCache.putAll(langConfig.getMessages());
+            plugin.getLogger().info("Loaded " + messageCache.size() + " messages from language config.");
+        } else {
+            // This should generally not happen if init is called after config loading.
+            plugin.getLogger().warning("LanguageConfig not available during VampireMessages initialization. Messages may not work correctly.");
+        }
     }
     
     /**
-     * Sends a message to a player.
+     * Reloads messages from the language configuration file.
+     * Clears the existing cache and loads the messages again.
+     * Useful for applying changes to the language file without restarting the server.
+     */
+    public static void reloadMessages() {
+        loadMessages();
+        plugin.getLogger().info("Reloaded messages from language config.");
+    }
+    
+    /**
+     * Sends a raw message string (after formatting color codes) to a specific player.
      * 
-     * @param player The player to send the message to
-     * @param message The message to send
+     * @param player The {@link Player} to send the message to. Can be null (message is ignored).
+     * @param message The raw message string (use '&' for color codes).
      */
     public static void send(Player player, String message) {
         if (player != null && player.isOnline()) {
@@ -53,25 +86,26 @@ public class VampireMessages {
     }
     
     /**
-     * Sends a message to a VampirePlayer.
+     * Sends a raw message string (after formatting color codes) to the player 
+     * associated with a {@link VampirePlayer} object.
      * 
-     * @param vampirePlayer The VampirePlayer to send the message to
-     * @param message The message to send
+     * @param vampirePlayer The {@link VampirePlayer} whose associated player should receive the message. Can be null.
+     * @param message The raw message string (use '&' for color codes).
      */
     public static void send(VampirePlayer vampirePlayer, String message) {
         if (vampirePlayer != null) {
-            Player player = vampirePlayer.getPlayer();
-            if (player != null && player.isOnline()) {
-                player.sendMessage(formatMessage(message));
-            }
+            Player player = vampirePlayer.getPlayer(); // Get the underlying Bukkit Player
+            // Send the message using the player-specific method.
+            send(player, message); 
         }
     }
     
     /**
-     * Sends a message to a CommandSender.
+     * Sends a raw message string (after formatting color codes) to a {@link CommandSender} 
+     * (can be a Player or the Console).
      * 
-     * @param sender The CommandSender to send the message to
-     * @param message The message to send
+     * @param sender The {@link CommandSender} to send the message to. Can be null (message is ignored).
+     * @param message The raw message string (use '&' for color codes).
      */
     public static void send(CommandSender sender, String message) {
         if (sender != null) {
@@ -80,42 +114,50 @@ public class VampireMessages {
     }
     
     /**
-     * Sends a message to the console.
+     * Sends a message to the server console (logs it as INFO level).
+     * The message is formatted for color codes, though console may not display them.
      * 
-     * @param message The message to send
+     * @param message The message string to log.
      */
     public static void sendToConsole(String message) {
+        // Logs the message using the plugin's logger.
         plugin.getLogger().info(formatMessage(message));
     }
     
     /**
-     * Sends a message to all online players.
+     * Broadcasts a raw message string (after formatting color codes) to all online players.
      * 
-     * @param message The message to send
+     * @param message The raw message string to broadcast (use '&' for color codes).
      */
     public static void broadcast(String message) {
+        // Uses Bukkit's broadcast method.
         Bukkit.broadcastMessage(formatMessage(message));
     }
     
     /**
-     * Sends a message to a specific player from another player.
+     * Sends a message to a target player, indicating it came from another player.
+     * Prepends "From [SenderName]: " to the message.
      * 
-     * @param target The player to send the message to
-     * @param sender The player sending the message
-     * @param message The message to send
+     * @param target The {@link Player} to receive the message. Can be null.
+     * @param sender The {@link Player} who sent the message. Can be null.
+     * @param message The content of the message.
      */
     public static void sendFromPlayer(Player target, Player sender, String message) {
+        // Ensure both players are valid and online.
         if (target != null && target.isOnline() && sender != null) {
-            target.sendMessage(formatMessage("&7From " + sender.getName() + ": &f" + message));
+            // Format the message with sender context.
+            String formatted = "&7From " + sender.getName() + ": &f" + message;
+            send(target, formatted);
         }
     }
     
     /**
-     * Sends a localized message to a player.
+     * Sends a localized message to a player using a key from the language file.
+     * Formats the message using provided arguments if any.
      * 
-     * @param player The player to send the message to
-     * @param key The message key
-     * @param args The arguments to format the message with
+     * @param player The {@link Player} to send the message to. Can be null.
+     * @param key The key corresponding to the message in the language file.
+     * @param args Optional arguments to be inserted into the message (using {@link String#format} placeholders like %s, %d).
      */
     public static void sendLocalized(Player player, String key, Object... args) {
         String message = getLocalizedMessage(key, args);
@@ -123,11 +165,12 @@ public class VampireMessages {
     }
     
     /**
-     * Sends a localized message to a VampirePlayer.
+     * Sends a localized message to the player associated with a {@link VampirePlayer} object.
+     * Uses a key from the language file and formats with provided arguments.
      * 
-     * @param vampirePlayer The VampirePlayer to send the message to
-     * @param key The message key
-     * @param args The arguments to format the message with
+     * @param vampirePlayer The {@link VampirePlayer} whose associated player should receive the message. Can be null.
+     * @param key The key corresponding to the message in the language file.
+     * @param args Optional arguments to be inserted into the message.
      */
     public static void sendLocalized(VampirePlayer vampirePlayer, String key, Object... args) {
         String message = getLocalizedMessage(key, args);
@@ -135,57 +178,80 @@ public class VampireMessages {
     }
     
     /**
-     * Gets a localized message.
+     * Sends a localized message to a {@link CommandSender} (Player or Console).
+     * Uses a key from the language file and formats with provided arguments.
      * 
-     * @param key The message key
-     * @param args The arguments to format the message with
-     * @return The localized message
+     * @param sender The {@link CommandSender} to send the message to. Can be null.
+     * @param key The key corresponding to the message in the language file.
+     * @param args Optional arguments to be inserted into the message.
      */
-    public static String getLocalizedMessage(String key, Object... args) {
-        String message = messageCache.get(key);
-        if (message == null) {
-            // If the message is not in the cache, use the key as the message
-            message = key;
-        }
-        
-        // Format the message with the arguments
-        if (args != null && args.length > 0) {
-            try {
-                message = String.format(message, args);
-            } catch (Exception e) {
-                plugin.getLogger().log(Level.WARNING, "Error formatting message: " + key, e);
-            }
-        }
-        
-        return message;
+    public static void sendLocalized(CommandSender sender, String key, Object... args) {
+        String message = getLocalizedMessage(key, args);
+        send(sender, message);
     }
     
     /**
-     * Formats a message with color codes.
+     * Retrieves and formats a localized message string from the cache.
+     * If the key is not found, returns a default error message indicating the missing key.
+     * If arguments are provided, uses {@link String#format} to insert them.
+     * Finally, formats the message for color codes.
      * 
-     * @param message The message to format
-     * @return The formatted message
+     * @param key The key corresponding to the message in the language file.
+     * @param args Optional arguments for formatting the message.
+     * @return The fully formatted, localized message string.
+     */
+    public static String getLocalizedMessage(String key, Object... args) {
+        // Retrieve the raw message from cache, or provide a default if missing.
+        String rawMessage = messageCache.getOrDefault(key, "&cMissing message: " + key);
+        String formattedMessage = rawMessage;
+        
+        // If arguments are provided, attempt to format the message.
+        if (args != null && args.length > 0) {
+            try {
+                // Use String.format for placeholder replacement (e.g., %s, %d).
+                formattedMessage = String.format(rawMessage, args);
+            } catch (Exception e) {
+                // Log a warning if formatting fails (e.g., wrong number/type of args).
+                plugin.getLogger().log(Level.WARNING, "Error formatting message key '" + key + "' with String.format (Check arguments and format specifiers): " + e.getMessage());
+                // Fallback to the raw message if formatting fails.
+                formattedMessage = rawMessage; 
+            }
+        }
+        
+        // Always apply color code formatting at the end.
+        return formatMessage(formattedMessage);
+    }
+    
+    /**
+     * Translates Minecraft color codes (using '&') within a string to actual colors.
+     * Internal helper method.
+     * 
+     * @param message The message string potentially containing '&' color codes.
+     * @return The message string with color codes translated.
      */
     private static String formatMessage(String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
     }
     
     /**
-     * Logs a debug message to the console.
+     * Logs a debug message to the console if debug mode is enabled in the plugin config.
+     * Prefixes the message with "[DEBUG] ".
      * 
-     * @param message The message to log
+     * @param message The debug message to log.
      */
     public static void debug(String message) {
-        if (plugin.getConfig().getBoolean("debug")) {
+        // Check if debug mode is enabled in the main config.
+        if (plugin.getVampireConfig() != null && plugin.getVampireConfig().isDebug()) {
             plugin.getLogger().info("[DEBUG] " + message);
         }
     }
     
     /**
-     * Logs an error message to the console.
+     * Logs an error message and stack trace to the console at SEVERE level.
+     * Use this for critical errors or exceptions.
      * 
-     * @param message The message to log
-     * @param throwable The throwable to log
+     * @param message The error message to log.
+     * @param throwable The associated {@link Throwable} (exception/error) to log. Can be null.
      */
     public static void error(String message, Throwable throwable) {
         plugin.getLogger().log(Level.SEVERE, message, throwable);

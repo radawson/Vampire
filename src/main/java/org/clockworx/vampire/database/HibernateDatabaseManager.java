@@ -683,10 +683,12 @@ public class HibernateDatabaseManager implements DatabaseManager {
 
     // Helper methods for converting between entities and domain objects
     private VampirePlayer convertToVampirePlayer(VampirePlayerEntity entity) {
+        if (entity == null) return null;
         VampirePlayer player = new VampirePlayer(entity.getUuid(), entity.getName());
-        player.setVampire(entity.isVampire());
-        player.setBlood(entity.getBloodLevel());
-        player.setInfectionLevel(entity.getInfectionLevel());
+        // Use internal setters for loading state directly from DB entity
+        player.setVampireInternal(entity.isVampire());
+        player.setBloodInternal(entity.getBloodLevel());
+        player.setInfectionLevelInternal(entity.getInfectionLevel()); 
         player.setInfectionReason(entity.getInfectionReason());
         player.setInfectionTime(entity.getInfectionTime());
         player.setLastShriekTime(entity.getLastShriekTime());
@@ -694,6 +696,8 @@ public class HibernateDatabaseManager implements DatabaseManager {
         player.setLastBloodTradePartner(entity.getLastBloodTradePartner());
         player.setLastBloodTradeAmount(entity.getLastBloodTradeAmount());
         player.setLastBloodTradeType(entity.getLastBloodTradeType());
+        player.setVampireLevel(entity.getVampireLevel());
+        player.setMakerId(entity.getMakerId());
         return player;
     }
 
@@ -709,6 +713,8 @@ public class HibernateDatabaseManager implements DatabaseManager {
         entity.setLastBloodTradePartner(player.getLastBloodTradePartner());
         entity.setLastBloodTradeAmount(player.getLastBloodTradeAmount());
         entity.setLastBloodTradeType(player.getLastBloodTradeType());
+        entity.setVampireLevel(player.getVampireLevel());
+        entity.setMakerId(player.getMakerId());
         return entity;
     }
 

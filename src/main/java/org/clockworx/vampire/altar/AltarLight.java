@@ -8,6 +8,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
@@ -15,10 +16,16 @@ import org.clockworx.vampire.event.EventVampirePlayerInfectionChange;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.VampireMessages;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.VampirePermission;
+import org.bukkit.attribute.AttributeInstance;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * The Light Altar allows players to decrease their infection or cure themselves of vampirism.
@@ -36,140 +43,226 @@ import java.util.Map;
  *    - Player is no longer a vampire
  *    - Triggers EventVampirePlayerInfectionChange
  * 
- * When used, it will:
+ *  * When used, it will:
  * 1. Check if the player is infected
  * 2. Apply visual and sound effects
  * 3. Consume required resources
  * 4. Decrease the player's infection rate
  * 5. If infection reaches 0.0, cure the player
+ * 
+ * <p>Configuration for materials and resources is loaded from the main plugin config 
+ * under the `altars.light` section.</p>
+ * 
+ * <p>Usage Logic (mirrors Dark Altar but for curing):</p>
+ * <ol>
+ *   <li>Player interacts with the core block ({@link #coreMaterial}).</li>
+ *   <li>{@link AltarManager#determineAltarType(Block)} validates the structure.</li>
+ *   <li>{@link AltarManager#handleBlockInteract(Block, Player)} handles event, permission, precondition, and resource checks.</li>
+ *   <li>If checks pass, {@link AltarManager#startAltarRitual(AltarAbstract, VampirePlayer, Player)} is called.</li>
+ *   <li>{@code startAltarRitual} calls {@link #applyStartEffects(VampirePlayer, Player)}, registers location, and schedules a task.</li>
+ *   <li>The scheduled task checks for movement using {@link #hasPlayerMoved(Player)}.</li>
+ *   <li>If no movement, the task calls {@link #consumeResources(VampirePlayer, Player)}.</li>
+ *   <li>If resources are consumed, the task calls {@link #applyEffects(VampirePlayer, Player, Block, VampireManager)}.</li>
+ *   <li>{@code applyEffects} calculates reduced infection, calls {@link EventVampirePlayerInfectionChange}, applies the change, and potentially cures the player (sets infection to 0, vampire to false). Also applies minor healing.</li>
+ * </ol>
  */
 public class AltarLight extends AltarAbstract {
     
+    // Constant for how much infection is reduced per use.
+    private static final double INFECTION_DECREASE_AMOUNT = 0.2;
+
     /**
-     * Creates a new Light Altar with the required materials and resources.
+     * Constructs and configures the Light Altar instance.
+     * Reads required materials, core block, and resource costs from the plugin configuration.
+     * 
+     * @param plugin The main {@link VampirePlugin} instance.
      */
-    public AltarLight() {
+    public AltarLight(VampirePlugin plugin) {
+        super(plugin);
         this.name = "Light Altar";
-        this.desc = "An altar that can decrease a player's infection or cure them of vampirism.";
+        this.desc = "&fAn altar shimmering with faint light...";
         
-        // Get configuration
-        VampirePlugin plugin = VampirePlugin.getInstance();
-        Map<String, Object> config = plugin.getVampireConfig().getLightAltarConfig();
-        
-        // Set core material
-        String coreMaterialStr = (String) config.getOrDefault("core-material", "DIAMOND_BLOCK");
-        this.coreMaterial = Material.valueOf(coreMaterialStr);
-        
-        // Set materials
-        this.materialCounts = new HashMap<>();
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> materials = (Map<String, Integer>) config.getOrDefault("materials", new HashMap<>());
-        for (Map.Entry<String, Integer> entry : materials.entrySet()) {
-            try {
-                Material material = Material.valueOf(entry.getKey().toUpperCase());
-                this.materialCounts.put(material, entry.getValue());
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid material in light altar config: " + entry.getKey());
-            }
+        // Load specific configuration for the Light Altar
+        Map<String, Object> configMap = plugin.getVampireConfig().getLightAltarConfig();
+        if (configMap == null) {
+            VampireMessages.error("Light Altar configuration section ('altars.light') missing or invalid! Using defaults.", null);
+            configMap = new HashMap<>(); // Use empty map to avoid NullPointerExceptions below
         }
         
-        // Set resources
+        // --- Configure Core Material ---
+        String coreMaterialStr = (String) configMap.getOrDefault("core-material", "DIAMOND_BLOCK");
+        try {
+            this.coreMaterial = Material.valueOf(coreMaterialStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            VampireMessages.error("Invalid core-material in light altar config: " + coreMaterialStr + ". Defaulting to DIAMOND_BLOCK.", e);
+            this.coreMaterial = Material.DIAMOND_BLOCK;
+        }
+        
+        // --- Set Abstract Properties ---
+        this.usePermission = VampirePermission.ALTAR_LIGHT; // Reference permission constant
+        this.successSound = Sound.ENTITY_PLAYER_LEVELUP; // Example sound
+        this.successMessageKey = "altar.light.success"; // Need to add this key to en.yml
+
+        // --- Configure Channeling --- (Needs config keys: altars.light.channeling_delay_ticks, altars.light.max_movement_distance)
+        this.channelingDelayTicks = plugin.getVampireConfig().getConfig().getInt("altar.light.channeling_delay_ticks", 60); // Default 3 seconds
+        double maxMoveDist = plugin.getVampireConfig().getConfig().getDouble("altar.light.max_movement_distance", 1.5); // Default 1.5 blocks
+        this.maxMovementDistanceSquared = maxMoveDist * maxMoveDist;
+
+        // --- Configure Structure Materials ---
+        this.materialCounts = new HashMap<>(); 
         @SuppressWarnings("unchecked")
-        List<String> resourceStrings = (List<String>) config.getOrDefault("resources", List.of());
+        Map<String, Integer> materialsConfig = (Map<String, Integer>) configMap.getOrDefault("materials", new HashMap<>());
+        for (Map.Entry<String, Integer> entry : materialsConfig.entrySet()) {
+            try {
+                Material material = Material.valueOf(entry.getKey().toUpperCase());
+                int count = entry.getValue() != null ? entry.getValue() : 1;
+                if (count > 0) {
+                    this.materialCounts.put(material, count);
+                }
+            } catch (IllegalArgumentException | NullPointerException e) {
+                VampireMessages.error("Invalid material key/value in light altar config: " + entry.getKey() + ", value: " + entry.getValue(), e);
+            }
+        }
+        this.materialCounts.putIfAbsent(this.coreMaterial, 1); // Ensure core is included
+        
+        // --- Configure Resource Costs ---
+        this.resources = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        List<String> resourceStrings = (List<String>) configMap.getOrDefault("resources", List.of("LAPIS_LAZULI:10", "DIAMOND:1")); // Default resources
+        
         this.resources = resourceStrings.stream()
             .map(str -> {
+                if (str == null || str.isEmpty()) return null;
                 String[] parts = str.split(":");
-                if (parts.length != 2) return null;
+                if (parts.length != 2) {
+                     VampireMessages.error("Invalid resource format in light altar config (Expected MATERIAL:AMOUNT): " + str, null);
+                    return null;
+                }
                 try {
-                    Material material = Material.valueOf(parts[0].toUpperCase());
-                    int amount = Integer.parseInt(parts[1]);
+                    Material material = Material.valueOf(parts[0].trim().toUpperCase());
+                    int amount = Integer.parseInt(parts[1].trim());
+                     if (amount <= 0) {
+                         VampireMessages.error("Invalid resource amount in light altar config (must be > 0): " + str, null);
+                         return null;
+                    }
                     return new ItemStack(material, amount);
-                } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid resource in light altar config: " + str);
+                } catch (IllegalArgumentException | NullPointerException e) {
+                     VampireMessages.error("Invalid resource material/amount in light altar config: " + str, e);
                     return null;
                 }
             })
-            .filter(item -> item != null)
-            .toList();
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
     
-    /**
-     * Uses the Light Altar to attempt to heal the player's vampirism infection.
-     * This method:
-     * 1. Checks if the player is infected
-     * 2. Applies visual and sound effects
-     * 3. Consumes required resources
-     * 4. Reduces the player's infection level by 0.2
-     * 5. Heal the player
-     * 
-     * The infection change will trigger an EventVampirePlayerInfectionChange event.
-     * If the event is cancelled, the infection level will not change.
-     * 
-     * @param vampirePlayer The VampirePlayer instance of the player
-     * @param player The Bukkit Player instance
-     * @return true if the altar was successfully used, false otherwise
-     */
+    // --- Implement Abstract Methods ---
+
     @Override
-    public boolean use(VampirePlayer vampirePlayer, Player player, Block block) {
-        VampireMessages.send(vampirePlayer, "");
-        VampireMessages.send(vampirePlayer, this.desc);
-        
-        // Check if the player is infected
-        if (!vampirePlayer.isInfected()) {
-            VampireMessages.send(vampirePlayer, "You are not infected with vampirism.");
+    public boolean checkPreconditions(VampirePlayer vp, Player player) {
+        if (!vp.isVampire() && vp.getInfectionLevel() <= 0) {
+            VampireMessages.sendLocalized(player, "altar.light.fail.already_cured");
             return false;
         }
-        
-        // Apply effects
-        VampireMessages.send(player, "The altar begins to glow with a bright light...");
-        FxUtil.ensure(PotionEffectType.GLOWING, player, 5 * 20);
-        FxUtil.runSmoke(player);
-        
-        // Check if the player has the required resources
-        if (!ResourceUtil.playerRemoveAttempt(player, this.resources, 
-                "You have the required resources for the healing ritual.", 
-                "You don't have the required resources for the healing ritual.")) {
-            return false;
-        }
-        
-        // Schedule the effect
-        VampirePlugin.getInstance().getServer().getScheduler().scheduleSyncDelayedTask(
-            VampirePlugin.getInstance(),
-            () -> super.use(vampirePlayer, player, block),
-            20 // 1 second delay
-        );
-        
         return true;
     }
 
     @Override
-    protected void applyEffects(VampirePlayer vampirePlayer, Player player, Block block) {
-        // Reduce infection
-        double currentInfection = vampirePlayer.getInfection();
-        double newInfection = Math.max(0.0, currentInfection - 0.2);
-        
-        // Fire infection change event
-        EventVampirePlayerInfectionChange event = new EventVampirePlayerInfectionChange(newInfection, vampirePlayer);
-        VampirePlugin.getInstance().getServer().getPluginManager().callEvent(event);
-        
-        // Only apply infection change if event wasn't cancelled
-        if (!event.isCancelled()) {
-            vampirePlayer.setInfectionLevel(newInfection);
-            
-            // Check if player was cured
-            if (newInfection <= 0.0) {
-                VampireMessages.send(vampirePlayer, "You have been cured of vampirism!");
-            } else {
-                VampireMessages.send(vampirePlayer, "You feel the light energy healing your body!");
+    public boolean checkResources(VampirePlayer vp, Player player) {
+        PlayerInventory inventory = player.getInventory();
+        for (ItemStack resource : this.resources) {
+            if (resource == null || resource.getAmount() <= 0) continue;
+            if (!inventory.containsAtLeast(resource, resource.getAmount())) {
+                String itemName = ResourceUtil.getMaterialName(resource.getType());
+                VampireMessages.sendLocalized(player, "altar.fail.resources", resource.getAmount(), itemName);
+                return false;
             }
         }
+        return true;
+    }
+
+    @Override
+    public void applyStartEffects(VampirePlayer vp, Player player) {
+        VampireMessages.sendLocalized(player, "altar.light.start_ritual");
+        FxUtil.ensure(PotionEffectType.GLOWING, player, getChannelingDelayTicks() + 20);
+        FxUtil.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.5f);
+        FxUtil.playParticle(player.getEyeLocation(), Particle.END_ROD, 15, 0.5, 0.5, 0.5, 0.01);
+    }
+
+    @Override
+    public boolean consumeResources(VampirePlayer vp, Player player) {
+        PlayerInventory inventory = player.getInventory();
+        for (ItemStack resource : this.resources) {
+             if (!inventory.containsAtLeast(resource, resource.getAmount())) {
+                 VampireMessages.sendLocalized(player, "altar.fail.resource_missing_last_moment");
+                 return false; 
+            }
+        }
+        for (ItemStack resource : this.resources) {
+            ItemStack toRemove = resource.clone();
+            inventory.removeItemAnySlot(toRemove);
+        }
+        return true;
+    }
+
+    /**
+     * Applies the curing logic of the Light Altar.
+     * Called by the scheduled task in the AltarManager if the player hasn't moved.
+     * Decreases infection level, potentially cures the player (removes vampire status), and applies minor healing.
+     *
+     * @param vampirePlayer The {@link VampirePlayer} instance of the player.
+     * @param player The Bukkit {@link Player} instance.
+     * @param block The core altar {@link Block} interacted with.
+     * @param manager The {@link VampireManager} instance.
+     */
+    @Override
+    protected void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager) {
+        double currentInfection = vampirePlayer.getInfectionLevel();
+        double newInfectionLevel = Math.max(0.0, currentInfection - INFECTION_DECREASE_AMOUNT);
+        boolean wasVampire = vampirePlayer.isVampire();
         
-        // Heal the player
-        player.setHealth(Math.min(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue(), player.getHealth() + 4.0));
+        EventVampirePlayerInfectionChange event = new EventVampirePlayerInfectionChange(newInfectionLevel, vampirePlayer);
+        plugin.getServer().getPluginManager().callEvent(event);
         
-        // Apply effects
-        VampireMessages.send(vampirePlayer, "You feel the light energy healing your body!");
-        player.getWorld().strikeLightningEffect(player.getLocation().add(0, 3, 0));
-        FxUtil.runSmokeBurst(player);
+        if (!event.isCancelled()) {
+             double finalInfectionLevel = event.getInfection();
+             
+             manager.setInfectionLevel(vampirePlayer.getUuid(), finalInfectionLevel, "Used Light Altar");
+            
+            if (finalInfectionLevel <= 0.0) {
+                 if (wasVampire) {
+                    manager.setVampireStatus(vampirePlayer.getUuid(), false, "Cured by Light Altar");
+                    VampireMessages.sendLocalized(player, "altar.light.effect.cured_vampire");
+                    FxUtil.playCureEffect(player);
+                 } else {
+                     VampireMessages.sendLocalized(player, "altar.light.effect.cured_infection");
+                     FxUtil.playCureEffect(player);
+                 }
+            } else if (wasVampire && finalInfectionLevel < 1.0) {
+                 manager.setVampireStatus(vampirePlayer.getUuid(), false, "Infection reduced by Light Altar");
+                 VampireMessages.sendLocalized(player, "altar.light.effect.weakened_curse");
+                 FxUtil.playSound(player.getLocation(), Sound.ENTITY_ZOMBIE_VILLAGER_CURE, 1.0f, 1.2f);
+                 FxUtil.playParticle(player.getEyeLocation(), Particle.HAPPY_VILLAGER, 25, 0.5, 0.8, 0.5, 0.1);
+            } else {
+                VampireMessages.sendLocalized(player, "altar.light.effect.decrease_infection");
+                FxUtil.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 1.5f);
+                FxUtil.runHeal(player);
+            }
+            
+            AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            double maxHealth = (maxHealthAttribute != null) ? maxHealthAttribute.getValue() : 20.0;
+            player.setHealth(Math.min(maxHealth, player.getHealth() + 4.0));
+            
+            if (finalInfectionLevel > 0.0) { 
+                FxUtil.playSound(player.getLocation(), getSound(), 1.0f, 1.2f);
+            }
+             if(getSuccessMessageKey() != null && !getSuccessMessageKey().isEmpty()){
+                 VampireMessages.sendLocalized(player, getSuccessMessageKey());
+             }
+
+        } else {
+             VampireMessages.sendLocalized(player, "altar.fail.cancelled");
+            ResourceUtil.playerAdd(player, this.resources);
+            FxUtil.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 0.5f);
+        }
     }
 } 

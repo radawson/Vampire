@@ -1,21 +1,22 @@
 package org.clockworx.vampire;
 
-import io.papermc.paper.plugin.bootstrap.BootstrapContext;
-import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
-import io.papermc.paper.plugin.configuration.PluginMeta;
-import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
-import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
-import io.papermc.paper.plugin.PaperPlugin;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 import org.clockworx.vampire.cmd.VampireCommand;
+import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.database.DatabaseManager;
 import org.clockworx.vampire.database.HibernateDatabaseManager;
 import org.clockworx.vampire.manager.AltarManager;
 import org.clockworx.vampire.manager.BloodManager;
 import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.manager.ItemManager;
 import org.clockworx.vampire.task.BloodRegenerationTask;
-import org.clockworx.vampire.task.DaylightTask;
 import org.clockworx.vampire.task.VampireTask;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.logging.Level;
 
@@ -23,31 +24,27 @@ import java.util.logging.Level;
  * Main plugin class for the Vampire plugin.
  * This class serves as the entry point and central manager for the plugin.
  */
-public final class VampirePlugin extends PaperPlugin {
+public final class VampirePlugin extends JavaPlugin {
     
     private VampireConfig config;
-    private DatabaseManager databaseManager;
+    private LanguageConfig languageConfig;
+    private HibernateDatabaseManager databaseManager;
     private VampireManager vampireManager;
     private BloodManager bloodManager;
     private AltarManager altarManager;
+    private ItemManager itemManager;
     private VampireCommand vampireCommand;
 
     @Override
     public void onEnable() {
-        // Initialize configs
         initializeConfigs();
-
-        // Initialize database
         initializeDatabase();
-
-        // Initialize managers
         initializeManagers();
-
-        // Register commands
         registerCommands();
-
-        // Start tasks
         startTasks();
+        
+        // Initialize VampireMessages after configs are loaded
+        VampireMessages.init(this); 
 
         getLogger().info("Vampire plugin enabled!");
     }
@@ -70,7 +67,12 @@ public final class VampirePlugin extends PaperPlugin {
      */
     private void initializeConfigs() {
         config = new VampireConfig(this);
-        config.load();
+        config.loadConfig();
+
+        languageConfig = new LanguageConfig(this);
+        languageConfig.loadLanguage(config.getLanguage());
+
+        getLogger().info("Configurations initialized!");
     }
 
     /**
@@ -79,6 +81,8 @@ public final class VampirePlugin extends PaperPlugin {
     private void initializeDatabase() {
         databaseManager = new HibernateDatabaseManager(this);
         databaseManager.initialize().join();
+
+        getLogger().info("Database initialized!");
     }
 
     /**
@@ -88,6 +92,9 @@ public final class VampirePlugin extends PaperPlugin {
         vampireManager = new VampireManager(this);
         bloodManager = new BloodManager(this);
         altarManager = new AltarManager(this);
+        itemManager = new ItemManager(this);
+
+        getLogger().info("Managers initialized!");
     }
 
     /**
@@ -95,8 +102,13 @@ public final class VampirePlugin extends PaperPlugin {
      */
     private void registerCommands() {
         vampireCommand = new VampireCommand(this);
-        getCommand("vampire").setExecutor(vampireCommand);
-        getCommand("vampire").setTabCompleter(vampireCommand);
+        if (getCommand("vampire") != null) {
+            getCommand("vampire").setExecutor(vampireCommand);
+            getCommand("vampire").setTabCompleter(vampireCommand);
+            getLogger().info("Registered 'vampire' command.");
+        } else {
+            getLogger().warning("Could not find 'vampire' command registration in plugin.yml!");
+        }
     }
 
     /**
@@ -104,15 +116,16 @@ public final class VampirePlugin extends PaperPlugin {
      */
     private void startTasks() {
         new BloodRegenerationTask(this).runTaskTimer(this, 20L, 20L);
-        new DaylightTask(this).runTaskTimer(this, 20L, 20L);
-        new VampireTask(this).runTaskTimer(this, 20L, 20L);
+        new VampireTask(this).start();
+        
+        getLogger().info("Tasks initialized!");
     }
 
     /**
      * Debug message
      */
     public void debug(String message) {
-        if (config.isDebug()) {
+        if (config != null && config.isDebug()) {
             getLogger().info("[DEBUG] " + message);
         }
     }
@@ -129,7 +142,11 @@ public final class VampirePlugin extends PaperPlugin {
         return config;
     }
 
-    public DatabaseManager getDatabaseManager() {
+    public LanguageConfig getLanguageConfig() {
+        return languageConfig;
+    }
+
+    public HibernateDatabaseManager getDatabaseManager() {
         return databaseManager;
     }
 
@@ -143,6 +160,10 @@ public final class VampirePlugin extends PaperPlugin {
 
     public AltarManager getAltarManager() {
         return altarManager;
+    }
+
+    public ItemManager getItemManager() {
+        return itemManager;
     }
 
     public VampireCommand getVampireCommand() {

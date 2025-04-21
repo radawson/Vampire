@@ -11,7 +11,7 @@ import org.clockworx.vampire.entity.VampirePlayer;
  * Event that is fired when a player attempts to use an altar.
  * This event can be cancelled to prevent the altar from being used.
  */
-public class EventAltarUse extends Event implements Cancellable {
+public class EventAltarUse extends AbstractVampireEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private boolean cancelled;
     
@@ -27,8 +27,8 @@ public class EventAltarUse extends Event implements Cancellable {
      * @param player The Bukkit Player instance
      */
     public EventAltarUse(AltarAbstract altar, VampirePlayer vampirePlayer, Player player) {
+        super(vampirePlayer);
         this.altar = altar;
-        this.vampirePlayer = vampirePlayer;
         this.player = player;
         this.cancelled = false;
     }
@@ -40,15 +40,6 @@ public class EventAltarUse extends Event implements Cancellable {
      */
     public AltarAbstract getAltar() {
         return altar;
-    }
-    
-    /**
-     * Gets the VampirePlayer instance of the player using the altar.
-     * 
-     * @return The VampirePlayer
-     */
-    public VampirePlayer getVampirePlayer() {
-        return vampirePlayer;
     }
     
     /**

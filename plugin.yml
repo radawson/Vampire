@@ -116,3 +116,30 @@ permissions:
     default: true
     children:
       vampire.kit.rank0: true
+# Add help permissions
+  vampire.help.command:
+    description: Allows viewing the list of commands via /vampire help.
+    default: true
+  vampire.help.lore:
+    description: Allows viewing detailed explanations of mechanics via /vampire help <topic>.
+    default: op
+# Gift Permissions
+  vampire.gift.offer:
+    description: Allows offering the Dark Gift to turn a human player.
+    default: op
+  vampire.gift.accept:
+    description: Allows accepting or rejecting an offer of the Dark Gift.
+    default: true
+# Stats/Reset Permissions
+  vampire.stats:
+    description: Allows viewing your own vampire statistics.
+    default: true
+  vampire.stats.other:
+    description: Allows viewing other players' vampire statistics.
+    default: op
+  vampire.reset:
+    description: Allows resetting a player's vampire data (cure, remove infection/blood).
+    default: op
+  vampire.flask.holywater:
+    description: Allows creating Holy Water via command.
+    default: op

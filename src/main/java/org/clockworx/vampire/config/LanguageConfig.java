@@ -114,6 +114,25 @@ public class LanguageConfig {
         setDefaultMessage("command.help.set", "&7/vampire set <type> <player> [value] &8- &fSet vampire properties");
         setDefaultMessage("command.help.offer", "&7/vampire offer <player> <amount> &8- &fOffer blood to a player");
         setDefaultMessage("command.help.reload", "&7/vampire reload &8- &fReload the plugin");
+
+        // Set Command Messages (New/Consolidated)
+        setDefaultMessage("command.set.usage", "&cUsage: /vampire set <type> <player> <value>");
+        setDefaultMessage("command.set.invalid_type", "&cInvalid type. Use: vampire, infection, food, health");
+        setDefaultMessage("command.set.success.vampire", "&aSet vampire status for %1% to %2%.");
+        setDefaultMessage("command.set.success.infection", "&aSet infection level for %1% to %2%.");
+        setDefaultMessage("command.set.success.food", "&aSet food level for %1% to %2%.");
+        setDefaultMessage("command.set.success.health", "&aSet health level for %1% to %2%.");
+
+        // Flask Command Messages (Added/Updated)
+        setDefaultMessage("command.flask.not_vampire", "&cOnly vampires can create blood vials.");
+        setDefaultMessage("command.flask.need_empty_bottle", "&cYou need an empty glass bottle in your hand.");
+        setDefaultMessage("command.flask.not_enough_blood", "&cYou need at least %1% blood to create a vial.");
+        setDefaultMessage("command.flask.blood_use_failed", "&cFailed to use blood. Vial creation cancelled.");
+        setDefaultMessage("command.flask.inventory_full", "&cYour inventory is full. The blood vial was dropped.");
+        setDefaultMessage("command.flask.success", "&aYou created a Blood Vial.");
+        setDefaultMessage("command.flask.holy_success", "&aYou received Holy Water.");
+        setDefaultMessage("command.flask.inventory_full_holy", "&cYour inventory is full. The Holy Water was dropped.");
+        setDefaultMessage("command.flask.invalid_type", "&cInvalid vial type. Use 'blood' or 'holy'.");
     }
 
     public boolean reload() {

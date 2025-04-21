@@ -42,6 +42,14 @@ public class VampirePlayerEntity {
     @Column(name = "last_blood_trade_type")
     private String lastBloodTradeType;
 
+    // --- New Persistent Fields ---
+    @Column(name = "vampire_level")
+    private int vampireLevel;
+
+    @Column(name = "maker_id", nullable = true) // Allow null if player wasn't turned by another player
+    private UUID makerId;
+    // --- End New Persistent Fields ---
+
     // Default constructor required by Hibernate
     protected VampirePlayerEntity() {}
 
@@ -92,4 +100,12 @@ public class VampirePlayerEntity {
     
     public String getLastBloodTradeType() { return lastBloodTradeType; }
     public void setLastBloodTradeType(String lastBloodTradeType) { this.lastBloodTradeType = lastBloodTradeType; }
+
+    // --- Getters and Setters for New Fields ---
+    public int getVampireLevel() { return vampireLevel; }
+    public void setVampireLevel(int vampireLevel) { this.vampireLevel = vampireLevel; }
+
+    public UUID getMakerId() { return makerId; }
+    public void setMakerId(UUID makerId) { this.makerId = makerId; }
+    // --- End Getters and Setters for New Fields ---
 } 

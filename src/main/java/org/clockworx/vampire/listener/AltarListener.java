@@ -5,6 +5,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.clockworx.vampire.VampirePlugin;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 /**
  * Listener class for handling altar-related interactions in the Vampire plugin.
@@ -19,6 +21,12 @@ import org.clockworx.vampire.VampirePlugin;
  */
 public class AltarListener implements Listener {
     
+    private final VampirePlugin plugin;
+    
+    public AltarListener(VampirePlugin plugin) {
+        this.plugin = plugin;
+    }
+
     /**
      * Handles player interactions with altar blocks.
      * This method is called when a player interacts with any block and:
@@ -40,8 +48,15 @@ public class AltarListener implements Listener {
         // Check if the player right-clicked a block
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         
+        Block clickedBlock = event.getClickedBlock();
+        Player player = event.getPlayer();
+        
+        if (clickedBlock == null) {
+            return;
+        }
+
         // Check if the block is part of an altar
-        if (VampirePlugin.getInstance().getAltarManager().handleBlockInteract(event.getClickedBlock(), event.getPlayer())) {
+        if (plugin.getAltarManager().handleBlockInteract(clickedBlock, player)) {
             // Cancel the event to prevent the player from using the block normally
             event.setCancelled(true);
         }

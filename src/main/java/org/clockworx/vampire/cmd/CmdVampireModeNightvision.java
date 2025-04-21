@@ -3,10 +3,15 @@ package org.clockworx.vampire.cmd;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Command to toggle nightvision mode for vampires.
@@ -20,33 +25,34 @@ public class CmdVampireModeNightvision extends CmdVampireModeAbstract {
      * @param plugin The plugin instance
      */
     public CmdVampireModeNightvision(VampirePlugin plugin) {
-        super(plugin, "Nightvision", "vampire.mode.nightvision");
+        super(plugin, "Nightvision", VampirePermission.MODE_NIGHTVISION);
     }
     
     @Override
-    protected void executeMode(Player player, VampirePlayer vampirePlayer, String[] args) {
-        boolean newValue = !vampirePlayer.isUsingNightVision();
-        vampirePlayer.setUsingNightVision(newValue);
-        
-        // Apply or remove nightvision effect
-        if (newValue) {
-            player.addPotionEffect(PotionEffectType.NIGHT_VISION.createEffect(Integer.MAX_VALUE, 0));
-            player.sendMessage(getMessage("mode.nightvision.enabled"));
-        } else {
-            player.removePotionEffect(PotionEffectType.NIGHT_VISION);
-            player.sendMessage(getMessage("mode.nightvision.disabled"));
+    protected void executeMode(Player player, VampirePlayer vampirePlayer, VampireManager manager, String[] args) {
+        // Check if the feature is enabled globally first
+        if (!manager.getPlugin().getVampireConfig().isNightVisionEnabled()) {
+            VampireMessages.sendLocalized(player, "mode.nightvision.globally_disabled"); // Need lang key
+            return;
         }
+        
+        boolean currentValue = vampirePlayer.isUsingNightVision();
+        boolean newValue = !currentValue;
+
+        // Tell the manager to change the state
+        manager.setModeNightvision(player.getUniqueId(), newValue);
+        
+        // Send feedback based on the *intended* new state
+        // The manager/task will handle the actual effect application
+        String messageKey = newValue ? "mode.nightvision.enabled" : "mode.nightvision.disabled";
+        VampireMessages.sendLocalized(player, messageKey); // Need lang keys
     }
     
     @Override
     protected List<String> getModeCompletions(String partial) {
-        List<String> completions = new ArrayList<>();
-        if ("on".startsWith(partial.toLowerCase())) {
-            completions.add("on");
-        }
-        if ("off".startsWith(partial.toLowerCase())) {
-            completions.add("off");
-        }
-        return completions;
+        List<String> options = Arrays.asList("on", "off");
+        return options.stream()
+                    .filter(opt -> opt.startsWith(partial.toLowerCase()))
+                    .collect(Collectors.toList());
     }
 } 

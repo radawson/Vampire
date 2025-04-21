@@ -43,14 +43,12 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         this.bloodOffers = new HashMap<>();
         
         // Register subcommands
-        registerSubcommand(new CmdVampireAccept(plugin));
         registerSubcommand(new CmdVampireFlask(plugin));
         registerSubcommand(new CmdVampireHelp(plugin));
         registerSubcommand(new CmdVampireList(plugin));
         registerSubcommand(new CmdVampireModeBloodlust(plugin));
         registerSubcommand(new CmdVampireModeNightvision(plugin));
         registerSubcommand(new CmdVampireModeIntend(plugin));
-        registerSubcommand(new CmdVampireOffer(plugin));
         registerSubcommand(new CmdVampireReset(plugin));
         registerSubcommand(new CmdVampireReload(plugin));
         registerSubcommand(new CmdVampireShow(plugin));
@@ -61,6 +59,10 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         registerSubcommand(new CmdVampireShriek(plugin));
         registerSubcommand(new CmdVampireStats(plugin));
         registerSubcommand(new CmdVampireVersion(plugin));
+        // Register Gift Commands
+        registerSubcommand(new CmdVampireOfferGift(plugin));
+        registerSubcommand(new CmdVampireAcceptGift(plugin));
+        registerSubcommand(new CmdVampireRejectGift(plugin));
     }
     
     /**

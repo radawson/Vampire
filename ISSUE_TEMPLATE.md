@@ -1,8 +1,5 @@
 ## Affected Plugin
 <!-- In order to help you we need to know which plugin this issue is about. -->
-<!-- The plugin always has the same version as MassiveCore. -->
-<!-- All our plugins depend on MassiveCore, you did not forget to install it did you? -->
-<!-- Run the command "/massivecore version" to see the version you are running. -->
 - **Affected Plugin Name:** Vampire
 - **Affected Plugin Version:** ???
 

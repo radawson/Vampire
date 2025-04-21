@@ -8,18 +8,29 @@ This plugin is a re-work of the MassiveCraft Vampire plugin. The original plugin
 
 ## Features
 
-- **Vampire Transformation**: Players can become vampires through infection or commands
-- **Blood System**: Vampires need blood to survive and can offer blood to other players
-- **Infection Mechanics**: Vampires can infect other players, gradually turning them into vampires
-- **Vampire Abilities**: 
-  - Bloodlust Mode: Increased damage and speed
-  - Night Vision: See in the dark
-  - Intent Mode: Show vampire status to other players
-  - Shriek: Infect nearby players
-- **Holy Water**: Players can use holy water to damage vampires
-- **Altars**: Dark and light altars with special effects
-- **Database Support**: SQLite and MySQL database options with Hibernate ORM
-- **Localization**: Full language support with customizable messages
+- **Vampire Transformation**: Players can become vampires through infection or commands.
+- **Blood System**: Vampires need blood to survive and can offer blood to other players.
+- **Infection Mechanics**: Vampires can infect other players, gradually turning them into vampires.
+- **Vampire Abilities**:
+  - Bloodlust Mode: Increased damage and speed.
+  - Night Vision: See in the dark.
+  - Intent Mode: Toggle infection chance on attack.
+  - Shriek: Infect nearby players.
+- **Sunlight Effects**: Vampires take damage in direct sunlight, configurable protection via blocks and armor.
+- **Altars**: Special multi-block structures for infection (Dark Altar) and curing (Light Altar).
+- **Holy Water / Blood Vials**: Craftable/obtainable items with effects on vampires/undead.
+- **Dark Gift**: Vampires can offer to turn human players directly.
+- **Database Support**: SQLite and MySQL database options with Hibernate ORM.
+- **Localization**: Full language support with customizable messages.
+
+## Gameplay
+
+- **Becoming a Vampire**: Get infected by another vampire's attack (Intent mode increases chance) or via a Dark Altar ritual. Infection progresses over time, eventually transforming the player.
+- **Survival**: Maintain your blood level by feeding on certain mobs or players (configurable). Avoid direct sunlight unless protected by blocks or armor.
+- **Abilities**: Use commands like `/vampire mode` to toggle Night Vision and Intent. Use `/vampire shriek` to infect groups.
+- **Altars**: Find or build Dark and Light Altars. These require specific materials around a central core block (`OBSIDIAN` for Dark, `DIAMOND_BLOCK` for Light by default). Right-clicking the core block with the required resources (check `CONFIG.md`) initiates a ritual. You must remain near the altar for a short channeling period (default 3 seconds) for the effect (infection or cure) to occur.
+- **Trading**: Use `/vampire offer` and `/vampire accept` to trade blood with other players.
+- **Dark Gift**: Vampires can use `/vampire offergift` to offer turning a nearby human player, who can `/vampire acceptgift` or `/vampire rejectgift`.
 
 ## Commands
 
@@ -27,78 +38,60 @@ This plugin is a re-work of the MassiveCraft Vampire plugin. The original plugin
 - `/vampire version` - Show plugin version
 - `/vampire show [player]` - Show vampire status
 - `/vampire list [page]` - Show a list of vampires
-- `/vampire set <type> <value> [player]` - Set vampire properties
-- `/vampire reset [player]` - Reset vampire status
-- `/vampire reload` - Reload plugin configuration
+- `/vampire set <type> <value> [player]` - Set vampire properties (Admin)
+- `/vampire reset [player]` - Reset vampire status (Admin)
+- `/vampire reload` - Reload plugin configuration (Admin)
 - `/vampire offer <player> <amount>` - Offer blood to another player
 - `/vampire accept` - Accept a blood offer
 - `/vampire reject` - Reject a blood offer
 - `/vampire shriek` - Shriek to infect nearby players
-- `/vampire mode <bloodlust|nightvision|intend>` - Set vampire mode
-- `/vampire stats` - Show vampire statistics
+- `/vampire mode <bloodlust|nightvision|intent>` - Set vampire mode
+- `/vampire stats [player]` - Show vampire statistics (own or others with perm)
+- `/vampire offergift <player>` - Offer the Dark Gift to a human player.
+- `/vampire acceptgift` - Accept a pending Dark Gift offer.
+- `/vampire rejectgift` - Reject a pending Dark Gift offer.
 
 ## Permissions
 
-- `vampire.use` - Allows use of basic vampire commands
-- `vampire.admin` - Allows use of admin commands
-- `vampire.trade.offer` - Allows offering blood to other players
-- `vampire.trade.accept` - Allows accepting blood offers
-- `vampire.mode.bloodlust` - Allows toggling bloodlust mode
-- `vampire.mode.nightvision` - Allows toggling nightvision mode
-- `vampire.mode.intend` - Allows toggling infection intent mode
-- `vampire.list` - Allows viewing the vampire list
-- `vampire.show` - Allows viewing vampire status
-- `vampire.show.other` - Allows viewing other players' vampire status
-- `vampire.shriek` - Allows using the vampire shriek ability
-- `vampire.set` - Allows setting player vampire status
-- `vampire.is.vampire` - Allows becoming a vampire
-- `vampire.is.human` - Allows remaining human
-- `vampire.config` - Allows modifying plugin configuration
-- `vampire.lang` - Allows modifying plugin language
-- `vampire.bypass` - Allows bypassing vampire restrictions
-- `vampire.flask` - Allows using vampire flask
-- `vampire.reset` - Allows resetting vampire status
+- `vampire.use` - Allows use of basic vampire commands (Default: true)
+- `vampire.admin` - Allows use of admin commands (Default: op)
+- `vampire.trade.offer` - Allows offering blood (Default: true)
+- `vampire.trade.accept` - Allows accepting blood offers (Default: true)
+- `vampire.mode.bloodlust` - Allows toggling bloodlust mode (Default: true)
+- `vampire.mode.nightvision` - Allows toggling nightvision mode (Default: true)
+- `vampire.mode.intent` - Allows toggling infection intent mode (Default: true)
+- `vampire.list` - Allows viewing the vampire list (Default: true)
+- `vampire.show` - Allows viewing own vampire status (Default: true)
+- `vampire.show.other` - Allows viewing other players' status (Default: op)
+- `vampire.shriek` - Allows using the shriek ability (Default: true)
+- `vampire.set` - Base permission for admin set commands (Default: op)
+- `vampire.set.vampire.true` - Allows making players vampires (Default: op)
+- `vampire.set.vampire.false` - Allows curing vampires (Default: op)
+- `vampire.set.infection` - Allows setting infection level (Default: op)
+- `vampire.set.food` - Allows setting blood level (Default: op)
+- `vampire.set.health` - Allows setting health (Default: op)
+- `vampire.config` - Allows modifying plugin configuration via command (if added) / reloading (Default: op)
+- `vampire.lang` - Allows modifying plugin language via command (if added) / reloading (Default: op)
+- `vampire.altar.dark` - Allows using Dark Altars (Default: true)
+- `vampire.altar.light` - Allows using Light Altars (Default: true)
+- `vampire.gift.offer` - Allows offering the Dark Gift (Default: op)
+- `vampire.gift.accept` - Allows accepting/rejecting the Dark Gift (Default: true)
+- `vampire.stats` - Allows viewing own stats (Default: true)
+- `vampire.stats.other` - Allows viewing others' stats (Default: op)
+- `vampire.reset` - Allows resetting player vampire data (Default: op)
+- `vampire.flask` - Allows creating/using blood flasks/vials (Default: true)
+- `vampire.flask.holywater` - Allows obtaining Holy Water via command (if added) (Default: op)
+- `vampire.bypass` - May bypass certain restrictions (e.g., feeding cooldowns, sun damage? Needs verification) (Default: op)
 
 ## Configuration
 
-The plugin uses YAML format for configuration files and language files. Database storage is handled by either MySQL or SQLite backends.
+The plugin uses `config.yml` for settings and YAML files in the `languages/` directory for messages.
+
+**For detailed explanations of all configuration settings in `config.yml`, please see [CONFIG.md](CONFIG.md).**
 
 ### Language Files
 
-Language files are stored in YAML format in the `languages` directory. To add a new language, simply create a new YAML file in the `languages` directory (e.g., `fr.yml` for French) and translate all the messages.
-
-### Database Configuration
-
-The plugin supports SQLite and MySQL databases using Hibernate ORM. Configure your database settings in `config.yml`:
-
-```yaml
-database:
-  type: sqlite  # or mysql
-  url: jdbc:sqlite:plugins/Vampire/database.db  # for SQLite
-  # For MySQL:
-  # url: jdbc:mysql://localhost:3306/vampire
-  # user: root
-  # password: password
-```
-
-### Language Configuration
-
-The plugin uses a comprehensive language system that allows for easy customization of all messages. Language files are stored in the `languages` directory and follow a hierarchical structure:
-
-```yaml
-general:
-  prefix: "&8[&cVampire&8]"
-  reload: "&aPlugin reloaded successfully!"
-
-command:
-  help:
-    header: "&7=== &cVampire Commands &7==="
-    info: "&7/vampire info [player] &8- &fShow vampire info for a player"
-```
-
-You can use color codes with the `&` symbol and placeholders with the `%variable%` format. The plugin will automatically replace these placeholders with the appropriate values.
-
-To add a new language, simply create a new YAML file in the `languages` directory (e.g., `fr.yml` for French) and translate all the messages.
+Language files allow customization of all plugin messages. You can copy `en.yml` to create new language files (e.g., `es.yml`). Use `&` for color codes.
 
 ## Development
 
@@ -106,34 +99,25 @@ To add a new language, simply create a new YAML file in the `languages` director
 
 - `org.clockworx.vampire` - Main package
   - `VampirePlugin.java` - Main plugin class
-  - `entity` - Entity classes (VampirePlayer, BloodOffer)
-  - `config` - Configuration classes
-  - `database` - Database managers and Hibernate configuration
-  - `cmd` - Command classes
-  - `listener` - Event listeners
-  - `task` - Scheduled tasks
-  - `util` - Utility classes
+  - `altar` - Altar structure and management classes
+  - `cmd` - Command handlers
+  - `config` - Configuration loading classes
+  - `database` - Database interface, Hibernate implementation
+  - `entity` - Data entities (VampirePlayer, BloodOffer, Hibernate Entities)
+  - `event` - Custom Bukkit events
+  - `listener` - Bukkit event listeners
+  - `manager` - Core logic managers (VampireManager, AltarManager, etc.)
+  - `task` - Repeating background tasks
+  - `util` - Utility classes (Messages, Effects, Resources, etc.)
 
 ### Key Components
 
-#### DatabaseManager
-
-The `DatabaseManager` interface defines methods for:
-
-- Player data management
-- Blood offer handling
-- Infection tracking
-- Configuration storage
-
-The plugin uses Hibernate ORM for database operations, supporting both SQLite and MySQL backends.
-
-#### LanguageConfig
-
-The `LanguageConfig` class manages:
-
-- Loading language files
-- Retrieving localized messages
-- Message formatting with placeholders
+- **`VampireManager`**: Handles caching, loading, saving, and modification of `VampirePlayer` data.
+- **`AltarManager`**: Manages altar registration, structure validation, and interaction flow.
+- **`AltarAbstract` subclasses (`AltarDark`, `AltarLight`)**: Define specific altar behavior (preconditions, resources, effects).
+- **Database System (`DatabaseManager`, `HibernateDatabaseManager`)**: Persists player data using Hibernate ORM.
+- **Event System (`AbstractVampireEvent` subclasses)**: Allows interaction with plugin logic (e.g., `EventAltarUse`, `EventVampirePlayerInfectionChange`).
+- **Utilities (`VampireMessages`, `FxUtil`, `ResourceUtil`, `SunUtil`)**: Provide centralized functions for common tasks.
 
 ## Building
 
@@ -143,12 +127,7 @@ To build the plugin, use the following command:
 ./gradlew build
 ```
 
-The compiled plugin will be available in `build/libs/`.
-
-## Roadmap
-
-- Add better language support
-- Add vampire levels
+The compiled plugin JAR will be available in `build/libs/`.
 
 ## License
 

@@ -1,11 +1,11 @@
 plugins {
     id("java")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.papermc.paperweight.userdev") version "1.5.11"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
 }
 
 group = "org.clockworx"
-version = "3.0.2"
+version = "3.1.0"
 
 repositories {
     mavenCentral()
@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT")
     
     // Database - Core
     implementation("org.hibernate:hibernate-core:6.4.1.Final")
@@ -38,20 +38,13 @@ dependencies {
 }
 
 java {
-    val javaVersion = JavaVersion.VERSION_17
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
 tasks {
     // Configure reobfuscation to use Mojang mappings for production
     paperweight {
-        reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.REOBF_PRODUCTION
-    }
-
-    // Make the reobfJar task run on build
-    assemble {
-        dependsOn(reobfJar)
+        paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
     }
 
     // Configure shadowJar
@@ -67,7 +60,7 @@ tasks {
                 "Name" to project.name,
                 "Version" to project.version,
                 "Description" to "A modern vampire plugin for Minecraft",
-                "Authors" to "MassiveCraft, Clockworx",
+                "Authors" to "MassiveCraft, ClockWorX",
                 "Main" to "org.clockworx.vampire.VampirePlugin"
             )
         }

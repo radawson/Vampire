@@ -8,9 +8,12 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Sound;
 import org.clockworx.vampire.VampirePlugin;
+import org.bukkit.entity.EntityType;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +57,54 @@ public class VampireConfig {
     private double bloodDecreaseRate;
     private double lowBloodThreshold;
     
+    // *** New Config Fields ***
+    /** Bonus to max blood per vampire level. */
+    private double maxBloodBonusPerLevel;
+    /** Cooldown in seconds after taking damage before blood regeneration resumes. */
+    private int regenDamageCooldownSeconds;
+    /** Food level below which blood regeneration is penalized. */
+    private int regenHungerThreshold;
+    /** Multiplier applied to blood regeneration when below hunger threshold. */
+    private double regenHungerMultiplier;
+    /** Food level above which blood regeneration is boosted. */
+    private int regenSatiatedThreshold;
+    /** Multiplier applied to blood regeneration when above satiated threshold. */
+    private double regenSatiatedMultiplier;
+    /** Multiplier applied to blood regeneration when sleeping. */
+    private double regenRestingMultiplier;
+    /** Cost in blood points to attempt infecting another entity. */
+    private double infectBloodCost;
+    /** Amount of infection applied per infecting attack. */
+    private double infectInfectionAmount;
+    /** Whether blood regeneration is disabled in direct sunlight. */
+    private boolean regenDisableInSunlight;
+    // *** End New Config Fields ***
+    
+    // *** New Gift Offer Config Fields ***
+    /** Whether the Offer Gift mechanic is enabled. */
+    private boolean giftEnabled;
+    /** Maximum distance in blocks between players for offering/accepting the gift. */
+    private double giftMaxDistance;
+    /** Cost in blood for the offering vampire. */
+    private double giftBloodCost;
+    /** Time in seconds the gift offer remains valid. */
+    private int giftOfferToleranceSeconds;
+    // *** End New Gift Offer Config Fields ***
+    
+    // *** New Blood Source Config Fields ***
+    /** Map storing blood gain per hit for specific EntityTypes. */
+    private Map<EntityType, Double> bloodGainPerHit;
+    /** Damage dealt to player when vampire gains blood from them. */
+    private double playerHealthCostOnHit;
+    // *** End New Blood Source Config Fields ***
+    
+    // *** New Item Config Fields ***
+    private double bloodVialInfectionAmount;
+    private double holyWaterVampireDamage;
+    private double holyWaterUndeadDamage;
+    private double holyWaterInfectionCureAmount;
+    // *** End New Item Config Fields ***
+    
     // Altar settings
     private boolean altarsEnabled;
     private int altarSearchRadius;
@@ -61,9 +112,16 @@ public class VampireConfig {
     private Map<String, Object> darkAltarConfig;
     private Map<String, Object> lightAltarConfig;
     
-    // Block opacity settings
+    // --- Sunlight Interaction Settings ---
+    /** Opacity contribution of various blocks to block sunlight. */
     private Map<Material, Double> blockOpacity;
-    private double opacityPerArmorPiece;
+    /** Base opacity value provided by different armor materials (e.g., LEATHER, IRON). */
+    private Map<String, Double> armorBaseMaterialOpacities;
+    /** Multiplier based on armor type/slot (e.g., HELMET, CHESTPLATE). */
+    private Map<String, Double> armorTypeWeights;
+    /** Base damage per second from sunlight at full irradiation (1.0). */
+    private double sunlightBaseDamage;
+    // --- End Sunlight Interaction Settings ---
     
     // Night vision settings
     private boolean nightVisionEnabled;
@@ -83,6 +141,9 @@ public class VampireConfig {
         this.darkAltarConfig = new HashMap<>();
         this.lightAltarConfig = new HashMap<>();
         this.blockOpacity = new HashMap<>();
+        this.armorBaseMaterialOpacities = new HashMap<>();
+        this.armorTypeWeights = new HashMap<>();
+        this.bloodGainPerHit = new HashMap<>();
         loadConfig();
     }
     
@@ -107,6 +168,15 @@ public class VampireConfig {
         // Load vampire settings
         loadVampireSettings();
         
+        // Load Gift Offer settings
+        loadGiftSettings();
+        
+        // Load Blood Source settings (New)
+        loadBloodSourceSettings();
+        
+        // Load Item settings (New)
+        loadItemSettings();
+        
         // Load night vision settings
         loadNightVisionSettings();
         
@@ -116,8 +186,8 @@ public class VampireConfig {
         // Load altar settings
         loadAltarSettings();
         
-        // Load block opacity settings
-        loadBlockOpacitySettings();
+        // Load sunlight settings (block opacity and armor)
+        loadSunlightSettings();
         
         plugin.getLogger().info("Configuration loaded successfully");
     }
@@ -206,32 +276,76 @@ public class VampireConfig {
         if (vampireSection == null) {
             plugin.getLogger().warning("Vampire section not found in config.yml, using defaults");
             setDefaultVampireSettings();
+            // Also set defaults for new settings if section is missing
+            setDefaultNewSettings(); 
             return;
         }
         
-        // Load and validate settings
-        maxBlood = validatePositiveDouble(vampireSection, "max-blood", 20.0);
-        bloodRegenRate = validatePositiveDouble(vampireSection, "blood-regen-rate", 0.1);
-        nightVision = vampireSection.getBoolean("night-vision", true);
-        sunDamage = vampireSection.getBoolean("sun-damage", true);
-        sunDamageAmount = validatePositiveDouble(vampireSection, "sun-damage-amount", 1.0);
-        canInfect = vampireSection.getBoolean("can-infect", true);
-        infectionChance = validatePercentage(vampireSection, "infection-chance", 0.25);
-        infectionDuration = validatePositiveInteger(vampireSection, "infection-duration", 60);
-        canOfferBlood = vampireSection.getBoolean("can-offer-blood", true);
-        maxBloodOffer = validatePositiveDouble(vampireSection, "max-blood-offer", 5.0);
-        bloodlustThreshold = validatePositiveDouble(vampireSection, "bloodlust-threshold", 15.0);
-        bloodlustBloodDecrease = validatePositiveDouble(vampireSection, "bloodlust-blood-decrease", 0.1);
-        taskDelay = validatePositiveInteger(vampireSection, "task-delay", 20);
-        infectionRate = validatePositiveDouble(vampireSection, "infection-rate", 0.1);
-        sunlightDamage = validatePositiveDouble(vampireSection, "sunlight-damage", 1.0);
-        bloodDecreaseRate = validatePositiveDouble(vampireSection, "blood-decrease-rate", 0.05);
-        lowBloodThreshold = validatePositiveDouble(vampireSection, "low-blood-threshold", 2.0);
+        // Load existing settings
+        maxBlood = validatePositiveDouble(vampireSection, "blood.max-blood", 20.0);
+        bloodRegenRate = validatePositiveDouble(vampireSection, "blood.regen-rate", 0.1);
+        nightVision = vampireSection.getBoolean("night-vision.enabled", true);
+        sunDamage = vampireSection.getBoolean("daylight.enabled", true);
+        sunDamageAmount = validatePositiveDouble(vampireSection, "daylight.damage-amount", 1.0);
+        canInfect = vampireSection.getBoolean("infection.can-infect", true);
+        infectionChance = validatePercentage(vampireSection, "infection.chance", 0.25); // Might be redundant now?
+        infectionDuration = validatePositiveInteger(vampireSection, "infection.duration-seconds", 60); // Cure time?
+        canOfferBlood = vampireSection.getBoolean("trade.can-offer", true);
+        maxBloodOffer = validatePositiveDouble(vampireSection, "trade.max-offer", 5.0);
+        bloodlustThreshold = validatePositiveDouble(vampireSection, "bloodlust.threshold", 15.0);
+        bloodlustBloodDecrease = validatePositiveDouble(vampireSection, "bloodlust.blood-decrease-rate", 0.1);
+        taskDelay = validatePositiveInteger(vampireSection, "task-delay-ticks", 20);
+        infectionRate = validatePositiveDouble(vampireSection, "infection.rate-per-second", 0.005); // e.g. 1 / (60*3) for 3 mins
+        sunlightDamage = validatePositiveDouble(vampireSection, "daylight.damage-per-second", 1.0);
+        bloodDecreaseRate = validatePositiveDouble(vampireSection, "blood.decrease-rate-per-second", 0.01); // Passive drain
+        lowBloodThreshold = validatePositiveDouble(vampireSection, "blood.low-threshold", 5.0);
+
+        // Load new settings from the same section
+        loadNewSettings(vampireSection); 
     }
 
-    public boolean reload() {
-        loadConfig();
-        return true;    
+    /** Loads the newly added configuration settings. */
+    private void loadNewSettings(ConfigurationSection section) {
+        // Ensure section is not null before proceeding
+        if (section == null) {
+             plugin.getLogger().warning("Cannot load new settings: Vampire config section not found.");
+             setDefaultNewSettings();
+             return;
+        }
+        maxBloodBonusPerLevel = validatePositiveDouble(section, "level.max-blood-bonus-per-level", 1.0);
+        regenDamageCooldownSeconds = validatePositiveInteger(section, "blood.regen-damage-cooldown-seconds", 5);
+        regenHungerThreshold = validateIntegerRange(section, "blood.regen-hunger-threshold", 6, 0, 20);
+        regenHungerMultiplier = validatePercentage(section, "blood.regen-hunger-multiplier", 0.25);
+        regenSatiatedThreshold = validateIntegerRange(section, "blood.regen-satiated-threshold", 18, 0, 20);
+        regenSatiatedMultiplier = validatePositiveDouble(section, "blood.regen-satiated-multiplier", 1.1);
+        regenRestingMultiplier = validatePositiveDouble(section, "blood.regen-resting-multiplier", 2.0);
+        infectBloodCost = validatePositiveDouble(section, "combat.infect-blood-cost", 0.5);
+        infectInfectionAmount = validatePercentage(section, "combat.infect-infection-amount", 0.05);
+        regenDisableInSunlight = section.getBoolean("blood.regen-disable-in-sunlight", true);
+    }
+
+    /** Sets default values for the newly added settings. */
+    private void setDefaultNewSettings() {
+        maxBloodBonusPerLevel = 1.0;
+        regenDamageCooldownSeconds = 5;
+        regenHungerThreshold = 6;
+        regenHungerMultiplier = 0.25;
+        regenSatiatedThreshold = 18;
+        regenSatiatedMultiplier = 1.1;
+        regenRestingMultiplier = 2.0;
+        infectBloodCost = 0.5;
+        infectInfectionAmount = 0.05;
+        regenDisableInSunlight = true;
+    }
+
+    // Helper for integer range validation
+    private int validateIntegerRange(ConfigurationSection section, String path, int defaultValue, int min, int max) {
+        int value = section.getInt(path, defaultValue);
+        if (value < min || value > max) {
+            plugin.getLogger().warning("Invalid value for " + path + ": " + value + ". Must be between "+min+" and "+max+". Using default: " + defaultValue);
+            return defaultValue;
+        }
+        return value;
     }
     
     private void setDefaultVampireSettings() {
@@ -308,36 +422,118 @@ public class VampireConfig {
         }
     }
     
-    private void loadBlockOpacitySettings() {
-        ConfigurationSection opacitySection = config.getConfigurationSection("block-opacity");
-        if (opacitySection == null) {
-            plugin.getLogger().warning("Block opacity section not found in config.yml, using defaults");
-            setDefaultBlockOpacitySettings();
+    /** Loads settings related to sunlight interaction: block opacity and armor protection. */
+    private void loadSunlightSettings() {
+        blockOpacity.clear();
+        armorBaseMaterialOpacities.clear();
+        armorTypeWeights.clear();
+
+        // Get the main sunlight section
+        ConfigurationSection sunlightSection = config.getConfigurationSection("sunlight");
+        if (sunlightSection == null) {
+            plugin.getLogger().warning("Sunlight section not found in config.yml. Using default values for block and armor opacity.");
+            setDefaultSunlightSettings(); // Call a method to set defaults if the section is missing
             return;
         }
-        
-        opacityPerArmorPiece = opacitySection.getDouble("opacity-per-armor-piece", 0.1);
-        
-        ConfigurationSection blocksSection = opacitySection.getConfigurationSection("blocks");
-        if (blocksSection != null) {
-            for (String materialName : blocksSection.getKeys(false)) {
+
+        // Load Base Damage
+        sunlightBaseDamage = validatePositiveDouble(sunlightSection, "base_damage", 1.0);
+
+        // Load Block Opacity
+        ConfigurationSection blockSection = sunlightSection.getConfigurationSection("block_opacity");
+        if (blockSection != null) {
+            for (String key : blockSection.getKeys(false)) {
                 try {
-                    Material material = Material.valueOf(materialName.toUpperCase());
-                    double opacity = blocksSection.getDouble(materialName);
-                    blockOpacity.put(material, opacity);
+                    Material material = Material.matchMaterial(key.toUpperCase());
+                    if (material != null && material.isBlock()) {
+                        double opacity = blockSection.getDouble(key);
+                        if (opacity < 0.0 || opacity > 1.0) {
+                            plugin.getLogger().warning("Invalid opacity value for block " + key + ": " + opacity + ". Clamping to [0, 1].");
+                            opacity = Math.max(0.0, Math.min(1.0, opacity));
+                        }
+                        blockOpacity.put(material, opacity);
+                    } else {
+                        plugin.getLogger().warning("Invalid or non-block material specified in block_opacity: " + key);
+                    }
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid material in block opacity config: " + materialName);
+                    plugin.getLogger().warning("Invalid material specified in block_opacity: " + key);
                 }
             }
+        } else {
+            plugin.getLogger().warning("sunlight.block_opacity subsection not found. Using default block opacities.");
+            setDefaultBlockOpacities();
+        }
+
+        // Load Armor Material Opacities
+        ConfigurationSection materialSection = sunlightSection.getConfigurationSection("armor_base_material_opacities");
+        if (materialSection != null) {
+            for (String key : materialSection.getKeys(false)) {
+                double opacity = materialSection.getDouble(key);
+                if (opacity < 0.0) { // Allow opacity > 1.0 if desired, but not negative
+                   plugin.getLogger().warning("Invalid negative opacity value for armor material " + key + ": " + opacity + ". Setting to 0.");
+                   opacity = 0.0;
+                }
+                armorBaseMaterialOpacities.put(key.toUpperCase(), opacity); // Store key as uppercase
+            }
+        } else {
+             plugin.getLogger().warning("sunlight.armor_base_material_opacities subsection not found. Using default material opacities.");
+             setDefaultArmorMaterialOpacities();
+        }
+
+        // Load Armor Type Weights
+        ConfigurationSection typeSection = sunlightSection.getConfigurationSection("armor_type_weights");
+        if (typeSection != null) {
+            for (String key : typeSection.getKeys(false)) {
+                 double weight = typeSection.getDouble(key);
+                 if (weight < 0.0) {
+                    plugin.getLogger().warning("Invalid negative weight value for armor type " + key + ": " + weight + ". Setting to 0.");
+                    weight = 0.0;
+                 }
+                 armorTypeWeights.put(key.toUpperCase(), weight); // Store key as uppercase
+            }
+        } else {
+            plugin.getLogger().warning("sunlight.armor_type_weights subsection not found. Using default type weights.");
+            setDefaultArmorTypeWeights();
         }
     }
     
-    private void setDefaultBlockOpacitySettings() {
-        opacityPerArmorPiece = 0.1;
-        blockOpacity.put(Material.GLASS, 0.3);
-        blockOpacity.put(Material.GLASS_PANE, 0.3);
-        blockOpacity.put(Material.ICE, 0.5);
-        blockOpacity.put(Material.WATER, 0.7);
+    // --- Helper methods to set default sunlight values --- 
+    private void setDefaultSunlightSettings() {
+        sunlightBaseDamage = 1.0; // Default base damage
+        setDefaultBlockOpacities();
+        setDefaultArmorMaterialOpacities();
+        setDefaultArmorTypeWeights();
+    }
+
+    private void setDefaultBlockOpacities() {
+        blockOpacity.clear();
+        // Add essential defaults
+        blockOpacity.put(Material.STONE, 0.9);
+        blockOpacity.put(Material.DIRT, 0.8);
+        blockOpacity.put(Material.GLASS, 0.1);
+        blockOpacity.put(Material.WATER, 0.3); 
+        // Add more defaults if needed
+    }
+
+    private void setDefaultArmorMaterialOpacities() {
+        armorBaseMaterialOpacities.clear();
+        armorBaseMaterialOpacities.put("LEATHER", 0.15);
+        armorBaseMaterialOpacities.put("CHAINMAIL", 0.25);
+        armorBaseMaterialOpacities.put("IRON", 0.35);
+        armorBaseMaterialOpacities.put("GOLD", 0.20);
+        armorBaseMaterialOpacities.put("DIAMOND", 0.45);
+        armorBaseMaterialOpacities.put("NETHERITE", 0.60);
+        armorBaseMaterialOpacities.put("TURTLE", 0.30);
+        armorBaseMaterialOpacities.put("ELYTRA", 0.05); // Elytra has low opacity
+    }
+
+    private void setDefaultArmorTypeWeights() {
+        armorTypeWeights.clear();
+        armorTypeWeights.put("HELMET", 0.25);
+        armorTypeWeights.put("CHESTPLATE", 0.40);
+        armorTypeWeights.put("LEGGINGS", 0.25);
+        armorTypeWeights.put("BOOTS", 0.10);
+        armorTypeWeights.put("ELYTRA", 0.40); // Elytra uses the chestplate slot weight
     }
     
     public void saveConfig() {
@@ -478,11 +674,28 @@ public class VampireConfig {
     
     // Getters for block opacity settings
     public double getBlockOpacity(Material material) {
-        return blockOpacity.getOrDefault(material, 1.0);
+        // Default to 1.0 (fully opaque) if material not explicitly defined
+        return blockOpacity.getOrDefault(material, 1.0); 
     }
     
-    public double getOpacityPerArmorPiece() {
-        return opacityPerArmorPiece;
+    /**
+     * Gets the configured map of base opacity values for different armor materials.
+     * Keys are uppercase material names (e.g., "IRON", "LEATHER").
+     * Values are the base opacity contribution (>= 0.0).
+     * @return The map of armor base material opacities.
+     */
+    public Map<String, Double> getArmorBaseMaterialOpacities() {
+        return Collections.unmodifiableMap(armorBaseMaterialOpacities);
+    }
+
+    /**
+     * Gets the configured map of weights for different armor types/slots.
+     * Keys are uppercase armor types (e.g., "HELMET", "CHESTPLATE").
+     * Values are the weight multipliers (>= 0.0).
+     * @return The map of armor type weights.
+     */
+    public Map<String, Double> getArmorTypeWeights() {
+        return Collections.unmodifiableMap(armorTypeWeights);
     }
     
     // Helper method to get Material from string
@@ -614,5 +827,282 @@ public class VampireConfig {
 
     public double getLowBloodThreshold() {
         return lowBloodThreshold;
+    }
+
+    // --- Getters for New Settings --- 
+
+    /**
+     * Gets the bonus to maximum blood capacity granted per vampire level.
+     * @return Bonus max blood per level.
+     */
+    public double getMaxBloodBonusPerLevel() {
+        return maxBloodBonusPerLevel;
+    }
+
+    /**
+     * Gets the cooldown in seconds after taking damage before blood regeneration resumes.
+     * @return Damage cooldown in seconds.
+     */
+    public int getRegenDamageCooldownSeconds() {
+        return regenDamageCooldownSeconds;
+    }
+
+    /**
+     * Gets the food level (0-20) below which blood regeneration rate is penalized.
+     * @return Hunger threshold for regeneration penalty.
+     */
+    public int getRegenHungerThreshold() {
+        return regenHungerThreshold;
+    }
+
+    /**
+     * Gets the multiplier (e.g., 0.25 for 25%) applied to blood regeneration when below the hunger threshold.
+     * @return Hunger regeneration multiplier.
+     */
+    public double getRegenHungerMultiplier() {
+        return regenHungerMultiplier;
+    }
+
+    /**
+     * Gets the food level (0-20) at or above which blood regeneration rate is boosted.
+     * @return Satiated threshold for regeneration boost.
+     */
+    public int getRegenSatiatedThreshold() {
+        return regenSatiatedThreshold;
+    }
+
+    /**
+     * Gets the multiplier (e.g., 1.1 for 110%) applied to blood regeneration when at or above the satiated threshold.
+     * @return Satiated regeneration multiplier.
+     */
+    public double getRegenSatiatedMultiplier() {
+        return regenSatiatedMultiplier;
+    }
+
+    /**
+     * Gets the multiplier (e.g., 2.0 for 200%) applied to blood regeneration when the player is sleeping.
+     * @return Resting regeneration multiplier.
+     */
+    public double getRegenRestingMultiplier() {
+        return regenRestingMultiplier;
+    }
+
+    /**
+     * Gets the amount of blood consumed when a vampire successfully hits an entity with infection intent enabled.
+     * @return Blood cost per infecting attack.
+     */
+    public double getInfectBloodCost() {
+        return infectBloodCost;
+    }
+
+    /**
+     * Gets the amount of infection (0.0 to 1.0) applied per successful infecting attack.
+     * @return Infection amount per infecting attack.
+     */
+    public double getInfectInfectionAmount() {
+        return infectInfectionAmount;
+    }
+
+    /**
+     * Gets whether blood regeneration should be disabled when the player is exposed to direct sunlight.
+     * Checks config path: vampire.blood.regen-disable-in-sunlight
+     * @return True if regeneration is disabled in sunlight, false otherwise.
+     */
+    public boolean getRegenDisableInSunlight() {
+        return regenDisableInSunlight;
+    }
+
+    /** Loads the gift offer configuration settings. */
+    private void loadGiftSettings() {
+        ConfigurationSection giftSection = config.getConfigurationSection("vampire.gift");
+        if (giftSection == null) {
+            plugin.getLogger().warning("Gift section (vampire.gift) not found in config.yml, using defaults.");
+            setDefaultGiftSettings();
+            return;
+        }
+        giftEnabled = giftSection.getBoolean("enabled", true);
+        giftMaxDistance = validatePositiveDouble(giftSection, "max-distance", 5.0);
+        giftBloodCost = validatePositiveDouble(giftSection, "blood-cost", 5.0);
+        giftOfferToleranceSeconds = validatePositiveInteger(giftSection, "offer-tolerance-seconds", 60);
+    }
+
+    /** Sets default values for the gift offer settings. */
+    private void setDefaultGiftSettings() {
+        giftEnabled = true;
+        giftMaxDistance = 5.0;
+        giftBloodCost = 5.0;
+        giftOfferToleranceSeconds = 60;
+    }
+
+    // --- Getters for Gift Offer Settings --- 
+
+    /**
+     * Checks if the Offer Gift mechanic is enabled.
+     * @return True if enabled, false otherwise.
+     */
+    public boolean isGiftEnabled() {
+        return giftEnabled;
+    }
+
+    /**
+     * Gets the maximum distance allowed between players for offering or accepting the Dark Gift.
+     * @return Maximum distance in blocks.
+     */
+    public double getGiftMaxDistance() {
+        return giftMaxDistance;
+    }
+
+    /**
+     * Gets the amount of blood the offering vampire must pay to turn the target.
+     * @return Blood cost for the offerer.
+     */
+    public double getGiftBloodCost() {
+        return giftBloodCost;
+    }
+
+    /**
+     * Gets the time in seconds an offer for the Dark Gift remains valid before expiring.
+     * @return Offer tolerance in seconds.
+     */
+    public int getGiftOfferToleranceSeconds() {
+        return giftOfferToleranceSeconds;
+    }
+
+    /** Loads the blood source configuration settings. */
+    private void loadBloodSourceSettings() {
+        ConfigurationSection bsSection = config.getConfigurationSection("vampire.blood_sources");
+        if (bsSection == null) {
+            plugin.getLogger().warning("Blood sources section (vampire.blood_sources) not found in config.yml, using defaults.");
+            setDefaultBloodSourceSettings();
+            return;
+        }
+
+        // Clear previous values before loading new ones
+        bloodGainPerHit.clear();
+        ConfigurationSection gainSection = bsSection.getConfigurationSection("gain_per_hit");
+        if (gainSection != null) {
+            for (String entityTypeName : gainSection.getKeys(false)) {
+                try {
+                    EntityType type = EntityType.valueOf(entityTypeName.toUpperCase());
+                    double amount = gainSection.getDouble(entityTypeName, 0.0);
+                    if (amount < 0) {
+                        plugin.getLogger().warning("Invalid negative blood gain value for " + entityTypeName + ", setting to 0.");
+                        amount = 0.0;
+                    }
+                    bloodGainPerHit.put(type, amount);
+                    VampireMessages.debug("Loaded blood source: " + type + " -> " + amount);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid entity type in blood sources config: " + entityTypeName);
+                }
+            }
+        }
+
+        playerHealthCostOnHit = bsSection.getDouble("player_health_cost_on_hit", 0.0);
+        if (playerHealthCostOnHit < 0) {
+            plugin.getLogger().warning("Invalid negative player health cost: " + playerHealthCostOnHit + ", setting to 0.");
+            playerHealthCostOnHit = 0.0;
+        }
+         VampireMessages.debug("Loaded player health cost on hit: " + playerHealthCostOnHit);
+    }
+
+    /** Sets default values for the blood source settings. */
+    private void setDefaultBloodSourceSettings() {
+        bloodGainPerHit = new HashMap<>(); // Ensure it's a new map if defaults are set
+        // Add a few key defaults programmatically - config.yml provides the full list
+        bloodGainPerHit.put(EntityType.PLAYER, 0.5);
+        bloodGainPerHit.put(EntityType.VILLAGER, 1.0);
+        bloodGainPerHit.put(EntityType.COW, 0.8);
+        bloodGainPerHit.put(EntityType.PIG, 0.7);
+        bloodGainPerHit.put(EntityType.CHICKEN, 0.3);
+        bloodGainPerHit.put(EntityType.ZOMBIE, 0.0);
+        bloodGainPerHit.put(EntityType.SKELETON, 0.0);
+        playerHealthCostOnHit = 0.0;
+    }
+
+    // --- Getters for Blood Source Settings (New) --- 
+
+    /**
+     * Gets the amount of blood gained per hit for a specific entity type.
+     * Returns 0.0 if the entity type is not configured or invalid.
+     *
+     * @param type The EntityType.
+     * @return The amount of blood gained, or 0.0.
+     */
+    public double getBloodGain(EntityType type) {
+        return bloodGainPerHit.getOrDefault(type, 0.0);
+    }
+
+    /**
+     * Gets the amount of health damage dealt to a player when a vampire
+     * successfully gains blood from hitting them.
+     *
+     * @return The health cost (damage amount).
+     */
+    public double getPlayerHealthCostOnHit() {
+        return playerHealthCostOnHit;
+    }
+
+    /** Loads the item configuration settings. */
+    private void loadItemSettings() {
+        ConfigurationSection itemSection = config.getConfigurationSection("items");
+        if (itemSection == null) {
+            plugin.getLogger().warning("Items section (items) not found in config.yml, using defaults.");
+            setDefaultItemSettings();
+            return;
+        }
+
+        ConfigurationSection bvSection = itemSection.getConfigurationSection("blood_vial");
+        if (bvSection != null) {
+            bloodVialInfectionAmount = validatePercentage(bvSection, "infection_amount", 0.15);
+        } else {
+            bloodVialInfectionAmount = 0.15; // Default if subsection missing
+        }
+
+        ConfigurationSection hwSection = itemSection.getConfigurationSection("holy_water");
+        if (hwSection != null) {
+            holyWaterVampireDamage = validatePositiveDouble(hwSection, "vampire_damage", 4.0);
+            holyWaterUndeadDamage = validatePositiveDouble(hwSection, "undead_damage", 6.0);
+            holyWaterInfectionCureAmount = validatePercentage(hwSection, "infection_cure_amount", 0.25);
+        } else {
+             // Defaults if subsection missing
+             holyWaterVampireDamage = 4.0;
+             holyWaterUndeadDamage = 6.0;
+             holyWaterInfectionCureAmount = 0.25;
+        }
+        // Format the debug string before passing it
+        String debugMsg = String.format("Loaded item settings: BV Infect=%.2f, HW VampDmg=%.1f, HW UndeadDmg=%.1f, HW Cure=%.2f", 
+            bloodVialInfectionAmount, holyWaterVampireDamage, holyWaterUndeadDamage, holyWaterInfectionCureAmount);
+        VampireMessages.debug(debugMsg);
+    }
+
+    /** Sets default values for the item settings. */
+    private void setDefaultItemSettings() {
+         bloodVialInfectionAmount = 0.15;
+         holyWaterVampireDamage = 4.0;
+         holyWaterUndeadDamage = 6.0;
+         holyWaterInfectionCureAmount = 0.25;
+    }
+
+    // --- Getters for Item Settings (New) --- 
+
+    public double getBloodVialInfectionAmount() {
+        return bloodVialInfectionAmount;
+    }
+
+    public double getHolyWaterVampireDamage() {
+        return holyWaterVampireDamage;
+    }
+
+    public double getHolyWaterUndeadDamage() {
+        return holyWaterUndeadDamage;
+    }
+
+    public double getHolyWaterInfectionCureAmount() {
+        return holyWaterInfectionCureAmount;
+    }
+
+    // --- Getter for Sunlight Base Damage --- 
+    public double getSunlightBaseDamage() {
+        return sunlightBaseDamage;
     }
 } 

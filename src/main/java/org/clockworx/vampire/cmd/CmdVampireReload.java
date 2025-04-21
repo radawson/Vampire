@@ -2,6 +2,7 @@ package org.clockworx.vampire.cmd;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.ResourceUtil;
 
@@ -19,21 +20,22 @@ public class CmdVampireReload extends VCommand {
      * @param plugin The plugin instance
      */
     public CmdVampireReload(VampirePlugin plugin) {
-        super(plugin, "reload", "vampire.admin");
+        super(plugin, "reload", VampirePermission.CONFIG);
     }
     
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         try {
             plugin.reloadConfig();
-            plugin.getVampireConfig().reload();
-            plugin.getLanguageConfig().reload();
-            sendSuccess(sender, getMessage("command.reload.success"));
+            plugin.getVampireConfig().loadConfig();
+            plugin.getLanguageConfig().loadLanguage(plugin.getVampireConfig().getLanguage());
+            sendSuccess(sender, ResourceUtil.getMessage("command.reload.success"));
+            plugin.getLogger().info("Configuration and language files reloaded by " + sender.getName());
             return true;
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to reload configuration: " + e.getMessage());
-            sendError(sender, getMessage("command.reload.failed"));
-            return false;
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to reload configuration for Vampire plugin.", e);
+            sendError(sender, ResourceUtil.getMessage("command.reload.failed"));
+            return true;
         }
     }
     
