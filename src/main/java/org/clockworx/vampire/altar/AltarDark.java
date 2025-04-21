@@ -201,7 +201,7 @@ public class AltarDark extends AltarAbstract {
      * @param manager The {@link VampireManager} instance.
      */
     @Override
-    protected void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager) {
+    public void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager) {
         double newInfectionLevel;
         boolean wasInfected = vampirePlayer.isInfected();
         

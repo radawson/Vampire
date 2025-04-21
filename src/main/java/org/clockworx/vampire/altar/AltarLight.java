@@ -215,7 +215,7 @@ public class AltarLight extends AltarAbstract {
      * @param manager The {@link VampireManager} instance.
      */
     @Override
-    protected void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager) {
+    public void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager) {
         double currentInfection = vampirePlayer.getInfectionLevel();
         double newInfectionLevel = Math.max(0.0, currentInfection - INFECTION_DECREASE_AMOUNT);
         boolean wasVampire = vampirePlayer.isVampire();
@@ -248,9 +248,13 @@ public class AltarLight extends AltarAbstract {
                 FxUtil.runHeal(player);
             }
             
-            AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-            double maxHealth = (maxHealthAttribute != null) ? maxHealthAttribute.getValue() : 20.0;
-            player.setHealth(Math.min(maxHealth, player.getHealth() + 4.0));
+            AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealthAttribute == null) {
+                VampireMessages.error("Could not get max health attribute for player " + player.getName() + " during AltarLight use.", null);
+            } else {
+                double maxHealth = maxHealthAttribute.getValue();
+                player.setHealth(Math.min(maxHealth, player.getHealth() + 4.0));
+            }
             
             if (finalInfectionLevel > 0.0) { 
                 FxUtil.playSound(player.getLocation(), getSound(), 1.0f, 1.2f);

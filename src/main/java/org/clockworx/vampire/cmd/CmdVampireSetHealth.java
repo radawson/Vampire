@@ -32,7 +32,7 @@ public class CmdVampireSetHealth extends CmdVampireSetAbstract {
         double targetValue;
         double maxHealth = 20.0; // Default value
         try {
-            AttributeInstance maxHealthAttribute = targetPlayer.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            AttributeInstance maxHealthAttribute = targetPlayer.getAttribute(Attribute.MAX_HEALTH);
             if (maxHealthAttribute != null) {
                 maxHealth = maxHealthAttribute.getValue();
             }

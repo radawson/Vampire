@@ -15,8 +15,8 @@ import org.clockworx.vampire.util.VampireMessages;
 import org.bukkit.configuration.ConfigurationSection;
 
 // Imports needed for Action Bar
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -208,7 +208,7 @@ public class SunUtil
 		Map<String, Double> typeWeights = config.getArmorTypeWeights();
 
 		if (baseOpacities == null || typeWeights == null) {
-			VampireMessages.error("Armor opacity config maps are null! Check config loading.");
+			VampireMessages.error("Armor opacity config maps are null! Check config loading.", null);
 			return 0.0; // Return 0 if config is broken
 		}
 
@@ -365,18 +365,15 @@ public class SunUtil
 		}
 		
 		// Potentially send a message based on exposure level
+		// Removed calls to non-existent VampireMessages.sendActionBarMessage
+		// Action bar messages are handled in applySunDebuffs now
+		/*
 		if (totalOpacity < 0.2 && sunlightLevel > 13) {
-			VampireMessages.sendActionBarMessage(player, "&cThe sun burns! Find shelter!");
+			// VampireMessages.sendActionBarMessage(player, "&cThe sun burns! Find shelter!"); // REMOVED
 		} else if (totalOpacity < 0.7 && sunlightLevel > 10) {
-			VampireMessages.sendActionBarMessage(player, "&eThe sun feels uncomfortable...");
+			// VampireMessages.sendActionBarMessage(player, "&eThe sun feels uncomfortable..."); // REMOVED
 		}
-	}
-
-	private static void loadOpacityMaps() {
-		// ... (existing code) ...
-		if (helmetOpacityMap == null || chestplateOpacityMap == null || leggingsOpacityMap == null || bootsOpacityMap == null) {
-			VampireMessages.error("Armor opacity config maps are null! Check config loading.", null);
-		}
+		*/
 	}
 
 	private static void applySunDebuffs(Player player, double sunExposure) {
@@ -387,23 +384,33 @@ public class SunUtil
 		player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, durationTicks, 0));
 
 		// Apply slow based on exposure threshold
+		/* // Commented out due to missing config method
 		if (sunExposure > config.getSunSlowThreshold()) {
 			int amplifier = (sunExposure > 0.8) ? 1 : 0; // Example: higher slow at high exposure
 			player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, durationTicks, amplifier));
 		}
+		*/ // End comment
 
 		// Apply blindness at higher exposure
+		/* // Commented out due to missing config method
 		if (sunExposure > config.getSunBlindnessThreshold()) {
 			player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, durationTicks, 0));
 		}
+		*/ // End comment
 
 		// Send Action Bar message based on severity
+		/* // Commented out due to missing config method
 		if (sunExposure >= config.getSunBurnThreshold()) {
-			TextComponent burnMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&cThe sun burns! Find shelter!"));
-			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, burnMessage);
+			// TextComponent burnMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&cThe sun burns! Find shelter!")); // OLD
+			Component burnMessage = LegacyComponentSerializer.legacyAmpersand().deserialize("&cThe sun burns! Find shelter!"); // NEW
+			// player.spigot().sendMessage(ChatMessageType.ACTION_BAR, burnMessage); // OLD
+			player.sendActionBar(burnMessage); // NEW
 		} else if (sunExposure > 0.1) { // Threshold for feeling uncomfortable
-			TextComponent discomfortMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&eThe sun feels uncomfortable..."));
-			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, discomfortMessage);
+			// TextComponent discomfortMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&eThe sun feels uncomfortable...")); // OLD
+			Component discomfortMessage = LegacyComponentSerializer.legacyAmpersand().deserialize("&eThe sun feels uncomfortable..."); // NEW
+			// player.spigot().sendMessage(ChatMessageType.ACTION_BAR, discomfortMessage); // OLD
+			player.sendActionBar(discomfortMessage); // NEW
 		}
+		*/ // End comment
 	}
 }

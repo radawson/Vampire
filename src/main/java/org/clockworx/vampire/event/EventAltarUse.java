@@ -28,6 +28,7 @@ public class EventAltarUse extends AbstractVampireEvent implements Cancellable {
      */
     public EventAltarUse(AltarAbstract altar, VampirePlayer vampirePlayer, Player player) {
         super(vampirePlayer);
+        this.vampirePlayer = vampirePlayer;
         this.altar = altar;
         this.player = player;
         this.cancelled = false;

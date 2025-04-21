@@ -37,8 +37,8 @@ public class VampireManager {
         if (onlinePlayers.containsKey(uuid)) {
             VampireMessages.debug("Player " + playerName + " already in cache during join handling.");
             // Optionally update permissions/effects here if needed
-            onlinePlayers.get(uuid).updatePermissions();
-            onlinePlayers.get(uuid).updatePotionEffects();
+            // onlinePlayers.get(uuid).updatePermissions(); // Method undefined on VampirePlayer
+            // onlinePlayers.get(uuid).updatePotionEffects(); // Method undefined on VampirePlayer
             return;
         }
 
@@ -71,8 +71,8 @@ public class VampireManager {
         }).exceptionally(ex -> {
             VampireMessages.error("Failed to load player data for " + playerName, ex);
             // Create a default player object so the player can still join
-            vampirePlayer = new VampirePlayer(uuid, playerName);
-            onlinePlayers.put(uuid, vampirePlayer);
+            VampirePlayer defaultPlayer = new VampirePlayer(uuid, playerName); // Define variable here
+            onlinePlayers.put(uuid, defaultPlayer); // Use the defined variable
             return null;
         });
     }

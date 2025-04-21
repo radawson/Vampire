@@ -170,7 +170,7 @@ public abstract class AltarAbstract {
      * @param block The core altar {@link Block} interacted with.
      * @param manager The {@link VampireManager} instance.
      */
-    protected abstract void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager);
+    public abstract void applyEffects(VampirePlayer vampirePlayer, Player player, Block block, VampireManager manager);
     
     /**
      * Sends the altar's description message to the player.
