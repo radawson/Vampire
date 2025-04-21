@@ -1,44 +1,20 @@
 package org.clockworx.vampire.database;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
-import org.sqlite.SQLiteDataSource;
 
-import javax.sql.DataSource;
 import java.util.Properties;
 
 public class HibernateConfig {
     private static SessionFactory sessionFactory;
-    private static DataSource dataSource;
 
     public static void initialize(String dbType, String dbUrl, String dbUser, String dbPassword) {
-        // Create data source based on database type
-        if ("mysql".equalsIgnoreCase(dbType)) {
-            HikariConfig config = new HikariConfig();
-            config.setJdbcUrl(dbUrl);
-            config.setUsername(dbUser);
-            config.setPassword(dbPassword);
-            config.setMaximumPoolSize(10);
-            config.setMinimumIdle(5);
-            config.setIdleTimeout(300000); // 5 minutes
-            config.setConnectionTimeout(10000); // 10 seconds
-            config.setAutoCommit(true);
-            dataSource = new HikariDataSource(config);
-        } else {
-            SQLiteDataSource sqliteDs = new SQLiteDataSource();
-            sqliteDs.setUrl(dbUrl);
-            dataSource = sqliteDs;
-        }
-
         // Configure Hibernate
         Configuration configuration = new Configuration();
         Properties settings = new Properties();
         
         // Common settings
-        settings.put(Environment.DATASOURCE, dataSource);
         settings.put(Environment.SHOW_SQL, "true");
         settings.put(Environment.HBM2DDL_AUTO, "update");
         settings.put(Environment.CURRENT_SESSION_CONTEXT_CLASS, "thread");
@@ -48,10 +24,19 @@ public class HibernateConfig {
         // Database-specific settings
         if ("mysql".equalsIgnoreCase(dbType)) {
             settings.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
-            settings.put(Environment.CONNECTION_PROVIDER, "com.zaxxer.hikari.hibernate.HikariConnectionProvider");
+            settings.put(Environment.CONNECTION_PROVIDER, "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
+            settings.put("hibernate.hikari.jdbcUrl", dbUrl);
+            settings.put("hibernate.hikari.username", dbUser);
+            settings.put("hibernate.hikari.password", dbPassword);
+            settings.put("hibernate.hikari.maximumPoolSize", "10");
+            settings.put("hibernate.hikari.minimumIdle", "5");
+            settings.put("hibernate.hikari.idleTimeout", "300000"); // 5 minutes
+            settings.put("hibernate.hikari.connectionTimeout", "10000"); // 10 seconds
+            settings.put("hibernate.hikari.autoCommit", "true");
         } else {
             settings.put(Environment.DIALECT, "org.sqlite.hibernate.dialect.SQLiteDialect");
-            settings.put(Environment.CONNECTION_PROVIDER, "org.hibernate.connection.C3P0ConnectionProvider");
+            settings.put("javax.persistence.jdbc.driver", "org.sqlite.JDBC");
+            settings.put("javax.persistence.jdbc.url", dbUrl);
         }
         
         configuration.setProperties(settings);
@@ -71,19 +56,10 @@ public class HibernateConfig {
         return sessionFactory;
     }
 
-    public static DataSource getDataSource() {
-        if (dataSource == null) {
-            throw new IllegalStateException("Database has not been initialized. Call initialize() first.");
-        }
-        return dataSource;
-    }
-
     public static void shutdown() {
-        if (sessionFactory != null) {
+        if (sessionFactory != null && !sessionFactory.isClosed()) {
             sessionFactory.close();
-        }
-        if (dataSource instanceof HikariDataSource) {
-            ((HikariDataSource) dataSource).close();
+            sessionFactory = null;
         }
     }
 } 
