@@ -28,6 +28,7 @@ public class VampireConfig {
     private String databaseUrl;
     private String databaseUser;
     private String databasePassword;
+    private String databaseTablePrefix;
     
     // General settings
     private boolean debug;
@@ -238,6 +239,7 @@ public class VampireConfig {
             databaseUrl = "jdbc:sqlite:plugins/Vampire/database.db";
             databaseUser = "";
             databasePassword = "";
+            databaseTablePrefix = "sqlite".equalsIgnoreCase(databaseType) ? "" : "vampire_";
             return;
         }
         
@@ -245,6 +247,7 @@ public class VampireConfig {
         databaseUrl = dbSection.getString("url", "jdbc:sqlite:plugins/Vampire/database.db");
         databaseUser = dbSection.getString("user", "");
         databasePassword = dbSection.getString("password", "");
+        databaseTablePrefix = dbSection.getString("table-prefix", "sqlite".equalsIgnoreCase(databaseType) ? "" : "vampire_");
         
         // Load config
         databaseConfig = dbSection.getValues(false);
@@ -557,6 +560,15 @@ public class VampireConfig {
     
     public String getDatabasePassword() {
         return databasePassword;
+    }
+    
+    /**
+     * Gets the configured database table prefix.
+     * Defaults to "vampire_" for non-SQLite types if not specified, empty for SQLite.
+     * @return The table prefix string.
+     */
+    public String getDatabaseTablePrefix() {
+        return databaseTablePrefix;
     }
     
     public FileConfiguration getConfig() {

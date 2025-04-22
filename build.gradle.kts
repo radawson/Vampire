@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.clockworx"
-version = "3.1.4"
+version = "3.1.7"
 
 repositories {
     mavenCentral()
@@ -17,21 +17,23 @@ dependencies {
     paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT")
     
     // Database - Core
-    implementation("org.hibernate:hibernate-core:6.6.13.Final")
+    implementation("org.hibernate:hibernate-core:6.6.13.Final") 
+    implementation("org.hibernate:hibernate-community-dialects:6.6.13.Final")
     implementation("mysql:mysql-connector-java:8.0.33")
-    implementation("org.xerial:sqlite-jdbc:3.42.0.0")
+    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
     
     // Database - Connection Pools (Shade this)
-    implementation("com.zaxxer:HikariCP:5.1.0") // Keep HikariCP 
-    implementation("org.hibernate:hibernate-hikaricp:6.4.1.Final") 
+    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("org.hibernate.orm:hibernate-hikaricp:6.6.13.Final") 
     
-    // SQLite Dialect (Shade this)
-    implementation("com.github.gwenn:sqlite-dialect:0.1.2")
+    // Jakarta Persistence API
+    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     
-    // Logging
-    implementation("org.jboss.logging:jboss-logging:3.4.3.Final")
+    // Logging - Make sure we use compatible versions
+    implementation("org.jboss.logging:jboss-logging:3.5.3.Final")
     implementation("org.jboss.logging:jboss-logging-annotations:2.2.1.Final")
-    implementation("org.slf4j:slf4j-jdk14:2.0.13") // Use a recent 2.x version
+    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation("org.slf4j:slf4j-jdk14:2.0.9")
     
     // Add any additional dependencies here
     // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -41,24 +43,40 @@ java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
+// Store version at configuration time
+val projectVersion = version.toString()
+
 tasks {
     // Configure reobfuscation to use Mojang mappings for production
     paperweight {
         paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
     }
 
-    // Configure shadowJar
+    // Configure shadowJar - critical for proper relocation
     shadowJar {
-        enableRelocation = true
-        archiveClassifier.set("")
+        enableRelocation = false
+        archiveClassifier.set("all")
 
+        // Relocate packages - include all required dependencies
+        relocate("com.zaxxer.hikari", "org.clockworx.vampire.lib.hikari")
+        relocate("org.hibernate", "org.clockworx.vampire.lib.hibernate")
+        relocate("org.jboss.logging", "org.clockworx.vampire.lib.jboss.logging")
+        relocate("jakarta.persistence", "org.clockworx.vampire.lib.jakarta.persistence")
+        relocate("org.slf4j", "org.clockworx.vampire.lib.slf4j")
+        
+        // Exclude SQLite JDBC properly
+        exclude("org/sqlite/**")
+
+        // Merge service files - critical for service provider loading
+        mergeServiceFiles()
+    }
 
     // Configure jar task
     jar {
         manifest {
             attributes(
                 "Name" to project.name,
-                "Version" to project.version,
+                "Version" to projectVersion,
                 "Description" to "A modern vampire plugin for Minecraft",
                 "Authors" to "MassiveCraft, ClockWorX",
                 "Main" to "org.clockworx.vampire.VampirePlugin"
@@ -81,9 +99,9 @@ tasks {
     
     // Process resources
     processResources {
-        filesMatching(listOf("plugin.yml", "config.yml",)) {
+        filesMatching(listOf("plugin.yml", "config.yml")) {
             expand(
-                "version" to project.version
+                "version" to projectVersion
             )
         }
     }

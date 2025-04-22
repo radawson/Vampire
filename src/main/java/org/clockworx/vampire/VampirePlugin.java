@@ -19,6 +19,7 @@ import org.clockworx.vampire.task.VampireTask;
 import org.clockworx.vampire.util.VampireMessages;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.SunUtil;
+import org.clockworx.vampire.util.ResourceUtil;
 
 import java.util.logging.Level;
 
@@ -44,8 +45,9 @@ public final class VampirePlugin extends JavaPlugin {
 
         // --- Initialize Utilities ---
         FxUtil.init(this); 
-        // VampireMessages.init(this); // Moved AFTER initializeConfigs
         SunUtil.init(this);
+        ResourceUtil.init(this);
+        // VampireMessages.init(this); // Moved AFTER initializeConfigs
 
         // --- Configuration ---
         if (!initializeConfigs()) {

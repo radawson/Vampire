@@ -34,7 +34,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 String dbPassword = plugin.getVampireConfig().getDatabasePassword();
                 
                 // Initialize the shared Hibernate SessionFactory using the config
-                HibernateConfig.initialize(dbType, dbUrl, dbUser, dbPassword);
+                HibernateConfig.initialize(plugin, dbType, dbUrl, dbUser, dbPassword);
                 
                 plugin.getLogger().info("Hibernate SessionFactory initialized.");
             } catch (Exception e) {
