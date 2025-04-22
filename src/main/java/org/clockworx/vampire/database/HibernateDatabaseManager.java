@@ -10,7 +10,6 @@ import org.clockworx.vampire.config.LanguageConfig;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
-import com.zaxxer.hikari.HikariDataSource;
 
 import java.util.UUID;
 import java.util.List;
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 
 public class HibernateDatabaseManager implements DatabaseManager {
     private final VampirePlugin plugin;
-    private HikariDataSource dataSource;
 
     public HibernateDatabaseManager(VampirePlugin plugin) {
         this.plugin = plugin;
@@ -35,32 +33,14 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 String dbUser = plugin.getVampireConfig().getDatabaseUser();
                 String dbPassword = plugin.getVampireConfig().getDatabasePassword();
                 
-                // Create data source based on database type
-                if (dbType.equalsIgnoreCase("mysql")) {
-                    // MySQL configuration
-                    dataSource = new HikariDataSource();
-                    dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-                    dataSource.setJdbcUrl(dbUrl);
-                    dataSource.setUsername(dbUser);
-                    dataSource.setPassword(dbPassword);
-                    dataSource.setMaximumPoolSize(10);
-                    dataSource.setMinimumIdle(5);
-                    dataSource.setIdleTimeout(300000);
-                    dataSource.setConnectionTimeout(10000);
-                    dataSource.setMaxLifetime(1800000);
-                } else {
-                    // SQLite configuration (default)
-                    dataSource = new HikariDataSource();
-                    dataSource.setDriverClassName("org.sqlite.JDBC");
-                    dataSource.setJdbcUrl(dbUrl);
-                    dataSource.setMaximumPoolSize(10);
-                    dataSource.setMinimumIdle(5);
-                    dataSource.setIdleTimeout(300000);
-                    dataSource.setConnectionTimeout(10000);
-                    dataSource.setMaxLifetime(1800000);
-                }
+                // Initialize the shared Hibernate SessionFactory using the config
+                HibernateConfig.initialize(dbType, dbUrl, dbUser, dbPassword);
+                
+                plugin.getLogger().info("Hibernate SessionFactory initialized.");
             } catch (Exception e) {
-                throw new RuntimeException("Failed to initialize database", e);
+                plugin.getLogger().severe("Failed to initialize Hibernate SessionFactory: " + e.getMessage());
+                // Rethrow to make the CompletableFuture fail
+                throw new RuntimeException("Failed to initialize Hibernate", e);
             }
         });
     }

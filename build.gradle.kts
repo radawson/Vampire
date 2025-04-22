@@ -1,11 +1,11 @@
 plugins {
     id("java")
-    id("com.gradleup.shadow") version "8.3.6"
+    id("com.gradleup.shadow") version "9.0.0-beta12"
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
 }
 
 group = "org.clockworx"
-version = "3.1.2"
+version = "3.1.4"
 
 repositories {
     mavenCentral()
@@ -17,21 +17,21 @@ dependencies {
     paperweight.paperDevBundle("1.21.5-R0.1-SNAPSHOT")
     
     // Database - Core
-    implementation("org.hibernate:hibernate-core:6.4.1.Final")
+    implementation("org.hibernate:hibernate-core:6.6.13.Final")
     implementation("mysql:mysql-connector-java:8.0.33")
     implementation("org.xerial:sqlite-jdbc:3.42.0.0")
     
-    // Database - Connection Pools
-    implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("org.hibernate:hibernate-c3p0:6.4.1.Final")
-    implementation("org.hibernate:hibernate-hikaricp:6.4.1.Final")
+    // Database - Connection Pools (Shade this)
+    implementation("com.zaxxer:HikariCP:5.1.0") // Keep HikariCP 
+    implementation("org.hibernate:hibernate-hikaricp:6.4.1.Final") 
     
-    // SQLite Dialect
+    // SQLite Dialect (Shade this)
     implementation("com.github.gwenn:sqlite-dialect:0.1.2")
     
     // Logging
     implementation("org.jboss.logging:jboss-logging:3.4.3.Final")
     implementation("org.jboss.logging:jboss-logging-annotations:2.2.1.Final")
+    implementation("org.slf4j:slf4j-jdk14:2.0.13") // Use a recent 2.x version
     
     // Add any additional dependencies here
     // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -49,17 +49,9 @@ tasks {
 
     // Configure shadowJar
     shadowJar {
+        enableRelocation = true
         archiveClassifier.set("")
-        
-        // Relocate common dependencies to avoid conflicts
-        relocate("com.zaxxer.hikari", "org.clockworx.vampire.lib.hikari")
-        relocate("org.hibernate", "org.clockworx.vampire.lib.hibernate")
-        relocate("javax.persistence", "org.clockworx.vampire.lib.persistence")
-        relocate("jakarta.persistence", "org.clockworx.vampire.lib.jakarta.persistence") // For newer Hibernate
-        relocate("org.sqlite", "org.clockworx.vampire.lib.sqlite")
-        relocate("org.jboss.logging", "org.clockworx.vampire.lib.jboss.logging")
-        // Add other potential conflicts if needed (e.g., Jackson, Guava, etc.)
-    }
+
 
     // Configure jar task
     jar {

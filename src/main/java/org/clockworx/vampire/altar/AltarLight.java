@@ -19,6 +19,7 @@ import org.clockworx.vampire.util.VampireMessages;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.VampirePermission;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,19 +110,28 @@ public class AltarLight extends AltarAbstract {
 
         // --- Configure Structure Materials ---
         this.materialCounts = new HashMap<>(); 
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> materialsConfig = (Map<String, Integer>) configMap.getOrDefault("materials", new HashMap<>());
-        for (Map.Entry<String, Integer> entry : materialsConfig.entrySet()) {
-            try {
-                Material material = Material.valueOf(entry.getKey().toUpperCase());
-                int count = entry.getValue() != null ? entry.getValue() : 1;
-                if (count > 0) {
-                    this.materialCounts.put(material, count);
+        Object materialsObj = configMap.get("materials"); // Get the object first
+
+        // Check if the retrieved object is actually a ConfigurationSection
+        if (materialsObj instanceof ConfigurationSection) {
+            ConfigurationSection materialsSection = (ConfigurationSection) materialsObj;
+            for (String materialKey : materialsSection.getKeys(false)) { // Iterate through keys
+                try {
+                    Material material = Material.valueOf(materialKey.toUpperCase());
+                    int count = materialsSection.getInt(materialKey, 1); // Get int value using Bukkit API
+                    if (count > 0) {
+                        this.materialCounts.put(material, count);
+                    }
+                } catch (IllegalArgumentException e) {
+                    VampireMessages.error("Invalid material key in light altar config: " + materialKey, e);
                 }
-            } catch (IllegalArgumentException | NullPointerException e) {
-                VampireMessages.error("Invalid material key/value in light altar config: " + entry.getKey() + ", value: " + entry.getValue(), e);
             }
+        } else if (materialsObj != null) {
+            // Log an error if 'materials' exists but isn't a section
+            VampireMessages.error("Invalid 'materials' format in light altar config: Expected a map/section, found " + materialsObj.getClass().getName(), null);
         }
+        // If materialsObj is null or not a ConfigurationSection, materialCounts remains empty or partially filled.
+
         this.materialCounts.putIfAbsent(this.coreMaterial, 1); // Ensure core is included
         
         // --- Configure Resource Costs ---
