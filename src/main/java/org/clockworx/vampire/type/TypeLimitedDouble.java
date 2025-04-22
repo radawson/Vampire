@@ -2,6 +2,7 @@ package org.clockworx.vampire.type;
 
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,17 +16,15 @@ import java.util.List;
 public class TypeLimitedDouble implements TypeHandler<Double> {
     private final double min;
     private final double max;
-    private final VampirePlugin plugin;
 
     /**
      * Creates a new TypeLimitedDouble instance.
      * 
-     * @param plugin The plugin instance
+     * @param plugin The plugin instance (No longer needed)
      * @param min The minimum allowed value
      * @param max The maximum allowed value
      */
     public TypeLimitedDouble(VampirePlugin plugin, double min, double max) {
-        this.plugin = plugin;
         this.min = min;
         this.max = max;
     }
@@ -42,7 +41,7 @@ public class TypeLimitedDouble implements TypeHandler<Double> {
     public Double parse(String input, CommandSender sender) throws IllegalArgumentException {
         if (input == null || input.trim().isEmpty()) {
             throw new IllegalArgumentException(
-                plugin.getLanguageConfig().getMessage("error.empty-input")
+                VampireMessages.getLocalizedMessage("command.error.empty_input")
             );
         }
         
@@ -50,13 +49,13 @@ public class TypeLimitedDouble implements TypeHandler<Double> {
             double value = Double.parseDouble(input.trim());
             if (Double.isNaN(value) || Double.isInfinite(value)) {
                 throw new IllegalArgumentException(
-                    plugin.getLanguageConfig().getMessage("error.invalid-number")
+                    VampireMessages.getLocalizedMessage("command.error.invalid_number")
                 );
             }
             
             if (value < min || value > max) {
                 throw new IllegalArgumentException(
-                    plugin.getLanguageConfig().getMessage("error.number-range", 
+                    VampireMessages.getLocalizedMessage("command.error.number_range", 
                         String.format("%.1f", min), 
                         String.format("%.1f", max))
                 );
@@ -64,7 +63,7 @@ public class TypeLimitedDouble implements TypeHandler<Double> {
             return value;
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(
-                plugin.getLanguageConfig().getMessage("error.invalid-number")
+                VampireMessages.getLocalizedMessage("command.error.invalid_number")
             );
         }
     }

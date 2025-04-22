@@ -1,50 +1,61 @@
 main: org.clockworx.vampire.VampirePlugin
 name: Vampire
 version: '${project.version}'
-api-version: '1.20'
+api-version: '1.21'
 website: https://github.com/clockworx/vampire
-description: A vampire plugin for Minecraft servers
+description: A modern vampire plugin for Minecraft servers
 authors: [MassiveCraft, Clockworx]
 permissions:
 # -------------------------------------------- #
 # THE REAL NODES
 # -------------------------------------------- #
 # COMMANDS
-  vampire.basecommand:       {description: use the vampire base command, default: false}
-  vampire.show:              {description: show player info, default: false}
-  vampire.show.other:        {description: show other player info, default: false}
-  vampire.shriek:            {description: shriek, default: false}
-  vampire.mode.bloodlust:    {description: use bloodlust, default: false}
-  vampire.mode.intent:       {description: use intent to infect, default: false}
-  vampire.mode.nightvision:  {description: use nightvision, default: false}
-  vampire.trade.offer:       {description: offer blood to someone, default: false}
-  vampire.trade.accept:      {description: accept blood offer, default: false}
-  vampire.flask:             {description: create blood flask, default: false}
-  vampire.combat.infect:     {description: be infectious in combat, default: false}
-  vampire.combat.contract:   {description: contract infection in combat, default: false}
-  vampire.list:              {description: list vampires and infected, default: false}
-  vampire.set:               {description: set player attributes, default: false}
-  vampire.set.vampire.true:  {description: instantly turn a player, default: false}
-  vampire.set.vampire.false: {description: instantly cure a vampire, default: false}
-  vampire.set.infection:     {description: set infection (0 to 1), default: false}
-  vampire.set.food:          {description: set food (0 to 20), default: false}
-  vampire.set.health:        {description: set health (0 to 20), default: false}
-  vampire.version:           {description: see plugin version, default: false}
-  vampire.config:            {description: edit config, default: false}
-  vampire.lang:              {description: edit language settings, default: false}
-# OTHER
-  vampire.altar.dark:        {description: use an altar of darkness, default: false}
-  vampire.altar.light:       {description: use an altar of light, default: false}
-  vampire.is.vampire:        {description: indicator the player is a vampire - see the configuration, default: false}
-  vampire.is.human:          {description: indicator the player is a human - see the configuration, default: false}
+  vampire.base:              {description: Base permission for user commands, default: true}
+  vampire.show:              {description: Show own detailed vampire status, default: true}
+  vampire.show.other:        {description: Show other player's detailed vampire status, default: op}
+  vampire.info:              {description: Show general plugin information, default: true}
+  vampire.list:              {description: List online vampires and infected, default: op}
+  vampire.shriek:            {description: Use the shriek ability, default: true}
+  vampire.mode.bloodlust:    {description: Toggle bloodlust mode, default: true}
+  vampire.mode.intent:       {description: Toggle infection intent mode, default: true}
+  vampire.mode.nightvision:  {description: Toggle nightvision mode, default: true}
+  vampire.trade.offer:       {description: Offer blood to someone, default: true}
+  vampire.trade.accept:      {description: Accept blood offer, default: true}
+  vampire.flask:             {description: Create blood vials, default: true}
+  vampire.combat.infect:     {description: Be infectious in combat, default: true} # Review if used or just intent?
+  vampire.combat.contract:   {description: Contract infection in combat, default: true} # Review if used?
+  vampire.set:               {description: Base node for admin set commands, default: op}
+  vampire.set.vampire.true:  {description: Instantly turn a player into a vampire, default: op}
+  vampire.set.vampire.false: {description: Instantly cure a vampire, default: op}
+  vampire.set.infection:     {description: Set player infection level (0 to 1), default: op}
+  vampire.set.food:          {description: Set player food level (0 to 20), default: op}
+  vampire.set.health:        {description: Set player health level (0 to max), default: op}
+  vampire.config:            {description: Reload config (/vampire reload), default: op}
+  vampire.lang:              {description: Reload language files (/vampire reload), default: op}
+# OTHER PERMISSIONS
+  vampire.altar.dark:        {description: Use an altar of darkness, default: true}
+  vampire.altar.light:       {description: Use an altar of light, default: true}
+  vampire.help.command:      {description: Allows viewing the list of commands via /vampire help, default: true}
+  vampire.help.lore:         {description: Allows viewing detailed explanations via /vampire help <topic>, default: op}
+  vampire.gift.offer:        {description: Allows offering the Dark Gift to turn a human player, default: op}
+  vampire.gift.accept:       {description: Allows accepting or rejecting an offer of the Dark Gift, default: true}
+  vampire.stats:             {description: Allows viewing your own vampire statistics, default: true}
+  vampire.stats.other:       {description: Allows viewing other players' vampire statistics, default: op}
+  vampire.reset:             {description: Allows resetting a player's vampire data (cure, remove infection/blood), default: op}
+  vampire.flask.holywater:   {description: Allows creating Holy Water via command, default: op}
+# INDICATOR PERMISSIONS (Maintained by plugin, not granted manually)
+  vampire.is.vampire:        {description: Indicator - player is a vampire, default: false}
+  vampire.is.human:          {description: Indicator - player is a human, default: false}
 # -------------------------------------------- #
-# STAR NOTATION
+# STAR NOTATION (Defines parent-child explicitly)
 # -------------------------------------------- #
   vampire.*:
+    default: op # Grant all vampire perms to OP by default
     children:
-      vampire.basecommand: true
+      vampire.base: true
       vampire.show: true
-      vampire.show.other: true
+      vampire.info: true
+      vampire.list: true
       vampire.shriek: true
       vampire.mode.bloodlust: true
       vampire.mode.intent: true
@@ -54,52 +65,71 @@ permissions:
       vampire.flask: true
       vampire.combat.infect: true
       vampire.combat.contract: true
-      vampire.list: true
       vampire.set: true
+      vampire.config: true
+      vampire.lang: true
+      vampire.altar.dark: true
+      vampire.altar.light: true
+      vampire.help.command: true
+      vampire.help.lore: true
+      vampire.gift.offer: true
+      vampire.gift.accept: true
+      vampire.stats: true
+      vampire.reset: true
+      vampire.flask.holywater: true
+      # Child nodes are implicitly included via parent (e.g., vampire.set includes all its children)
+      # We need to explicitly add children of nodes that ARE NOT children of vampire.*
+      # vampire.show includes vampire.show.other
+      vampire.show.other: true 
+      # vampire.stats includes vampire.stats.other
+      vampire.stats.other: true
+      # vampire.set includes its children
       vampire.set.vampire.true: true
       vampire.set.vampire.false: true
       vampire.set.infection: true
       vampire.set.food: true
       vampire.set.health: true
-      vampire.version: true
-      vampire.altar.dark: true
-      vampire.altar.light: true
-      vampire.config: true
-      vampire.lang: true
+
 # -------------------------------------------- #
-# KITS
+# KITS (Example permission bundles)
 # -------------------------------------------- #
-  vampire.kit.op:
-    default: op
-    children:
-      vampire.*: true
+  # OP Kit is handled by vampire.*
+  
+  # High Admin Rank (Can configure and manage players)
   vampire.kit.rank3:
     default: false
     children:
       vampire.kit.rank2: true
       vampire.config: true
       vampire.lang: true
+      vampire.help.lore: true # Give lore help here
+
+  # Admin Rank (Can manage players)
   vampire.kit.rank2:
     default: false
     children:
       vampire.kit.rank1: true
-      vampire.set: true
-      vampire.set.vampire.true: true
-      vampire.set.vampire.false: true
-      vampire.set.infection: true
-      vampire.set.food: true
-      vampire.set.health: true
+      vampire.set: true # Grants all set permissions
+      vampire.reset: true
+      vampire.stats.other: true
+      vampire.flask.holywater: true
+      vampire.gift.offer: true # Allow offering gift here
+
+  # Moderator/Trusted Rank (Can view extended info)
   vampire.kit.rank1:
     default: false
     children:
       vampire.kit.rank0: true
-      vampire.show.other: true
-      vampire.list: true
+      vampire.show.other: true # Grant permission to see other's status
+      vampire.list: true # Grant list permission here
+
+  # Basic Vampire Player Kit (Standard abilities)
   vampire.kit.rank0:
     default: false
     children:
-      vampire.basecommand: true
+      vampire.base: true
       vampire.show: true
+      vampire.info: true # Let basic players see plugin info
       vampire.shriek: true
       vampire.mode.intent: true
       vampire.mode.nightvision: true
@@ -109,37 +139,14 @@ permissions:
       vampire.flask: true
       vampire.combat.infect: true
       vampire.combat.contract: true
-      vampire.version: true
       vampire.altar.dark: true
       vampire.altar.light: true
+      vampire.help.command: true # Basic command help
+      vampire.gift.accept: true # Allow accepting gifts
+      vampire.stats: true # Allow seeing own stats
+
+  # Default Kit (Applied to everyone)
   vampire.kit.default:
     default: true
     children:
-      vampire.kit.rank0: true
-# Add help permissions
-  vampire.help.command:
-    description: Allows viewing the list of commands via /vampire help.
-    default: true
-  vampire.help.lore:
-    description: Allows viewing detailed explanations of mechanics via /vampire help <topic>.
-    default: op
-# Gift Permissions
-  vampire.gift.offer:
-    description: Allows offering the Dark Gift to turn a human player.
-    default: op
-  vampire.gift.accept:
-    description: Allows accepting or rejecting an offer of the Dark Gift.
-    default: true
-# Stats/Reset Permissions
-  vampire.stats:
-    description: Allows viewing your own vampire statistics.
-    default: true
-  vampire.stats.other:
-    description: Allows viewing other players' vampire statistics.
-    default: op
-  vampire.reset:
-    description: Allows resetting a player's vampire data (cure, remove infection/blood).
-    default: op
-  vampire.flask.holywater:
-    description: Allows creating Holy Water via command.
-    default: op
+      vampire.kit.rank0: true # Grant basic vampire abilities by default

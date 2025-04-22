@@ -34,54 +34,58 @@ This plugin is a re-work of the MassiveCraft Vampire plugin. The original plugin
 
 ## Commands
 
-- `/vampire help` - Show help information
-- `/vampire version` - Show plugin version
-- `/vampire show [player]` - Show vampire status
-- `/vampire list [page]` - Show a list of vampires
-- `/vampire set <type> <value> [player]` - Set vampire properties (Admin)
-- `/vampire reset [player]` - Reset vampire status (Admin)
-- `/vampire reload` - Reload plugin configuration (Admin)
-- `/vampire offer <player> <amount>` - Offer blood to another player
-- `/vampire accept` - Accept a blood offer
-- `/vampire reject` - Reject a blood offer
-- `/vampire shriek` - Shriek to infect nearby players
-- `/vampire mode <bloodlust|nightvision|intent>` - Set vampire mode
-- `/vampire stats [player]` - Show vampire statistics (own or others with perm)
+- `/vampire help [topic]` - Show command list or help on a specific lore topic.
+- `/vampire info` - Show general plugin information (version, authors, etc.).
+- `/vampire show [player]` - Show detailed status if the target player is a vampire.
+- `/vampire list [page]` - Show a list of online vampires and infected players.
+- `/vampire set <type> <value> [player]` - Set vampire properties (Admin).
+- `/vampire reset [player]` - Reset vampire status (cure/remove infection) (Admin).
+- `/vampire reload` - Reload plugin configuration (Admin).
+- `/vampire offer <player> <amount>` - Offer blood to another player.
+- `/vampire accept` - Accept a pending blood offer.
+- `/vampire reject` - Reject a pending blood offer.
+- `/vampire shriek` - Use the shriek ability.
+- `/vampire mode <bloodlust|nightvision|intent>` - Toggle vampire modes.
+- `/vampire stats [player]` - Show general vampire statistics (own or others with perm).
 - `/vampire offergift <player>` - Offer the Dark Gift to a human player.
 - `/vampire acceptgift` - Accept a pending Dark Gift offer.
 - `/vampire rejectgift` - Reject a pending Dark Gift offer.
+- `/vampire flask [blood|holy]` - Create a Blood Vial (requires glass bottle) or Holy Water (admin command).
 
 ## Permissions
 
-- `vampire.use` - Allows use of basic vampire commands (Default: true)
-- `vampire.admin` - Allows use of admin commands (Default: op)
-- `vampire.trade.offer` - Allows offering blood (Default: true)
-- `vampire.trade.accept` - Allows accepting blood offers (Default: true)
+- `vampire.base` - Base permission for general user commands (Default: true)
+- `vampire.info` - Allows viewing plugin info with `/vampire info` (Default: true)
+- `vampire.show` - Allows viewing own detailed vampire status with `/vampire show` (Default: true)
+- `vampire.show.other` - Allows viewing others' detailed vampire status with `/vampire show [player]` (Default: op)
+- `vampire.list` - Allows viewing the online vampire/infected list (Default: op)
+- `vampire.shriek` - Allows using the shriek ability (Default: true)
 - `vampire.mode.bloodlust` - Allows toggling bloodlust mode (Default: true)
 - `vampire.mode.nightvision` - Allows toggling nightvision mode (Default: true)
 - `vampire.mode.intent` - Allows toggling infection intent mode (Default: true)
-- `vampire.list` - Allows viewing the vampire list (Default: true)
-- `vampire.show` - Allows viewing own vampire status (Default: true)
-- `vampire.show.other` - Allows viewing other players' status (Default: op)
-- `vampire.shriek` - Allows using the shriek ability (Default: true)
+- `vampire.trade.offer` - Allows offering blood (Default: true)
+- `vampire.trade.accept` - Allows accepting blood offers (Default: true)
 - `vampire.set` - Base permission for admin set commands (Default: op)
 - `vampire.set.vampire.true` - Allows making players vampires (Default: op)
 - `vampire.set.vampire.false` - Allows curing vampires (Default: op)
 - `vampire.set.infection` - Allows setting infection level (Default: op)
-- `vampire.set.food` - Allows setting blood level (Default: op)
+- `vampire.set.food` - Allows setting food level (Default: op)
 - `vampire.set.health` - Allows setting health (Default: op)
-- `vampire.config` - Allows modifying plugin configuration via command (if added) / reloading (Default: op)
-- `vampire.lang` - Allows modifying plugin language via command (if added) / reloading (Default: op)
+- `vampire.config` - Allows reloading configuration with `/vampire reload` (Default: op)
+- `vampire.lang` - Allows reloading language files with `/vampire reload` (Default: op)
 - `vampire.altar.dark` - Allows using Dark Altars (Default: true)
 - `vampire.altar.light` - Allows using Light Altars (Default: true)
+- `vampire.help.command` - Allows viewing the command list via `/vampire help`. (Default: true)
+- `vampire.help.lore` - Allows viewing detailed explanations via `/vampire help <topic>`. (Default: op)
 - `vampire.gift.offer` - Allows offering the Dark Gift (Default: op)
 - `vampire.gift.accept` - Allows accepting/rejecting the Dark Gift (Default: true)
-- `vampire.stats` - Allows viewing own stats (Default: true)
-- `vampire.stats.other` - Allows viewing others' stats (Default: op)
+- `vampire.stats` - Allows viewing own general stats (Default: true)
+- `vampire.stats.other` - Allows viewing others' general stats (Default: op)
 - `vampire.reset` - Allows resetting player vampire data (Default: op)
-- `vampire.flask` - Allows creating/using blood flasks/vials (Default: true)
-- `vampire.flask.holywater` - Allows obtaining Holy Water via command (if added) (Default: op)
-- `vampire.bypass` - May bypass certain restrictions (e.g., feeding cooldowns, sun damage? Needs verification) (Default: op)
+- `vampire.flask` - Allows creating/using blood vials (Default: true)
+- `vampire.flask.holywater` - Allows obtaining Holy Water via `/vampire flask holy` command (Default: op)
+- `vampire.is.vampire` - Indicator permission (managed by plugin)
+- `vampire.is.human` - Indicator permission (managed by plugin)
 
 ## Configuration
 

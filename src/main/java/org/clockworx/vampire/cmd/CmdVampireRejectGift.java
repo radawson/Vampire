@@ -7,7 +7,6 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.util.ResourceUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ public class CmdVampireRejectGift extends VCommand {
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // Manual sender check
         if (!isPlayer(sender)) {
-            sendError(sender, ResourceUtil.getMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
             return true;
         }
         Player senderPlayer = (Player) sender;
@@ -44,7 +43,7 @@ public class CmdVampireRejectGift extends VCommand {
 
         // No arguments expected for this command
         if (args.length > 0) {
-            sendError(sender, ResourceUtil.getMessage("command.error.too_many_arguments")); 
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.too_many_arguments")); 
             return true;
         }
 

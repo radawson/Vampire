@@ -38,7 +38,7 @@ public class CmdVampireStats extends VCommand {
         if (args.length == 0) {
             // Target self
             if (!isPlayer(sender)) {
-                sendError(sender, ResourceUtil.getMessage("command.error.must_be_player_or_specify")); // Need lang key
+                sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player_or_specify")); // Need lang key
                 return true;
             }
             // Base permission VampirePermission.STATS already checked by VCommand
@@ -48,14 +48,14 @@ public class CmdVampireStats extends VCommand {
         } else {
             // Target other player
             if (!sender.hasPermission(VampirePermission.STATS_OTHER)) {
-                sendError(sender, ResourceUtil.getMessage("command.no_permission"));
+                sendError(sender, VampireMessages.getLocalizedMessage("command.no_permission"));
                 return true;
             }
             String targetName = args[0];
             targetPlayer = Bukkit.getPlayer(targetName);
             if (targetPlayer == null || !targetPlayer.isOnline()) {
                 // Try loading offline data if implemented? For now, assume online only.
-                sendError(sender, ResourceUtil.getMessage("player.not_online", targetName));
+                sendError(sender, VampireMessages.getLocalizedMessage("player.not_online", targetName));
                 return true;
             }
             targetUUID = targetPlayer.getUniqueId();
@@ -65,7 +65,7 @@ public class CmdVampireStats extends VCommand {
         // Check if player data was found
         if (targetVampirePlayer == null) {
             // This might happen if player joined before manager could cache them, or an error occurred.
-            sendError(sender, ResourceUtil.getMessage("command.error.player_data_not_found")); // Need lang key
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_data_not_found")); // Need lang key
             return true;
         }
 

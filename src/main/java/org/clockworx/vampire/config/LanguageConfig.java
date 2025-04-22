@@ -4,188 +4,218 @@ import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
+/**
+ * Manages the loading and retrieval of localized messages from language YAML files.
+ * Ensures that the correct language file is loaded based on the main configuration,
+ * provides default English messages if a file is missing or incomplete, and checks
+ * for version mismatches between the language file and the plugin.
+ */
 public class LanguageConfig {
     private final VampirePlugin plugin;
     private FileConfiguration langConfig;
     private File langFile;
-    private String language;
+    private String currentLangCode; // Stores the actual language code loaded (e.g., "en")
     private final Map<String, String> messages;
     
+    /**
+     * Initializes the LanguageConfig.
+     * 
+     * @param plugin The main VampirePlugin instance.
+     */
     public LanguageConfig(VampirePlugin plugin) {
         this.plugin = plugin;
         this.messages = new HashMap<>();
     }
-    
-    public void loadLanguage(String language) {
-        this.language = language;
+
+    /**
+     * Loads the specified language file (e.g., "en", "es").
+     * Ensures the default "en.yml" exists and falls back to it if the specified language is not found.
+     * Also performs a version check between the loaded language file and the plugin version.
+     * 
+     * @param langCode The language code (e.g., "en", "es") to load.
+     */
+    public void loadLanguage(String langCode) {
+        this.currentLangCode = langCode; // Store the requested language
         
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdir();
-        }
+        File langDir = setupLanguagesFolder();
+        if (langDir == null) return; // Error occurred during setup
         
-        // Create languages directory if it doesn't exist
-        File langDir = new File(plugin.getDataFolder(), "languages");
-        if (!langDir.exists()) {
-            langDir.mkdir();
-        }
-        
-        // Load default language file if it doesn't exist
+        // Ensure default English file exists
         File defaultLangFile = new File(langDir, "en.yml");
         if (!defaultLangFile.exists()) {
             plugin.saveResource("languages/en.yml", false);
         }
         
-        // Load the requested language file
-        langFile = new File(langDir, language + ".yml");
+        // Attempt to load the requested language file
+        langFile = new File(langDir, currentLangCode + ".yml");
         if (!langFile.exists()) {
-            plugin.getLogger().warning("Language file " + language + ".yml not found, using English");
+            plugin.getLogger().warning("Language file '" + currentLangCode + ".yml' not found. Falling back to 'en.yml'.");
             langFile = defaultLangFile;
-            this.language = "en";
+            this.currentLangCode = "en"; // Update code to reflect fallback
         }
         
+        // Load the YAML configuration from the selected file
         langConfig = YamlConfiguration.loadConfiguration(langFile);
-        loadMessages();
         
-        plugin.getLogger().info("Language file loaded: " + this.language);
+        // --- Language File Version Check ---
+        String loadedLangVersion = langConfig.getString("version", "0.0.0"); // Read version from the file
+        String pluginVersion = plugin.getPluginMeta().getVersion();
+        
+        if (!pluginVersion.equals(loadedLangVersion)) {
+            plugin.getLogger().log(Level.WARNING, "*********************************************************************");
+            plugin.getLogger().log(Level.WARNING, "Your language file ('" + langFile.getName() + "') version does not match the plugin version!");
+            plugin.getLogger().log(Level.WARNING, "Language File Version: " + loadedLangVersion + ", Plugin Version: " + pluginVersion);
+            plugin.getLogger().log(Level.WARNING, "Messages might be missing or incorrect. Consider backing up your file,");
+            plugin.getLogger().log(Level.WARNING, "deleting it, and letting the plugin regenerate it, then merge your changes.");
+            plugin.getLogger().log(Level.WARNING, "*********************************************************************");
+            // We still load the file, but warn the user.
+        }
+        
+        // Load messages from the file into memory
+        loadMessagesFromConfig();
+        
+        // Load default messages from the JAR to fill in missing keys
+        loadDefaultMessagesFromJar();
+        
+        // Initialize VampireMessages utility class AFTER messages are loaded
+        VampireMessages.init(plugin); 
+
+        plugin.getLogger().info("Language file loaded: " + currentLangCode + ".yml (Plugin v" + pluginVersion + ")");
     }
     
-    private void loadMessages() {
-        messages.clear();
-        
-        // Load all messages from the configuration
-        for (String key : langConfig.getKeys(true)) {
-            if (langConfig.isString(key)) {
-                messages.put(key, langConfig.getString(key));
+    /**
+     * Sets up the languages folder and returns the directory File object.
+     *
+     * @return The File object for the languages directory, or null if creation failed.
+     */
+    private File setupLanguagesFolder() {
+        File dataFolder = plugin.getDataFolder();
+        if (!dataFolder.exists()) {
+            if (!dataFolder.mkdirs()) {
+                plugin.getLogger().severe("Could not create plugin data folder!");
+                return null;
             }
         }
         
-        // Load default messages if some are missing
-        loadDefaultMessages();
-    }
-    
-    private void loadDefaultMessages() {
-        // General messages
-        setDefaultMessage("general.prefix", "&8[&cVampire&8]");
-        setDefaultMessage("general.reload", "&aPlugin reloaded successfully!");
-        setDefaultMessage("general.no-permission", "&cYou don't have permission to do that!");
-        
-        // Player messages
-        setDefaultMessage("player.not-found", "&cPlayer not found!");
-        setDefaultMessage("player.offline", "&cPlayer is offline!");
-        
-        // Vampire messages
-        setDefaultMessage("vampire.status", "&7Vampire Status: &c%status%");
-        setDefaultMessage("vampire.blood", "&7Blood Level: &c%blood%");
-        setDefaultMessage("vampire.infected", "&7Infected: &c%infected%");
-        setDefaultMessage("vampire.night-vision", "&7Night Vision: &c%enabled%");
-        setDefaultMessage("vampire.sun-damage", "&7Sun Damage: &c%enabled%");
-        
-        // Infection messages
-        setDefaultMessage("infection.start", "&cYou have been infected!");
-        setDefaultMessage("infection.end", "&aYou have been cured of infection!");
-        setDefaultMessage("infection.spread", "&c%player% has been infected!");
-        
-        // Blood messages
-        setDefaultMessage("blood.low", "&cYour blood level is low!");
-        setDefaultMessage("blood.regen", "&aYou regenerated %amount% blood");
-        setDefaultMessage("blood.offer", "&aYou offered %amount% blood to %player%");
-        setDefaultMessage("blood.receive", "&aYou received %amount% blood from %player%");
-        
-        // Altar messages
-        setDefaultMessage("altar.dark.create", "&8Dark Altar created!");
-        setDefaultMessage("altar.dark.destroy", "&8Dark Altar destroyed!");
-        setDefaultMessage("altar.light.create", "&fLight Altar created!");
-        setDefaultMessage("altar.light.destroy", "&fLight Altar destroyed!");
-        setDefaultMessage("altar.cure", "&aYou have been cured at the Light Altar!");
-        setDefaultMessage("altar.infect", "&cYou have been infected at the Dark Altar!");
-        
-        // Command messages
-        setDefaultMessage("command.help", "&7=== &cVampire Commands &7===");
-        setDefaultMessage("command.help.help", "&7/vampire help &8- &fShow help");
-        setDefaultMessage("command.help.version", "&7/vampire version &8- &fShow version");
-        setDefaultMessage("command.help.show", "&7/vampire show [player] &8- &fShow vampire status");
-        setDefaultMessage("command.help.set", "&7/vampire set <type> <player> [value] &8- &fSet vampire properties");
-        setDefaultMessage("command.help.offer", "&7/vampire offer <player> <amount> &8- &fOffer blood to a player");
-        setDefaultMessage("command.help.reload", "&7/vampire reload &8- &fReload the plugin");
-
-        // Set Command Messages (New/Consolidated)
-        setDefaultMessage("command.set.usage", "&cUsage: /vampire set <type> <player> <value>");
-        setDefaultMessage("command.set.invalid_type", "&cInvalid type. Use: vampire, infection, food, health");
-        setDefaultMessage("command.set.success.vampire", "&aSet vampire status for %1% to %2%.");
-        setDefaultMessage("command.set.success.infection", "&aSet infection level for %1% to %2%.");
-        setDefaultMessage("command.set.success.food", "&aSet food level for %1% to %2%.");
-        setDefaultMessage("command.set.success.health", "&aSet health level for %1% to %2%.");
-
-        // Flask Command Messages (Added/Updated)
-        setDefaultMessage("command.flask.not_vampire", "&cOnly vampires can create blood vials.");
-        setDefaultMessage("command.flask.need_empty_bottle", "&cYou need an empty glass bottle in your hand.");
-        setDefaultMessage("command.flask.not_enough_blood", "&cYou need at least %1% blood to create a vial.");
-        setDefaultMessage("command.flask.blood_use_failed", "&cFailed to use blood. Vial creation cancelled.");
-        setDefaultMessage("command.flask.inventory_full", "&cYour inventory is full. The blood vial was dropped.");
-        setDefaultMessage("command.flask.success", "&aYou created a Blood Vial.");
-        setDefaultMessage("command.flask.holy_success", "&aYou received Holy Water.");
-        setDefaultMessage("command.flask.inventory_full_holy", "&cYour inventory is full. The Holy Water was dropped.");
-        setDefaultMessage("command.flask.invalid_type", "&cInvalid vial type. Use 'blood' or 'holy'.");
+        File langDir = new File(dataFolder, "languages");
+        if (!langDir.exists()) {
+            if (!langDir.mkdirs()) {
+                plugin.getLogger().severe("Could not create languages folder!");
+                return null;
+            }
+        }
+        return langDir;
     }
 
+    /**
+     * Loads messages from the currently loaded langConfig (the user's file) into the memory map.
+     * Clears existing messages first.
+     */
+    private void loadMessagesFromConfig() {
+        messages.clear();
+        if (langConfig == null) return;
+        
+        // Load all messages found in the user's language file
+        for (String key : langConfig.getKeys(true)) {
+            if (langConfig.isString(key) && !key.equals("version")) { // Exclude the version key itself
+                messages.put(key, langConfig.getString(key));
+            }
+        }
+    }
+
+    /**
+     * Loads the default messages from the en.yml file packaged within the plugin JAR.
+     * Only adds messages to the map if they are not already present (preserving user overrides).
+     */
+    private void loadDefaultMessagesFromJar() {
+        // Load the default en.yml from the JAR
+        Reader defConfigStream = null;
+        try {
+            defConfigStream = new InputStreamReader(plugin.getResource("languages/en.yml"), StandardCharsets.UTF_8);
+            if (defConfigStream != null) {
+                YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+                // Iterate through default keys and add missing ones
+                for (String key : defConfig.getKeys(true)) {
+                     if (defConfig.isString(key) && !key.equals("version")) {
+                        // Add to map only if the key doesn't already exist from user's file
+                        messages.putIfAbsent(key, defConfig.getString(key));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Could not load default language file from JAR!", e);
+        } finally {
+            if (defConfigStream != null) {
+                try {
+                    defConfigStream.close();
+                } catch (IOException e) {
+                    // Ignore closing error
+                }
+            }
+        }
+    }
+
+    /**
+     * Reloads the current language file.
+     * 
+     * @return True if reload was successful, false otherwise.
+     */
     public boolean reload() {
-        loadLanguage(language);
+        if (currentLangCode == null) {
+             plugin.getLogger().warning("Cannot reload language config, no language was initially loaded.");
+             return false;
+        }
+        loadLanguage(currentLangCode); // Reload the same language
+        VampireMessages.reloadMessages(); // Trigger reload in VampireMessages
         return true;    
     }
     
-    private void setDefaultMessage(String key, String defaultValue) {
-        if (!messages.containsKey(key)) {
-            messages.put(key, defaultValue);
-        }
-    }
-    
+    /**
+     * Saves the current in-memory messages back to the language file.
+     * Primarily used if messages are modified programmatically.
+     */
     public void saveLanguage() {
+        if (langFile == null || langConfig == null) {
+             plugin.getLogger().warning("Cannot save language file, not properly loaded.");
+             return;
+        }
+        // Update langConfig object with current messages before saving
+        messages.forEach((key, value) -> langConfig.set(key, value));
+        // Set the version string explicitly
+        langConfig.set("version", plugin.getPluginMeta().getVersion());
         try {
             langConfig.save(langFile);
         } catch (IOException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not save language file to " + langFile, e);
         }
     }
-    
-    public String getMessage(String key) {
-        return getMessage(key, new String[0]);
+
+    /**
+     * Gets the currently loaded language code (e.g., "en").
+     * 
+     * @return The active language code.
+     */
+    public String getLanguageCode() {
+        return currentLangCode;
     }
     
-    public String getMessage(String key, String... args) {
-        String message = messages.getOrDefault(key, "Missing message: " + key);
-        message = ChatColor.translateAlternateColorCodes('&', message);
-        
-        if (args != null && args.length > 0) {
-            for (int i = 0; i < args.length; i++) {
-                message = message.replace("%" + (i + 1) + "%", args[i]);
-            }
-        }
-        
-        return message;
-    }
-    
-    public String getLanguage() {
-        return language;
-    }
-    
-    public void setLanguage(String language) {
-        this.language = language;
-        loadLanguage(language);
-    }
-    
+    /**
+     * Retrieves all loaded messages.
+     * 
+     * @return A map containing all key-value message pairs.
+     */
     public Map<String, String> getMessages() {
-        return new HashMap<>(messages);
-    }
-    
-    public void setMessage(String key, String value) {
-        messages.put(key, value);
-        langConfig.set(key, value);
+        return new HashMap<>(messages); // Return a copy to prevent external modification
     }
 } 

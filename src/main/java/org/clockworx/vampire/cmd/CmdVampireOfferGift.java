@@ -8,10 +8,8 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.util.ResourceUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,14 +30,14 @@ public class CmdVampireOfferGift extends VCommand {
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!isPlayer(sender)) {
-            sendError(sender, ResourceUtil.getMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
             return true;
         }
         Player senderPlayer = (Player) sender;
         UUID senderUUID = senderPlayer.getUniqueId();
 
         if (args.length < 1) {
-            sendError(sender, ResourceUtil.getMessage("command.error.missing_argument", "player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.missing_argument", "player"));
             return true;
         }
 

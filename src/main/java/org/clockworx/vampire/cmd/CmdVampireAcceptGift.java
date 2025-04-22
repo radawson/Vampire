@@ -30,7 +30,7 @@ public class CmdVampireAcceptGift extends VCommand {
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // Manual sender check
         if (!isPlayer(sender)) {
-            sendError(sender, ResourceUtil.getMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
             return true;
         }
         Player senderPlayer = (Player) sender;
@@ -45,7 +45,7 @@ public class CmdVampireAcceptGift extends VCommand {
         // No arguments expected for this command
         if (args.length > 0) {
             // Optionally send usage or just proceed
-            sendError(sender, ResourceUtil.getMessage("command.error.too_many_arguments")); // Assuming key exists
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.too_many_arguments")); // Assuming key exists
             return true;
         }
 

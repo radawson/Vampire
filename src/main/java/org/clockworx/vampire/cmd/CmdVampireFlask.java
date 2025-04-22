@@ -1,20 +1,14 @@
 package org.clockworx.vampire.cmd;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionData;
-import org.bukkit.potion.PotionType;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.VampireMessages;
 import org.clockworx.vampire.manager.ItemManager;
 
@@ -50,7 +44,7 @@ public class CmdVampireFlask extends VCommand {
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!isPlayer(sender)) {
-            sendError(sender, ResourceUtil.getMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
             return true;
         }
         Player player = (Player) sender;
@@ -63,7 +57,7 @@ public class CmdVampireFlask extends VCommand {
         } else if ("holy".equals(vialType)) {
             return createHolyWater(player);
         } else {
-            sendError(sender, "Invalid vial type. Use 'blood' or 'holy'."); // TODO: Add lang key
+            sendError(sender, VampireMessages.getLocalizedMessage("command.flask.invalid_vial_type"));
             return true;
         }
     }
@@ -79,7 +73,7 @@ public class CmdVampireFlask extends VCommand {
         UUID playerUUID = player.getUniqueId();
         VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(playerUUID);
         if (vampirePlayer == null) {
-            sendError(player, ResourceUtil.getMessage("command.error.player_data_not_found"));
+            sendError(player, VampireMessages.getLocalizedMessage("command.error.player_data_not_found"));
             return true;
         }
 
@@ -144,7 +138,7 @@ public class CmdVampireFlask extends VCommand {
         ItemStack holyWater = itemManager.createHolyWater();
         if (holyWater == null || holyWater.getType() == Material.AIR) {
              VampireMessages.error("ItemManager failed to create Holy Water!", null);
-             sendError(player, "Failed to create holy water item."); // TODO: Lang key
+             sendError(player, VampireMessages.getLocalizedMessage("command.flask.failed_to_create_item")); 
              return true;
         }
 

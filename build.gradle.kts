@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.clockworx"
-version = "3.1.7"
+version = "3.1.8"
 
 repositories {
     mavenCentral()
@@ -99,7 +99,7 @@ tasks {
     
     // Process resources
     processResources {
-        filesMatching(listOf("plugin.yml", "config.yml")) {
+        filesMatching(listOf("plugin.yml", "config.yml", "languages/**")) {
             expand(
                 "version" to projectVersion
             )

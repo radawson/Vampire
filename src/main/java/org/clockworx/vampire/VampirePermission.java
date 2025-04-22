@@ -83,6 +83,8 @@ public class VampirePermission {
     public static final String HELP_COMMAND = "vampire.help.command";
     /** Allows viewing detailed explanations of mechanics via /vampire help <topic>. */
     public static final String HELP_LORE = "vampire.help.lore";
+    /** Allows viewing general plugin information (/vampire info). */
+    public static final String INFO = "vampire.info";
     /** Allows offering the Dark Gift to turn a human player into a vampire. */
     public static final String GIFT_OFFER = "vampire.gift.offer";
     /** Allows accepting or rejecting an offer of the Dark Gift. */
@@ -171,6 +173,7 @@ public class VampirePermission {
         // Help permissions
         registerPermission(pm, HELP_COMMAND, "Allows viewing the command list (/vampire help)", PermissionDefault.TRUE);
         registerPermission(pm, HELP_LORE, "Allows viewing detailed help/lore (/vampire help <topic>)", PermissionDefault.OP); // Often lore is admin-only?
+        registerPermission(pm, INFO, "Allows viewing general plugin information", PermissionDefault.TRUE); // New info command permission
 
         // Gift permissions
         registerPermission(pm, GIFT_OFFER, "Allows offering the Dark Gift to turn players", PermissionDefault.OP); // Typically restricted

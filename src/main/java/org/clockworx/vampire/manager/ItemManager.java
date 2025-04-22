@@ -7,6 +7,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,15 +79,12 @@ public class ItemManager {
         if (meta == null) return new ItemStack(Material.AIR); // Should not happen
 
         meta.setBasePotionType(org.bukkit.potion.PotionType.AWKWARD);
-        String name = plugin.getLanguageConfig().getMessage("item.blood_vial.name");
-        // Assuming getMessage returns color-coded string without prefix here
+        String name = VampireMessages.getLocalizedMessage("item.blood_vial.name");
         meta.setDisplayName(name);
         
         List<String> lore = new ArrayList<>();
-        lore.add(plugin.getLanguageConfig().getMessage("item.blood_vial.lore1")); 
-        lore.add(plugin.getLanguageConfig().getMessage("item.blood_vial.lore2")); 
-        // Translate color codes
-        lore = lore.stream().map(line -> org.bukkit.ChatColor.translateAlternateColorCodes('&', line)).collect(Collectors.toList());
+        lore.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore1")); 
+        lore.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore2")); 
         meta.setLore(lore);
 
         meta.getPersistentDataContainer().set(BLOOD_VIAL_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -110,13 +108,12 @@ public class ItemManager {
         // meta.setColor(org.bukkit.Color.AQUA);
         // meta.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.GLOWING, 1, 0), true);
 
-        String name = plugin.getLanguageConfig().getMessage("item.holy_water.name");
+        String name = VampireMessages.getLocalizedMessage("item.holy_water.name");
         meta.setDisplayName(name);
         
         List<String> lore = new ArrayList<>();
-        lore.add(plugin.getLanguageConfig().getMessage("item.holy_water.lore1")); 
-        lore.add(plugin.getLanguageConfig().getMessage("item.holy_water.lore2")); 
-        lore = lore.stream().map(line -> org.bukkit.ChatColor.translateAlternateColorCodes('&', line)).collect(Collectors.toList());
+        lore.add(VampireMessages.getLocalizedMessage("item.holy_water.lore1")); 
+        lore.add(VampireMessages.getLocalizedMessage("item.holy_water.lore2")); 
         meta.setLore(lore);
 
         meta.getPersistentDataContainer().set(HOLY_WATER_KEY, PersistentDataType.BYTE, (byte) 1);

@@ -269,8 +269,9 @@ public class VampireTask extends BukkitRunnable {
             vampireManager.setVampireStatus(vampirePlayer.getUuid(), true, "Infection");
             FxUtil.playVampireEffect(player);
             
-            VampireMessages.broadcast(plugin.getLanguageConfig().getMessage("infection.broadcast")
-                .replace("%player%", player.getName()));
+            // Use VampireMessages to get the localized broadcast message
+            String broadcastMessage = VampireMessages.getLocalizedMessage("infection.broadcast", player.getDisplayName());
+            Bukkit.broadcastMessage(broadcastMessage);
         }
     }
     

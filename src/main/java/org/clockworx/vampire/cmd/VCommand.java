@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.ResourceUtil;
-
+import org.clockworx.vampire.util.VampireMessages;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,7 +85,7 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission(permission)) {
-            sender.sendMessage(ResourceUtil.getMessage("no-permission"));
+            sender.sendMessage(VampireMessages.getLocalizedMessage("no-permission"));
             return true;
         }
         return execute(sender, command, label, args);
@@ -189,6 +189,6 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      * @return The message
      */
     protected String getMessage(String key) {
-        return ResourceUtil.getMessage(key);
+        return VampireMessages.getLocalizedMessage(key);
     }
 } 

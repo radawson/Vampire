@@ -33,7 +33,7 @@ public class CmdVampireReset extends VCommand {
         // Permission already checked by VCommand
 
         if (args.length < 1) {
-            sendError(sender, ResourceUtil.getMessage("command.error.missing_argument", "player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.missing_argument", "player"));
             // Optional: Send usage message
             return true;
         }
@@ -42,13 +42,13 @@ public class CmdVampireReset extends VCommand {
         Player targetPlayer = Bukkit.getPlayer(targetName);
 
         if (targetPlayer == null || !targetPlayer.isOnline()) {
-            sendError(sender, ResourceUtil.getMessage("player.not_online", targetName));
+            sendError(sender, VampireMessages.getLocalizedMessage("player.not_online", targetName));
             return true;
         }
 
         VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
         if (targetVampirePlayer == null) {
-            sendError(sender, ResourceUtil.getMessage("command.error.player_data_not_found"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_data_not_found"));
             return true;
         }
 

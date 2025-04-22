@@ -388,32 +388,6 @@ public class ResourceUtil
 	}
 	
 	/**
-	 * Gets a message directly from the loaded language configuration using its key.
-	 * Returns the key itself if the message is not found.
-	 * 
-	 * @param key The key identifying the message in the language configuration.
-	 * @return The localized message string, or the key if not found.
-	 */
-	public static String getMessage(String key) {
-		// Delegates to the LanguageConfig instance managed by the plugin.
-		return plugin.getLanguageConfig().getMessage(key);
-	}
-	
-	/**
-	 * Gets a message from the loaded language configuration using its key 
-	 * and replaces placeholders ({0}, {1}, etc.) with the provided arguments.
-	 * Returns the key itself if the message is not found.
-	 * 
-	 * @param key The key identifying the message in the language configuration.
-	 * @param args The arguments to insert into the message placeholders.
-	 * @return The localized and formatted message string, or the key if not found.
-	 */
-	public static String getMessage(String key, String... args) {
-		// Delegates to the LanguageConfig instance managed by the plugin.
-		return plugin.getLanguageConfig().getMessage(key, args);
-	}
-
-	/**
 	 * Generates a user-friendly name for a given Material.
 	 * Converts the Material enum name to lowercase, replaces underscores with spaces,
 	 * and capitalizes the first letter of each word.

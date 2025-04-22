@@ -4,7 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.util.ResourceUtil;
+import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,12 +29,12 @@ public class CmdVampireReload extends VCommand {
             plugin.reloadConfig();
             plugin.getVampireConfig().loadConfig();
             plugin.getLanguageConfig().loadLanguage(plugin.getVampireConfig().getLanguage());
-            sendSuccess(sender, ResourceUtil.getMessage("command.reload.success"));
+            sendSuccess(sender, VampireMessages.getLocalizedMessage("command.reload.success"));
             plugin.getLogger().info("Configuration and language files reloaded by " + sender.getName());
             return true;
         } catch (Exception e) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to reload configuration for Vampire plugin.", e);
-            sendError(sender, ResourceUtil.getMessage("command.reload.failed"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.reload.failed"));
             return true;
         }
     }

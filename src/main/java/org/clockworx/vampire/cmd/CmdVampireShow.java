@@ -15,123 +15,153 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Command for showing vampire plugin information.
- * Retrieves data from VampireManager and displays relevant status.
+ * Command for showing detailed status information about a vampire player.
+ * This command specifically targets players who are currently vampires.
+ * It can show information about the sender if they are a vampire, or about another
+ * player if the sender has the appropriate permission.
  */
 public class CmdVampireShow extends VCommand {
     
     private final VampireManager vampireManager;
 
     /**
-     * Creates a new show command.
+     * Creates a new show command focused on displaying vampire status.
      * 
-     * @param plugin The plugin instance
+     * @param plugin The plugin instance.
      */
     public CmdVampireShow(VampirePlugin plugin) {
-        super(plugin, "show", VampirePermission.SHOW);
+        // Uses the base 'show' permission for self, 'show.other' is checked internally.
+        super(plugin, "show", VampirePermission.SHOW); 
         this.vampireManager = plugin.getVampireManager();
     }
     
+    /**
+     * Executes the /vampire show command.
+     * Retrieves the target player (self or specified) and checks if they are a vampire.
+     * If they are a vampire, displays detailed status. If not, sends an appropriate message.
+     * 
+     * @param sender The command sender.
+     * @param command The command being executed.
+     * @param label The alias used for the command.
+     * @param args The command arguments.
+     * @return True if the command was handled, false otherwise.
+     */
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         Player targetPlayer;
         boolean showingOther = args.length > 0;
 
         if (showingOther) {
+            // Check permission specifically for viewing others
             if (!sender.hasPermission(VampirePermission.SHOW_OTHER)) { 
-                sendError(sender, getMessage("command.show.no_permission_other"));
+                // Use a specific message key for lack of permission to see others
+                VampireMessages.sendLocalized(sender, "command.show.no_permission_other"); // Need lang key
                 return true;
             }
             
             targetPlayer = Bukkit.getPlayer(args[0]);
             if (targetPlayer == null) {
-                sendError(sender, getMessage("player.not_online").replace("%player%", args[0]));
+                VampireMessages.sendLocalized(sender, "player.not_online", args[0]);
                 return true;
             }
         } else {
+            // If no arguments, target is the sender
             if (!(sender instanceof Player)) {
-                sendError(sender, getMessage("command.player_only"));
+                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify"); // Need lang key
                 return true;
             }
             targetPlayer = (Player) sender;
+            // Basic 'vampire.show' permission checked by VCommand superclass
         }
         
         VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
 
+        // Check if data exists
         if (vampirePlayer == null) {
-            sendError(sender, getMessage("command.player_data_not_found"));
+             VampireMessages.sendLocalized(sender, "command.error.player_data_not_found"); // Use generic data not found
             return true;
         }
         
+        // Check if the target is actually a vampire
+        if (!vampirePlayer.isVampire()) {
+             VampireMessages.sendLocalized(sender, "command.show.target_not_vampire", targetPlayer.getName()); // Need lang key
+            return true;
+        }
+        
+        // Target is a vampire, display their status
         displayVampireStatus(sender, vampirePlayer, targetPlayer);
         
         return true;
     }
     
     /**
-     * Displays the vampire status information for a player.
+     * Displays the detailed vampire status information for the target player.
+     * Assumes the target player is confirmed to be a vampire.
      * 
-     * @param sender The command sender
-     * @param vampirePlayer The vampire player data (POJO)
-     * @param targetPlayer The target player entity
+     * @param sender The command sender who will receive the information.
+     * @param vampirePlayer The {@link VampirePlayer} data object for the target.
+     * @param targetPlayer The Bukkit {@link Player} object for the target.
      */
     private void displayVampireStatus(CommandSender sender, VampirePlayer vampirePlayer, Player targetPlayer) {
-        boolean self = (sender == targetPlayer);
-        String name = targetPlayer.getDisplayName();
-        String namePlaceholder = self ? "You" : name;
-        String verbPlaceholder = self ? "are" : "is";
+        // Use localized messages from en.yml under 'command.show.display' or similar structure
+        VampireMessages.sendLocalized(sender, "command.show.display.header", targetPlayer.getDisplayName()); 
         
-        sendInfo(sender, getMessage("vampire.status.header"));
-        sendInfo(sender, getMessage("vampire.status.name").replace("%player%", name));
-        
-        if (vampirePlayer.isVampire()) {
-            sendInfo(sender, "&aVampire Status: &cVampire");
-            displayVampireDetails(sender, vampirePlayer, targetPlayer);
-        } else if (vampirePlayer.isInfected()) {
-             sendInfo(sender, "&aVampire Status: &eInfected");
-             sendInfo(sender, getMessage("vampire.status.infection")
-                .replace("%infection%", String.format("%.1f", vampirePlayer.getInfectionLevel() * 100)));
-             String reason = vampirePlayer.getInfectionReason();
-             if (reason != null && !reason.isEmpty()) {
-                 sendInfo(sender, "&7Reason: &f" + reason);
-             }
-        } else {
-            sendInfo(sender, "&aVampire Status: &fHuman");
-        }
-    }
-    
-    /**
-     * Displays detailed vampire information.
-     */
-    private void displayVampireDetails(CommandSender sender, VampirePlayer vampirePlayer, Player player) {
         double maxBlood = vampireManager.getEffectiveMaxBlood(vampirePlayer);
-        sendInfo(sender, getMessage("vampire.status.blood")
-            .replace("%blood%", String.format("%.1f / %.1f", vampirePlayer.getBlood(), maxBlood)));
+        VampireMessages.sendLocalized(sender, "command.show.display.blood", 
+            String.format("%.1f", vampirePlayer.getBlood()), 
+            String.format("%.1f", maxBlood));
 
-        sendInfo(sender, "&7Level: &f" + vampirePlayer.getVampireLevel());
+        VampireMessages.sendLocalized(sender, "command.show.display.level", 
+            String.valueOf(vampirePlayer.getVampireLevel())); // Assuming level is an int
 
-        sendInfo(sender, "&7Modes:");
-        sendInfo(sender, "  " + getMessage("vampire.mode.bloodlust") + ": " + formatBoolean(vampirePlayer.isBloodlusting()));
-        sendInfo(sender, "  " + getMessage("vampire.mode.intent") + ": " + formatBoolean(vampirePlayer.isIntending()));
-        sendInfo(sender, "  " + getMessage("vampire.mode.nightvision") + ": " + formatBoolean(vampirePlayer.isUsingNightVision()));
+        // Display modes
+        VampireMessages.sendLocalized(sender, "command.show.display.modes_header");
+        VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
+            VampireMessages.getLocalizedMessage("vampire.mode.bloodlust.name"), // Get mode name from lang
+            formatBoolean(vampirePlayer.isBloodlusting())); 
+        VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
+            VampireMessages.getLocalizedMessage("vampire.mode.intent.name"), // Get mode name from lang
+            formatBoolean(vampirePlayer.isIntending()));
+        VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
+            VampireMessages.getLocalizedMessage("vampire.mode.nightvision.name"), // Get mode name from lang
+            formatBoolean(vampirePlayer.isUsingNightVision()));
+            
+        // Add other details as needed (e.g., last shriek time, etc.)
     }
     
     /**
-     * Formats a boolean value using message keys for ON/OFF.
+     * Formats a boolean value using localized messages for ON/OFF status.
+     * 
+     * @param value The boolean value.
+     * @return A formatted string representing the boolean status (e.g., "&aON", "&cOFF").
      */
     private String formatBoolean(boolean value) {
-        return value ? "&aON" : "&cOFF";
+        // Consider adding keys like 'status.on' and 'status.off' to en.yml
+        return value ? "&aON" : "&cOFF"; 
     }
     
+    /**
+     * Provides tab completions for the /vampire show command.
+     * Suggests online player names if the sender has permission to view others.
+     * 
+     * @param sender The command sender.
+     * @param command The command being executed.
+     * @param label The alias used for the command.
+     * @param args The command arguments.
+     * @return A list of suggested player names or an empty list.
+     */
     @Override
     protected List<String> tabComplete(CommandSender sender, Command command, String label, String[] args) {
+        // Suggest player names only for the first argument if permission allows
         if (args.length == 1 && sender.hasPermission(VampirePermission.SHOW_OTHER)) {
             String currentArg = args[0].toLowerCase();
+            // Filter online players starting with the argument
             return Bukkit.getOnlinePlayers().stream()
                        .map(Player::getName)
                        .filter(name -> name.toLowerCase().startsWith(currentArg))
                        .collect(Collectors.toList());
         }
+        // No completions for other arguments or without permission
         return new ArrayList<>();
     }
 } 

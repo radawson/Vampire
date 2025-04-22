@@ -1,6 +1,7 @@
 # Vampire Plugin Language File
 # Use & for color codes
 # Use %variable% for placeholders
+version: "${version}"
 
 general:
   prefix: "&8[&cVampire&8]"
@@ -37,9 +38,19 @@ vampire:
     mode_intent: "&7 - Intent: %1%"
     mode_nightvision: "&7 - Night Vision: %1%"
   mode:
-    bloodlust: "&cBloodlust Mode"
-    nightvision: "&cNight Vision"
-    intent: "&cIntent Mode"
+    bloodlust:
+      name: "&cBloodlust Mode"
+      disabled: "&7Bloodlust mode disabled."
+      enabled: "&aBloodlust mode enabled!"
+    intent:
+      name: "&cInfection Intent"
+      disabled: "&7Infection intent disabled."
+      enabled: "&aInfection intent enabled!"
+    nightvision:
+      name: "&bNight Vision"
+      disabled: "&7Night vision disabled."
+      enabled: "&aNight vision enabled!"
+      globally_disabled: "&cNight vision is globally disabled by the server."
     disabled: "&7Disabled"
   transformed: "&cYou have been transformed into a vampire!"
   cured: "&aYou have been cured of vampirism!"
@@ -57,6 +68,9 @@ infection:
   complete: "&cThe infection is complete! You are now a vampire!"
   resisted: "&aYou have resisted the infection!"
   spread: "&cYou have infected %player%!"
+
+  # Message broadcast when a player becomes a vampire via infection
+  broadcast: "&c%1% has succumbed to the darkness and is now a VAMPIRE!"
 
 altar:
   dark:
@@ -92,9 +106,29 @@ altar:
     moved: "&cYou moved too much! The ritual is broken."
 
 command:
+  flask:
+      not_vampire: "&cOnly vampires can create blood vials."
+      need_water_bottle: "&cYou must be holding an empty glass bottle to create a blood vial."
+      need_empty_bottle: "&cYou must be holding an empty glass bottle to create a blood vial."
+      not_enough_blood: "&cYou need at least %1% blood to create a vial."
+      blood_use_failed: "&cFailed to draw blood for the vial. Please try again."
+      inventory_full: "&cInventory full! Blood vial dropped nearby."
+      success: "&aYou sacrifice some of your blood to create a Blood Vial."
+      holy_success: "&aYou have created Holy Water."
+      inventory_full_holy: "&cInventory full! Holy Water dropped nearby."
+
+  # List command messages  
+  list:
+    header: "&7=== &cVampire List (Page %1%/%2%) &7==="
+    entry: "&7- &f%1% &7(&c%2%&7)"
+    none_found: "&cNo vampires found."
+    page_not_found: "&cPage %1% not found."
+    invalid_page: "&cInvalid page number."
+
   help:
     header: "&7=== &cVampire Commands &7==="
-    info: "&7/vampire info [player] &8- &fShow vampire info for a player"
+    no_base_permission: "&cYou do not have permission to use Vampire commands."
+    info: "&7/vampire info &8- &fShow plugin information"
     list: "&7/vampire list [page] &8- &fShow list of vampires"
     offer: "&7/vampire offer <player> <amount> &8- &fOffer blood to a player"
     accept: "&7/vampire accept &8- &fAccept a blood offer"
@@ -102,10 +136,10 @@ command:
     shriek: "&7/vampire shriek &8- &fShriek to infect nearby players"
     mode: "&7/vampire mode <bloodlust|nightvision|intent> &8- &fSet vampire mode"
     reload: "&7/vampire reload &8- &fReload plugin configuration"
-    reset:
-      not_needed: "&ePlayer %1% is already human."
-      success_sender: "&aSuccessfully reset vampire data for %1%."
-      success_target: "&aYour vampire status has been reset by an administrator."
+    format: "&7/%1% %2% &8- &f%3%"
+    show: "&7/vampire show [player] &8- &fShow detailed status if player is a vampire"
+    set: "&7/vampire set <type> <value> [player] &8- &fSet vampire properties"
+    lore_hint: "&7Use &f/vampire help <topic>&7 for more information on specific topics"
     lore:
       # Example entry for blood regeneration
       blood_regeneration:
@@ -119,26 +153,33 @@ command:
         - "&cHalting Conditions:"
         - "  &f- Sunlight: &cRegen stops if exposed to direct sun."
         - "  &f- Recent Damage: &cRegen stops for a few seconds after taking damage."
-      # Add entries for other topics like sunlight, infection, combat, altars etc.
-      sunlight:
-        - "&7--- &cSunlight Lore &7---"
-        - "&cVampires burn in direct sunlight unless protected."
-        - "&eProtection: &fWater, Helmets (partial), Being Indoors/Underground."
-        - "&eRegeneration: &cBlood regeneration stops in direct sun."
       infection:
         - "&7--- &cInfection Lore &7---"
         - "&eVampires can infect others by attacking with &cIntent Mode&e active."
         - "&eCost: &fInfecting costs the vampire blood."
         - "&eProgression: &fInfection increases over time, applying Weakness."
         - "&eResult: &fAt 100% infection, the victim becomes a full vampire."
+      sunlight:
+        - "&7--- &cSunlight Lore &7---"
+        - "&cVampires burn in direct sunlight unless protected."
+        - "&eProtection: &fWater, Helmets (partial), Being Indoors/Underground."
+        - "&eRegeneration: &cBlood regeneration stops in direct sun."
       # Generic topic not found message
       topic_not_found: "&cUnknown help topic: %topic%"
+  set:
+    success:
+      food: "&aSuccessfully set %1%'s food level to %2%."
+      health: "&aSuccessfully set %1%'s health to %2%."
+      infection: "&aSuccessfully set %1%'s infection level to %2%."
+      vampire: "&aSuccessfully set %1%'s vampire status to %2%."
+  
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
   no_permission: "&cYou don't have permission to use this command!"
   player_only: "&cThis command can only be used by players!"
   error:
+    unknown_subcommand: "&cUnknown subcommand: %1%. Type /vampire help."
     must_be_player_or_specify: "&cYou must be a player or specify a player name."
     player_data_not_found: "&cCould not find vampire data for that player."
     missing_argument: "&cMissing argument: <%1%>"
@@ -193,12 +234,24 @@ item:
     lore1: "&7Blessed water, harmful to the undead."
     lore2: "&7Right-click to throw..."
 
-# Command specific messages
-command:
-  flask:
-    not_vampire: "&cOnly vampires can create blood vials."
-    need_water_bottle: "&cYou must be holding a water bottle to create a blood vial."
-    not_enough_blood: "&cYou need at least %1% blood to create a vial."
-    blood_use_failed: "&cFailed to draw blood for the vial. Please try again."
-    inventory_full: "&cInventory full! Blood vial dropped nearby."
-    success: "&aYou sacrifice some of your blood to create a Blood Vial."
+# Show command messages
+show:
+  no_permission_other: "&cYou do not have permission to view other players' vampire status."
+  target_not_vampire: "&e%1% is not currently a vampire."
+  display:
+    header: "&7=== &cVampire Details [%1%] &7==="
+    blood: "&7Blood: &c%1%&7/&c%2%"
+    level: "&7Level: &e%1%"
+    modes_header: "&7Modes:"
+    mode_entry: "  %1%: %2%"
+
+# Reset command messages
+reset:
+  not_needed: "&ePlayer %1% is already human (not vampire or infected)."
+  success_sender: "&aSuccessfully reset vampire data for %1%."
+  success_target: "&aYour vampire status has been reset by an administrator."
+
+# Reload command messages
+reload:
+  success: "&aConfiguration and language files successfully reloaded!"
+  failed: "&cFailed to reload configuration. Check console for errors."
