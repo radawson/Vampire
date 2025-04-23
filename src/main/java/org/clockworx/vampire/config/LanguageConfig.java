@@ -81,19 +81,6 @@ public class LanguageConfig {
         // Load the YAML configuration from the selected file
         langConfig = YamlConfiguration.loadConfiguration(langFile);
         
-        // --- Temporary Debugging ---
-        plugin.getLogger().info("[DEBUG_LANG] Checking version in langConfig for file: " + langFile.getName());
-        if (langConfig == null) {
-            plugin.getLogger().severe("[DEBUG_LANG] langConfig object is NULL after loading file: " + langFile.getName());
-        } else {
-            plugin.getLogger().info("[DEBUG_LANG] langConfig.contains(\"version\"): " + langConfig.contains("version"));
-            plugin.getLogger().info("[DEBUG_LANG] langConfig.isString(\"version\"): " + langConfig.isString("version"));
-            Object rawVersion = langConfig.get("version");
-            plugin.getLogger().info("[DEBUG_LANG] langConfig.get(\"version\") type: " + (rawVersion == null ? "null" : rawVersion.getClass().getName()));
-            plugin.getLogger().info("[DEBUG_LANG] langConfig.get(\"version\") value: " + rawVersion);
-        }
-        // --- End Temporary Debugging ---
-
         // --- Language File Version Check ---
         String loadedLangVersion = "error"; // Default to error string
         if (langConfig != null) { // Check if langConfig loaded successfully
@@ -161,7 +148,6 @@ public class LanguageConfig {
     private void loadMessagesFromConfig() {
         messages.clear();
         // This method is now only called if langConfig is not null
-        // if (langConfig == null) return; // Redundant check
         
         // Load all messages found in the user's language file
         for (String key : langConfig.getKeys(true)) {
@@ -174,10 +160,6 @@ public class LanguageConfig {
                     messages.put(key, value);
                 }
             }
-            // Old check:
-            // if (langConfig.isString(key) && !key.equals("version")) { 
-            //     messages.put(key, langConfig.getString(key));
-            // }
         }
          plugin.getLogger().info("Loaded " + messages.size() + " messages from " + langFile.getName());
     }
