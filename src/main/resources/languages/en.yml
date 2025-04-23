@@ -117,14 +117,6 @@ command:
       holy_success: "&aYou have created Holy Water."
       inventory_full_holy: "&cInventory full! Holy Water dropped nearby."
 
-  # List command messages  
-  list:
-    header: "&7=== &cVampire List (Page %1%/%2%) &7==="
-    entry: "&7- &f%1% &7(&c%2%&7)"
-    none_found: "&cNo vampires found."
-    page_not_found: "&cPage %1% not found."
-    invalid_page: "&cInvalid page number."
-
   help:
     header: "&7=== &cVampire Commands &7==="
     no_base_permission: "&cYou do not have permission to use Vampire commands."
@@ -166,6 +158,22 @@ command:
         - "&eRegeneration: &cBlood regeneration stops in direct sun."
       # Generic topic not found message
       topic_not_found: "&cUnknown help topic: %topic%"
+  info:
+    header: "&7=== &cVampire Info &7==="
+    version: "&7Version: &f%version%"
+    authors: "&7Authors: &f%authors%"
+    description: "&7Description: &f%description%"
+    website: "&7Website: &f%website%"
+    source: "&7Source: &f%source%"
+  
+  # List command messages  
+  list:
+    header: "&7=== &cVampire List (Page %1%/%2%) &7==="
+    entry: "&7- &f%1% &7(&c%2%&7)"
+    none_found: "&cNo vampires found."
+    page_not_found: "&cPage %1% not found."
+    invalid_page: "&cInvalid page number."
+
   set:
     success:
       food: "&aSuccessfully set %1%'s food level to %2%."
