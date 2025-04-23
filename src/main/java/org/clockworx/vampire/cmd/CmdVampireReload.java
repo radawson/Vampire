@@ -1,13 +1,13 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Command class for reloading the plugin configuration.
@@ -20,7 +20,8 @@ public class CmdVampireReload extends VCommand {
      * @param plugin The plugin instance
      */
     public CmdVampireReload(VampirePlugin plugin) {
-        super(plugin, "reload", VampirePermission.CONFIG);
+        super(plugin, "reload", VampirePermission.CONFIG, 
+              "Reload the plugin configuration", "");
     }
     
     @Override

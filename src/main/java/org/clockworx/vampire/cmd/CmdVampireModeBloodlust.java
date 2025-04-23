@@ -1,16 +1,15 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.bukkit.entity.Player;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Command to toggle bloodlust mode for vampires.
@@ -25,7 +24,8 @@ public class CmdVampireModeBloodlust extends CmdVampireModeAbstract
      */
     public CmdVampireModeBloodlust(VampirePlugin plugin)
     {
-        super(plugin, "Bloodlust", VampirePermission.MODE_BLOODLUST);
+        super(plugin, "Bloodlust", VampirePermission.MODE_BLOODLUST, 
+              "Toggle bloodlust mode (combat boost)", "");
     }
     
     @Override

@@ -1,16 +1,16 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Command for making a vampire shriek.
@@ -27,7 +27,8 @@ public class CmdVampireShriek extends VCommand {
      * @param plugin The plugin instance
      */
     public CmdVampireShriek(VampirePlugin plugin) {
-        super(plugin, "shriek", VampirePermission.SHRIEK);
+        super(plugin, "shriek", VampirePermission.SHRIEK, 
+              "Make a shriek", "");
         this.vampireManager = plugin.getVampireManager();
     }
     

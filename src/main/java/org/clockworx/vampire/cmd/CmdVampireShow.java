@@ -1,18 +1,18 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Command for showing detailed status information about a vampire player.
@@ -31,7 +31,8 @@ public class CmdVampireShow extends VCommand {
      */
     public CmdVampireShow(VampirePlugin plugin) {
         // Uses the base 'show' permission for self, 'show.other' is checked internally.
-        super(plugin, "show", VampirePermission.SHOW); 
+        super(plugin, "show", VampirePermission.SHOW, 
+              "Show detailed vampire status", "[player]"); 
         this.vampireManager = plugin.getVampireManager();
     }
     

@@ -1,17 +1,15 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.util.VampireMessages;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Command class for displaying help information about vampire commands and lore.
@@ -28,7 +26,8 @@ public class CmdVampireHelp extends VCommand {
      */
     public CmdVampireHelp(VampirePlugin plugin) {
         // Pass the base permission required to use the help command at all
-        super(plugin, "help", BASE_HELP_PERMISSION); 
+        super(plugin, "help", BASE_HELP_PERMISSION, 
+              "Displays command help or lore information", "[topic]");
         // Aliases can be set here if needed
         // setAliases(Arrays.asList("?")); 
         // Set usage message key

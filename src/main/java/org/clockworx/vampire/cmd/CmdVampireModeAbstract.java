@@ -1,5 +1,8 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -7,9 +10,6 @@ import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Abstract base class for vampire mode commands.
@@ -26,9 +26,11 @@ public abstract class CmdVampireModeAbstract extends VCommand {
      * @param plugin The plugin instance
      * @param modeName The name of the mode
      * @param permission The permission required to use this command
+     * @param description A brief description of the command.
+     * @param usage A string indicating the command's arguments/usage pattern.
      */
-    public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission) {
-        super(plugin, modeName.toLowerCase(), permission);
+    public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission, String description, String usage) {
+        super(plugin, modeName.toLowerCase(), permission, description, usage);
         this.modeName = modeName;
         this.vampireManager = plugin.getVampireManager();
     }

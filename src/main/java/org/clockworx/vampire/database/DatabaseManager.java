@@ -1,23 +1,13 @@
 package org.clockworx.vampire.database;
 
-import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.config.LanguageConfig;
-import org.clockworx.vampire.entity.BloodOffer;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.concurrent.CompletableFuture;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.clockworx.vampire.config.LanguageConfig;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.entity.BloodOffer;
+import org.clockworx.vampire.entity.VampirePlayer;
 
 /**
  * Interface for database operations related to vampire players.

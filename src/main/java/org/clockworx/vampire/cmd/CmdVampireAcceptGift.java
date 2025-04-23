@@ -1,5 +1,9 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -7,11 +11,6 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.util.ResourceUtil;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Command to accept a pending Dark Gift offer.
@@ -22,7 +21,8 @@ public class CmdVampireAcceptGift extends VCommand {
     private final VampireManager vampireManager;
 
     public CmdVampireAcceptGift(VampirePlugin plugin) {
-        super(plugin, "acceptgift", VampirePermission.GIFT_ACCEPT);
+        super(plugin, "acceptgift", VampirePermission.GIFT_ACCEPT, 
+              "Accept a pending Dark Gift offer", "");
         this.vampireManager = plugin.getVampireManager();
     }
 

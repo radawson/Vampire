@@ -1,5 +1,9 @@
 package org.clockworx.vampire.manager;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -9,9 +13,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.VampireMessages;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * Manages custom vampire-related items, 
@@ -80,12 +83,17 @@ public class ItemManager {
 
         meta.setBasePotionType(org.bukkit.potion.PotionType.AWKWARD);
         String name = VampireMessages.getLocalizedMessage("item.blood_vial.name");
-        meta.setDisplayName(name);
+        meta.displayName(LegacyComponentSerializer.legacyAmpersand().deserialize(name));
         
-        List<String> lore = new ArrayList<>();
-        lore.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore1")); 
-        lore.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore2")); 
-        meta.setLore(lore);
+        List<String> loreStrings = new ArrayList<>();
+        loreStrings.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore1")); 
+        loreStrings.add(VampireMessages.getLocalizedMessage("item.blood_vial.lore2")); 
+
+        // Convert lore strings to Components and set using Adventure API
+        List<Component> loreComponents = loreStrings.stream()
+            .map(line -> LegacyComponentSerializer.legacyAmpersand().deserialize(line))
+            .collect(Collectors.toList());
+        meta.lore(loreComponents);
 
         meta.getPersistentDataContainer().set(BLOOD_VIAL_KEY, PersistentDataType.BYTE, (byte) 1);
         bloodVial.setItemMeta(meta);
@@ -109,12 +117,17 @@ public class ItemManager {
         // meta.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.GLOWING, 1, 0), true);
 
         String name = VampireMessages.getLocalizedMessage("item.holy_water.name");
-        meta.setDisplayName(name);
+        meta.displayName(LegacyComponentSerializer.legacyAmpersand().deserialize(name));
         
-        List<String> lore = new ArrayList<>();
-        lore.add(VampireMessages.getLocalizedMessage("item.holy_water.lore1")); 
-        lore.add(VampireMessages.getLocalizedMessage("item.holy_water.lore2")); 
-        meta.setLore(lore);
+        List<String> loreStrings = new ArrayList<>();
+        loreStrings.add(VampireMessages.getLocalizedMessage("item.holy_water.lore1")); 
+        loreStrings.add(VampireMessages.getLocalizedMessage("item.holy_water.lore2")); 
+
+        // Convert lore strings to Components and set using Adventure API
+        List<Component> loreComponents = loreStrings.stream()
+            .map(line -> LegacyComponentSerializer.legacyAmpersand().deserialize(line))
+            .collect(Collectors.toList());
+        meta.lore(loreComponents);
 
         meta.getPersistentDataContainer().set(HOLY_WATER_KEY, PersistentDataType.BYTE, (byte) 1);
         holyWater.setItemMeta(meta);

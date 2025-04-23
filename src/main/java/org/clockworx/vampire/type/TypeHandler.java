@@ -1,7 +1,8 @@
 package org.clockworx.vampire.type;
 
-import org.bukkit.command.CommandSender;
 import java.util.List;
+
+import org.bukkit.command.CommandSender;
 
 /**
  * Base interface for all type handlers.

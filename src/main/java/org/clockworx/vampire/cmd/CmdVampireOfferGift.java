@@ -1,5 +1,10 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,11 +13,6 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Command to offer the Dark Gift to another player.
@@ -23,7 +23,8 @@ public class CmdVampireOfferGift extends VCommand {
     private final VampireManager vampireManager;
 
     public CmdVampireOfferGift(VampirePlugin plugin) {
-        super(plugin, "offergift", VampirePermission.GIFT_OFFER);
+        super(plugin, "offergift", VampirePermission.GIFT_OFFER, 
+              "Offer the Dark Gift to another player", "<player>");
         this.vampireManager = plugin.getVampireManager();
     }
 

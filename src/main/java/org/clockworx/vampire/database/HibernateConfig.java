@@ -1,13 +1,12 @@
 package org.clockworx.vampire.database;
 
+import java.util.Properties;
+import java.util.logging.Level;
+
 import org.clockworx.vampire.VampirePlugin;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
-import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.Properties;
-import java.util.logging.Level;
 
 /**
  * Configures and initializes Hibernate ORM for database connectivity.

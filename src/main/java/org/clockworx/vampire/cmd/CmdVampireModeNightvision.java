@@ -1,17 +1,15 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionEffectType;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.bukkit.entity.Player;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Command to toggle nightvision mode for vampires.
@@ -25,7 +23,8 @@ public class CmdVampireModeNightvision extends CmdVampireModeAbstract {
      * @param plugin The plugin instance
      */
     public CmdVampireModeNightvision(VampirePlugin plugin) {
-        super(plugin, "Nightvision", VampirePermission.MODE_NIGHTVISION);
+        super(plugin, "Nightvision", VampirePermission.MODE_NIGHTVISION, 
+              "Toggle permanent night vision", ""); // Added desc/usage
     }
     
     @Override

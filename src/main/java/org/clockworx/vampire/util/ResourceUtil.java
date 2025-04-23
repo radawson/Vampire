@@ -1,20 +1,17 @@
 package org.clockworx.vampire.util;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.config.LanguageConfig;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.text.DecimalFormat;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Utility class for handling various resources, formatting, and messaging tasks 
@@ -49,37 +46,6 @@ public class ResourceUtil
 	}
 
 	/**
-	 * Checks if a player has at least a specified amount of a particular item 
-	 * in their inventory, matching type and durability.
-	 * 
-	 * @param player The {@link Player} whose inventory to check.
-	 * @param stack The {@link ItemStack} representing the item to check for (type, amount, durability).
-	 * @return {@code true} if the player has at least the required amount of the item, {@code false} otherwise.
-	 * @deprecated Uses {@link ItemStack#getDurability()}, consider {@link org.bukkit.inventory.meta.Damageable} or custom item data for modern versions.
-	 */
-	@Deprecated
-	public static boolean playerHas(Player player, ItemStack stack)
-	{
-		Material requiredType = stack.getType();
-		// Note: getDurability() is deprecated. For damageable items, use Damageable meta.
-		// For custom variants, PersistentDataContainer or custom model data might be better.
-		short requiredDamage = stack.getDurability();
-		int requiredAmount = stack.getAmount();
-		
-		int actualAmount = 0;
-		for (ItemStack pstack : player.getInventory().getContents())
-		{
-			if (pstack == null) continue;
-			if (pstack.getType() != requiredType) continue;
-			// Check durability match
-			if (pstack.getDurability() != requiredDamage) continue;
-			actualAmount += pstack.getAmount();
-		}
-		
-		return actualAmount >= requiredAmount;
-	}
-	
-	/**
 	 * Checks if a player has all the items specified in a collection in their inventory.
 	 * Uses {@link #playerHas(Player, ItemStack)} for each item.
 	 * 
@@ -89,10 +55,24 @@ public class ResourceUtil
 	 */
 	public static boolean playerHas(Player player, Collection<? extends ItemStack> stacks)
 	{
-		for (ItemStack stack : stacks)
+		// Iterate through each required item stack in the collection
+		for (ItemStack requiredStack : stacks)
 		{
-			// If any item is missing, return false immediately.
-			if ( ! playerHas(player, stack)) return false;
+			Material requiredType = requiredStack.getType();
+			int requiredAmount = requiredStack.getAmount();
+			int foundAmount = 0;
+
+			// Iterate through the player's inventory to count matching items
+			for (ItemStack pstack : player.getInventory().getContents()) {
+				if (pstack != null && pstack.getType() == requiredType) {
+					foundAmount += pstack.getAmount();
+				}
+			}
+
+			// If the found amount is less than required for this item, the player doesn't have enough
+			if (foundAmount < requiredAmount) {
+				return false;
+			}
 		}
 		// All items were found.
 		return true;
@@ -160,111 +140,6 @@ public class ResourceUtil
 	}
 	
 	/**
-	 * Creates a human-readable description of a collection of item stacks.
-	 * Example: "10 Stone, 5 Oak Log"
-	 * 
-	 * @param stacks The {@link Collection} of {@link ItemStack}s to describe.
-	 * @return A single String listing the items and their amounts, separated by commas.
-	 */
-	public static String describe(Collection<? extends ItemStack> stacks)
-	{
-		ArrayList<String> lines = new ArrayList<>();
-		for (ItemStack stack : stacks)
-		{
-			// Get the description for the specific material and damage value.
-			String desc = describe(stack.getType(), stack.getDurability());
-			lines.add(String.format("%d %s", stack.getAmount(), desc));
-		}
-		// Join the individual descriptions with ", ".
-		return String.join(", ", lines);
-	}
-	
-	/**
-	 * Creates a human-readable description for a specific material and damage value.
-	 * Includes special cases for common items like Water Bottle, Lapis Lazuli, Charcoal.
-	 * Otherwise, formats the material name (lowercase, underscores replaced with spaces).
-	 * 
-	 * @param type The {@link Material} of the item.
-	 * @param damage The damage value (used for variants like dyes, coal type).
-	 * @return A String describing the item (e.g., "Water Bottle", "lapis lazuli dye", "stone").
-	 * @deprecated Uses damage value for variants. Modern approach uses specific Materials 
-	 *             (e.g., LAPIS_LAZULI) or ItemMeta/PersistentDataContainer.
-	 */
-	@Deprecated
-	public static String describe(Material type, short damage)
-	{
-		// Handle specific common cases based on type and damage.
-		if (type == Material.POTION && damage == 0) return "Water Bottle";
-		// Note: INK_SAC is legacy. Modern versions use explicit dye materials (e.g., LAPIS_LAZULI).
-		if (type == Material.INK_SAC && damage == 4 ) return "Lapis Lazuli Dye"; 
-		// Note: COAL damage value distinguishes charcoal. Modern versions use CHARCOAL material.
-		if (type == Material.COAL && damage == 1 ) return "Charcoal";
-		
-		// Default: return the material name, cleaned up.
-		return type.name().toLowerCase().replace("_", " ");
-	}
-	
-	/**
-	 * Sends a message to a command sender after colorizing it.
-	 * 
-	 * @param sender The {@link CommandSender} (Player, Console) to send the message to.
-	 * @param message The raw message string (using '&' for color codes).
-	 * @deprecated Prefer using {@link VampireMessages#send(CommandSender, String)} for consistency and localization.
-	 */
-	@Deprecated
-	public static void sendMessage(CommandSender sender, String message) {
-		sender.sendMessage(colorize(message));
-	}
-	
-	/**
-	 * Sends an error message (prefixed with red color code) to a command sender.
-	 * 
-	 * @param sender The {@link CommandSender} to send the error message to.
-	 * @param message The raw error message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods (e.g., sending a localized error message).
-	 */
-	@Deprecated
-	public static void sendError(CommandSender sender, String message) {
-		sender.sendMessage(colorize("&c" + message));
-	}
-	
-	/**
-	 * Sends a success message (prefixed with green color code) to a command sender.
-	 * 
-	 * @param sender The {@link CommandSender} to send the success message to.
-	 * @param message The raw success message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void sendSuccess(CommandSender sender, String message) {
-		sender.sendMessage(colorize("&a" + message));
-	}
-	
-	/**
-	 * Sends an info message (prefixed with gray color code) to a command sender.
-	 * 
-	 * @param sender The {@link CommandSender} to send the info message to.
-	 * @param message The raw info message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void sendInfo(CommandSender sender, String message) {
-		sender.sendMessage(colorize("&7" + message));
-	}
-	
-	/**
-	 * Sends a warning message (prefixed with yellow color code) to a command sender.
-	 * 
-	 * @param sender The {@link CommandSender} to send the warning message to.
-	 * @param message The raw warning message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void sendWarning(CommandSender sender, String message) {
-		sender.sendMessage(colorize("&e" + message));
-	}
-	
-	/**
 	 * Formats a double representing a blood amount using the predefined {@link #BLOOD_FORMAT}.
 	 * 
 	 * @param amount The blood amount (double).
@@ -328,63 +203,8 @@ public class ResourceUtil
 	 * @return The string with color codes translated for display in Minecraft.
 	 */
 	public static String colorize(String text) {
-		// Standard Bukkit method for color code translation.
-		return ChatColor.translateAlternateColorCodes('&', text);
-	}
-	
-	/**
-	 * Broadcasts a colorized message to all online players.
-	 * 
-	 * @param message The raw message string (using '&' for color codes).
-	 * @deprecated Prefer using {@link VampireMessages#broadcast(String)} for consistency and localization.
-	 */
-	@Deprecated
-	public static void broadcastMessage(String message) {
-		plugin.getServer().broadcastMessage(colorize(message));
-	}
-	
-	/**
-	 * Broadcasts a colorized error message (prefixed with red) to all online players.
-	 * 
-	 * @param message The raw error message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void broadcastError(String message) {
-		plugin.getServer().broadcastMessage(colorize("&c" + message));
-	}
-	
-	/**
-	 * Broadcasts a colorized success message (prefixed with green) to all online players.
-	 * 
-	 * @param message The raw success message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void broadcastSuccess(String message) {
-		plugin.getServer().broadcastMessage(colorize("&a" + message));
-	}
-	
-	/**
-	 * Broadcasts a colorized warning message (prefixed with yellow) to all online players.
-	 * 
-	 * @param message The raw warning message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void broadcastWarning(String message) {
-		plugin.getServer().broadcastMessage(colorize("&e" + message));
-	}
-	
-	/**
-	 * Broadcasts a colorized info message (prefixed with gray) to all online players.
-	 * 
-	 * @param message The raw info message string.
-	 * @deprecated Prefer using {@link VampireMessages} methods.
-	 */
-	@Deprecated
-	public static void broadcastInfo(String message) {
-		plugin.getServer().broadcastMessage(colorize("&7" + message));
+		// Delegate to VampireMessages which uses the modern Adventure API for color translation
+		return VampireMessages.formatMessage(text);
 	}
 	
 	/**

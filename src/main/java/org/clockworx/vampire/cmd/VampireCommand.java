@@ -1,26 +1,18 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.util.ResourceUtil;
-import org.clockworx.vampire.database.DatabaseManager;
-import org.clockworx.vampire.entity.BloodOffer;
 import org.clockworx.vampire.util.VampireMessages;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Comparator;
 
 /**
  * Main command handler for the Vampire plugin.
@@ -48,8 +40,8 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         registerSubcommand(new CmdVampireInfo(plugin));
         registerSubcommand(new CmdVampireList(plugin));
         registerSubcommand(new CmdVampireModeBloodlust(plugin));
-        registerSubcommand(new CmdVampireModeNightvision(plugin));
         registerSubcommand(new CmdVampireModeIntend(plugin));
+        registerSubcommand(new CmdVampireModeNightvision(plugin));
         registerSubcommand(new CmdVampireOfferGift(plugin));
         registerSubcommand(new CmdVampireRejectGift(plugin));
         registerSubcommand(new CmdVampireReload(plugin));

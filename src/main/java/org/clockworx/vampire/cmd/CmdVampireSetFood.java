@@ -22,7 +22,8 @@ public class CmdVampireSetFood extends CmdVampireSetAbstract {
      * @param plugin The plugin instance
      */
     public CmdVampireSetFood(VampirePlugin plugin) {
-        super(plugin, "food", VampirePermission.SET_FOOD);
+        super(plugin, "food", VampirePermission.SET_FOOD, 
+              "Set a player's food level (0-20)", "<player> <value>");
     }
     
     @Override

@@ -1,21 +1,17 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.VampireMessages;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
 
 /**
  * Command for listing online vampires and infected players.
@@ -30,7 +26,8 @@ public class CmdVampireList extends VCommand {
      * Creates a new list command.
      */
     public CmdVampireList(VampirePlugin plugin) {
-        super(plugin, "list", VampirePermission.LIST);
+        super(plugin, "list", VampirePermission.LIST, 
+              "Show list of online vampires and infected", "[page]");
         this.vampireManager = plugin.getVampireManager();
     }
 

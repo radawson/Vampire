@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.clockworx"
-version = "3.1.8"
+version = "3.1.9"
 
 repositories {
     mavenCentral()

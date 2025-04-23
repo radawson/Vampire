@@ -1,11 +1,11 @@
 package org.clockworx.vampire.type;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A type handler for double values.

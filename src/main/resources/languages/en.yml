@@ -263,3 +263,8 @@ reset:
 reload:
   success: "&aConfiguration and language files successfully reloaded!"
   failed: "&cFailed to reload configuration. Check console for errors."
+
+# Version command messages
+version:
+  line1: "&6Vampire Plugin &ev%1%"
+  line2: "&7Created by %1%"

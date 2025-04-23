@@ -1,15 +1,15 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.List;
-import java.util.Arrays;
 
 /**
  * Command to set a player's infection level.
@@ -22,7 +22,8 @@ public class CmdVampireSetInfection extends CmdVampireSetAbstract {
      * @param plugin The plugin instance
      */
     public CmdVampireSetInfection(VampirePlugin plugin) {
-        super(plugin, "infection", VampirePermission.SET_INFECTION);
+        super(plugin, "infection", VampirePermission.SET_INFECTION, 
+              "Set a player's infection level", "<player> <value>");
     }
     
     @Override

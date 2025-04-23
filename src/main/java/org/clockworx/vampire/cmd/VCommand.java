@@ -31,7 +31,7 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
     protected final VampirePlugin plugin;
     
     /**
-     * The name of the command.
+     * The name of the command (subcommand name).
      */
     protected final String name;
     
@@ -41,16 +41,31 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
     protected final String permission;
     
     /**
+     * A brief description of what the command does.
+     */
+    protected final String description;
+
+    /**
+     * A string indicating the command's arguments/usage pattern.
+     * Example: "<player> <value>"
+     */
+    protected final String usage;
+    
+    /**
      * Creates a new command.
      * 
      * @param plugin The plugin instance
      * @param name The command name
      * @param permission The permission required to use the command
+     * @param description A brief description of the command.
+     * @param usage A string indicating the command's arguments/usage pattern (e.g., "<player> <value>"). Leave empty ("") if no arguments.
      */
-    public VCommand(VampirePlugin plugin, String name, String permission) {
+    public VCommand(VampirePlugin plugin, String name, String permission, String description, String usage) {
         this.plugin = plugin;
         this.name = name;
         this.permission = permission;
+        this.description = description;
+        this.usage = (usage != null) ? usage : ""; // Ensure usage is not null
     }
     
     /**
@@ -69,6 +84,24 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      */
     public String getPermission() {
         return permission;
+    }
+    
+    /**
+     * Gets the command description.
+     * 
+     * @return The command description.
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Gets the command usage string (arguments part).
+     * 
+     * @return The command usage string.
+     */
+    public String getUsage() {
+        return usage;
     }
     
     /**
@@ -159,7 +192,9 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      * @param message The error message
      */
     protected void sendError(CommandSender sender, String message) {
-        ResourceUtil.sendError(sender, message);
+        // Use VampireMessages directly. Note: message might already be localized.
+        // For consistent prefixing/coloring, localization keys are preferred.
+        VampireMessages.send(sender, message); // Assuming message includes necessary color codes
     }
     
     /**
@@ -169,7 +204,8 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      * @param message The success message
      */
     protected void sendSuccess(CommandSender sender, String message) {
-        ResourceUtil.sendSuccess(sender, message);
+        // Use VampireMessages directly.
+        VampireMessages.send(sender, message);
     }
     
     /**
@@ -179,7 +215,8 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      * @param message The info message
      */
     protected void sendInfo(CommandSender sender, String message) {
-        ResourceUtil.sendInfo(sender, message);
+        // Use VampireMessages directly.
+        VampireMessages.send(sender, message);
     }
     
     /**

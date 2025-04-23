@@ -1,26 +1,25 @@
 package org.clockworx.vampire.manager;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.altar.AltarAbstract;
+import org.clockworx.vampire.altar.AltarDark;
+import org.clockworx.vampire.altar.AltarLight;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.event.EventAltarUse;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.altar.AltarAbstract;
-import org.clockworx.vampire.altar.AltarDark;
-import org.clockworx.vampire.altar.AltarLight;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Manages the registration and interaction logic for all defined Altars 

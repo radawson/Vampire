@@ -1,18 +1,18 @@
 package org.clockworx.vampire.util;
 
+import java.util.Map;
+import java.util.Random;
+
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Particle.DustOptions;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.config.VampireConfig;
-import org.bukkit.Color;
-import org.bukkit.Particle.DustOptions;
-
-import java.util.Map;
-import java.util.Random;
 
 /**
  * Utility class for handling visual (particle) and audio (sound) effects 

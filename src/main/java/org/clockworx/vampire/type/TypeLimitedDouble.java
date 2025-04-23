@@ -1,13 +1,13 @@
 package org.clockworx.vampire.type;
 
-import org.bukkit.command.CommandSender;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.util.VampireMessages;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * A type handler for double values that must be within a specific range.

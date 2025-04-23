@@ -1,11 +1,9 @@
 package org.clockworx.vampire.entity;
 
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.PermissionAttachment;
-
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Represents a player's vampire data (POJO - Plain Old Java Object).

@@ -1,20 +1,18 @@
 package org.clockworx.vampire.manager;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.util.VampireMessages;
 import org.clockworx.vampire.util.FxUtil;
-
-import java.util.UUID;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletableFuture;
-import java.util.Collection;
+import org.clockworx.vampire.util.VampireMessages;
 
 public class VampireManager {
     private final VampirePlugin plugin;

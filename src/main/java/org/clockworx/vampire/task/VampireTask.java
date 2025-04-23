@@ -1,5 +1,7 @@
 package org.clockworx.vampire.task;
 
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -11,8 +13,8 @@ import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.SunUtil;
 import org.clockworx.vampire.util.VampireMessages;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * Task that runs periodically to update vampire players.
@@ -270,8 +272,12 @@ public class VampireTask extends BukkitRunnable {
             FxUtil.playVampireEffect(player);
             
             // Use VampireMessages to get the localized broadcast message
-            String broadcastMessage = VampireMessages.getLocalizedMessage("infection.broadcast", player.getDisplayName());
-            Bukkit.broadcastMessage(broadcastMessage);
+            // Serialize player's display name Component to string for the message format
+            String playerNameString = LegacyComponentSerializer.legacySection().serialize(player.displayName()); 
+            String broadcastMessage = VampireMessages.getLocalizedMessage("infection.broadcast", playerNameString);
+            // Deserialize the formatted string message into a Component and broadcast
+            Component messageComponent = LegacyComponentSerializer.legacySection().deserialize(broadcastMessage);
+            Bukkit.broadcast(messageComponent);
         }
     }
     
@@ -300,6 +306,21 @@ public class VampireTask extends BukkitRunnable {
         double baseDamagePerSecond = plugin.getVampireConfig().getSunlightBaseDamage();
 
         double damage = baseDamagePerSecond * irradiation * deltaSeconds;
+
+        // Apply Potion Effects based on thresholds
+        int effectDurationTicks = (int)(40 * deltaSeconds); // Short duration, ~2 seconds if task delay is 20 ticks
+        if (irradiation > plugin.getVampireConfig().getSunlightWeaknessThreshold()) {
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.WEAKNESS, effectDurationTicks, 0, true, false));
+        }
+        if (irradiation > plugin.getVampireConfig().getSunlightSlownessThreshold()) {
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.SLOWNESS, effectDurationTicks, 0, true, false));
+        }
+        if (irradiation > plugin.getVampireConfig().getSunlightBlindnessThreshold()) {
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.BLINDNESS, effectDurationTicks, 0, true, false));
+        }
 
         if (damage > 0) {
             VampireMessages.debug("Applying sun damage to " + player.getName() + ": " + damage + ", Irradiation: " + irradiation);

@@ -1,13 +1,12 @@
 package org.clockworx.vampire.task;
 
-import org.bukkit.Bukkit; // Need Bukkit for getOnlinePlayers
-import org.bukkit.entity.Player;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.config.VampireConfig; // Need config access
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.VampireManager;
 
 /**
  * Task that runs periodically to regenerate blood for online vampires,

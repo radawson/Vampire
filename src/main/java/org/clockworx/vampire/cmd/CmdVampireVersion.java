@@ -1,12 +1,14 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Command class for displaying the plugin version.
@@ -19,13 +21,14 @@ public class CmdVampireVersion extends VCommand {
      * @param plugin The plugin instance
      */
     public CmdVampireVersion(VampirePlugin plugin) {
-        super(plugin, "version", "vampire.version");
+        super(plugin, "version", VampirePermission.VERSION, 
+              "Display plugin version", "");
     }
     
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        sender.sendMessage(ChatColor.GOLD + "Vampire Plugin " + ChatColor.YELLOW + "v" + plugin.getDescription().getVersion());
-        sender.sendMessage(ChatColor.GRAY + "Created by Clockworx");
+        VampireMessages.sendLocalized(sender, "version.line1", plugin.getDescription().getVersion());
+        VampireMessages.sendLocalized(sender, "version.line2", String.join(", ", plugin.getDescription().getAuthors()));
         return true;
     }
     

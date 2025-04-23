@@ -1,27 +1,22 @@
 package org.clockworx.vampire;
 
+import java.util.logging.Level;
+
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
 import org.clockworx.vampire.cmd.VampireCommand;
 import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.database.DatabaseManager;
 import org.clockworx.vampire.database.HibernateDatabaseManager;
 import org.clockworx.vampire.manager.AltarManager;
 import org.clockworx.vampire.manager.BloodManager;
-import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.manager.ItemManager;
+import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.task.BloodRegenerationTask;
 import org.clockworx.vampire.task.VampireTask;
-import org.clockworx.vampire.util.VampireMessages;
 import org.clockworx.vampire.util.FxUtil;
-import org.clockworx.vampire.util.SunUtil;
 import org.clockworx.vampire.util.ResourceUtil;
-
-import java.util.logging.Level;
+import org.clockworx.vampire.util.SunUtil;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Main plugin class for the Vampire plugin.
@@ -29,7 +24,7 @@ import java.util.logging.Level;
  */
 public final class VampirePlugin extends JavaPlugin {
 
-    private static VampirePlugin plugin; // Declare static plugin instance
+    private static VampirePlugin plugin; 
     private VampireConfig config;
     private LanguageConfig languageConfig;
     private HibernateDatabaseManager databaseManager;

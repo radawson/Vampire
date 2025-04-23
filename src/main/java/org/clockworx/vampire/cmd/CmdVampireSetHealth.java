@@ -24,7 +24,8 @@ public class CmdVampireSetHealth extends CmdVampireSetAbstract {
      * @param plugin The plugin instance
      */
     public CmdVampireSetHealth(VampirePlugin plugin) {
-        super(plugin, "health", VampirePermission.SET_HEALTH);
+        super(plugin, "health", VampirePermission.SET_HEALTH, 
+              "Set a player's health level", "<player> <value>");
     }
     
     @Override

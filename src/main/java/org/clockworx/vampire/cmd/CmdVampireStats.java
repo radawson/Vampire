@@ -1,5 +1,10 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,13 +13,7 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Command for displaying vampire statistics for self or others.
@@ -25,7 +24,8 @@ public class CmdVampireStats extends VCommand {
 
     public CmdVampireStats(VampirePlugin plugin) {
         // Use the base permission for self-checking
-        super(plugin, "stats", VampirePermission.STATS);
+        super(plugin, "stats", VampirePermission.STATS, 
+              "Display vampire statistics", "[player]");
         this.vampireManager = plugin.getVampireManager();
     }
 

@@ -1,5 +1,11 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,16 +14,9 @@ import org.bukkit.inventory.ItemStack;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.ItemManager;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.manager.ItemManager;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Command class for creating Blood Vials and Holy Water.
@@ -35,7 +34,8 @@ public class CmdVampireFlask extends VCommand {
      */
     public CmdVampireFlask(VampirePlugin plugin) {
         // Base permission is for blood vial, holy water has specific check
-        super(plugin, "flask", VampirePermission.FLASK); 
+        super(plugin, "flask", VampirePermission.FLASK, 
+              "Create a Blood Vial or Holy Water", "[blood|holy]");
         this.vampireManager = plugin.getVampireManager();
         this.itemManager = plugin.getItemManager();
         this.plugin = plugin;

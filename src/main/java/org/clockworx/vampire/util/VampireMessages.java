@@ -1,19 +1,19 @@
 package org.clockworx.vampire.util;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.config.LanguageConfig;
-import org.clockworx.vampire.config.VampireConfig;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.config.LanguageConfig;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.entity.VampirePlayer;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * Centralized utility for handling localized messages within the Vampire plugin.
@@ -232,7 +232,7 @@ public class VampireMessages {
      * @param message The message string potentially containing '&' color codes.
      * @return The message string with color codes translated.
      */
-    private static String formatMessage(String message) {
+    public static String formatMessage(String message) {
         // Use Adventure API to parse legacy codes (&) and serialize back to legacy format (§)
         Component component = LegacyComponentSerializer.legacyAmpersand().deserialize(message);
         return LegacyComponentSerializer.legacySection().serialize(component);

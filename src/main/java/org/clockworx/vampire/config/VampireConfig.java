@@ -1,21 +1,23 @@
 package org.clockworx.vampire.config;
 
-import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.clockworx.vampire.VampirePlugin;
-import org.bukkit.entity.EntityType;
-import org.clockworx.vampire.util.VampireMessages;
-import org.bukkit.Particle;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Registry;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 public class VampireConfig {
     private final VampirePlugin plugin;
@@ -120,6 +122,12 @@ public class VampireConfig {
     private Map<String, Double> armorTypeWeights;
     /** Base damage per second from sunlight at full irradiation (1.0). */
     private double sunlightBaseDamage;
+    /** Irradiation threshold (0.0-1.0) to apply Weakness effect. */
+    private double sunlightWeaknessThreshold;
+    /** Irradiation threshold (0.0-1.0) to apply Slowness effect. */
+    private double sunlightSlownessThreshold;
+    /** Irradiation threshold (0.0-1.0) to apply Blindness effect. */
+    private double sunlightBlindnessThreshold;
     // --- End Sunlight Interaction Settings ---
     
     // Night vision settings
@@ -440,6 +448,19 @@ public class VampireConfig {
         // Load Base Damage
         sunlightBaseDamage = validatePositiveDouble(sunlightSection, "base_damage", 1.0);
 
+        // Load Thresholds
+        ConfigurationSection thresholdSection = sunlightSection.getConfigurationSection("thresholds");
+        if (thresholdSection != null) {
+            sunlightWeaknessThreshold = validatePercentage(thresholdSection, "weakness", 0.15);
+            sunlightSlownessThreshold = validatePercentage(thresholdSection, "slowness", 0.45);
+            sunlightBlindnessThreshold = validatePercentage(thresholdSection, "blindness", 0.80);
+        } else {
+            plugin.getLogger().warning("sunlight.thresholds subsection not found. Using default sunlight effect thresholds.");
+            sunlightWeaknessThreshold = 0.15;
+            sunlightSlownessThreshold = 0.45;
+            sunlightBlindnessThreshold = 0.80;
+        }
+
         // Load Block Opacity
         ConfigurationSection blockSection = sunlightSection.getConfigurationSection("block_opacity");
         if (blockSection != null) {
@@ -720,7 +741,7 @@ public class VampireConfig {
     
     private PotionEffect createEffect(String path) {
         String effectName = config.getString(path + ".type").toLowerCase();
-        PotionEffectType type = PotionEffectType.getByKey(org.bukkit.NamespacedKey.minecraft(effectName));
+        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(org.bukkit.NamespacedKey.minecraft(effectName));
         int duration = config.getInt(path + ".duration");
         int amplifier = config.getInt(path + ".amplifier");
         return new PotionEffect(type, duration, amplifier);
@@ -1254,5 +1275,19 @@ public class VampireConfig {
         }
         plugin.getLogger().warning("Invalid double value for particle setting '" + key + "': " + value + ". Using default: " + defaultValue);
         return defaultValue;
+    }
+
+    // --- Getters for Sunlight Thresholds ---
+
+    public double getSunlightWeaknessThreshold() {
+        return sunlightWeaknessThreshold;
+    }
+
+    public double getSunlightSlownessThreshold() {
+        return sunlightSlownessThreshold;
+    }
+
+    public double getSunlightBlindnessThreshold() {
+        return sunlightBlindnessThreshold;
     }
 } 

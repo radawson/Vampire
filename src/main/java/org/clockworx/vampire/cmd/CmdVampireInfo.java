@@ -1,13 +1,13 @@
 package org.clockworx.vampire.cmd;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.VampirePermission;
-import org.clockworx.vampire.util.VampireMessages;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Command class for displaying general information about the Vampire plugin.
@@ -21,7 +21,8 @@ public class CmdVampireInfo extends VCommand {
      * @param plugin The plugin instance.
      */
     public CmdVampireInfo(VampirePlugin plugin) {
-        super(plugin, "info", VampirePermission.INFO); // Use the new INFO permission
+        super(plugin, "info", VampirePermission.INFO, 
+              "Show plugin information", ""); // Added desc/usage
     }
 
     /**

@@ -1,7 +1,12 @@
 package org.clockworx.vampire.listener;
 
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -10,29 +15,19 @@ import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.manager.ItemManager;
+import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.event.EventVampirePlayerBloodChange;
 import org.clockworx.vampire.event.EventVampirePlayerInfectionChange;
 import org.clockworx.vampire.event.EventVampirePlayerModeChange;
 import org.clockworx.vampire.event.EventVampirePlayerShriek;
 import org.clockworx.vampire.event.EventVampirePlayerVampireChange;
-import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.manager.ItemManager;
+import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.Color;
-import org.bukkit.event.EventPriority;
-
-import java.util.List;
-import java.util.Random;
 
 /**
  * Main listener class for the Vampire plugin.

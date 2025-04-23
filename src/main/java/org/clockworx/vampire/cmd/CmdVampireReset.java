@@ -1,5 +1,9 @@
 package org.clockworx.vampire.cmd;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,12 +12,7 @@ import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.VampireMessages;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Command class for resetting a player's vampire data (curing, removing infection/blood).
@@ -24,7 +23,8 @@ public class CmdVampireReset extends VCommand {
 
     public CmdVampireReset(VampirePlugin plugin) {
         // Use the specific permission constant
-        super(plugin, "reset", VampirePermission.RESET);
+        super(plugin, "reset", VampirePermission.RESET, 
+              "Reset a player's vampire data", "<player>");
         this.vampireManager = plugin.getVampireManager();
     }
 

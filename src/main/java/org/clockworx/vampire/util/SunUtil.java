@@ -1,5 +1,9 @@
 package org.clockworx.vampire.util;
 
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
@@ -7,22 +11,8 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.util.VampireMessages;
-import org.bukkit.configuration.ConfigurationSection;
-
-// Imports needed for Action Bar
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.HashMap;
-import java.util.logging.Level;
 
 /**
  * Utility class for calculating sun-related factors affecting vampires.
@@ -154,10 +144,7 @@ public class SunUtil
 	 * 
 	 * @param block The {@link Block} at the base Y level to start checking from.
 	 * @return The total terrain opacity, ranging from 0.0 (clear sky) to 1.0 (fully blocked).
-	 * @deprecated Uses {@link World#getMaxHeight()} and {@link Block#getType()} which are deprecated.
 	 */
-	@SuppressWarnings("deprecation") // Suppress warnings for World.getMaxHeight() and Block.getType()
-	@Deprecated
 	public static double calcTerrainOpacity(Block block)
 	{
 		double ret = 0;
@@ -174,11 +161,8 @@ public class SunUtil
 		{
 			// Note: Block.getType() is deprecated. Use Block.getBlockData().getMaterial() in modern API.
 			Material material = world.getBlockAt(x, y, z).getBlockData().getMaterial(); // MODERN API
-			// Get opacity value from plugin config, defaulting to 1.0 (fully opaque) if not specified.
-			Double opacity = plugin.getVampireConfig().getBlockOpacity(material);
-			if (opacity == null) {
-				opacity = 1d; // Blocks not explicitly listed are assumed fully opaque.
-			}
+			// Get opacity value from plugin config. getBlockOpacity returns a primitive double (defaulting to 1.0).
+			double opacity = plugin.getVampireConfig().getBlockOpacity(material);
 			ret += opacity;
 		}
 		
@@ -187,7 +171,7 @@ public class SunUtil
 		
 		// P.p.log("calcTerrainOpacity",ret); // Leftover debug logging
 		
-		return ret;
+		return Math.max(0.0, ret);
 	}
 
 	
@@ -339,78 +323,5 @@ public class SunUtil
 		
 		// Return the final calculated irradiation value, ensuring it's not negative.
 		return Math.max(0.0, ret);
-	}
-	
-	/**
-	 * Applies sun-related effects to a player based on the calculated solar irradiation.
-	 *
-	 * @param player The player to apply effects to.
-	 * @param totalOpacity The calculated solar irradiation value (0.0 to 1.0).
-	 * @param sunlightLevel The current sunlight level.
-	 */
-	public static void applySunEffects(Player player, double totalOpacity, int sunlightLevel) {
-		// Example: Reduce effect duration or amplifier based on opacity
-		// This is just a placeholder, replace with actual logic
-		int durationTicks = (int) (200 * (1.0 - totalOpacity)); // Longer duration for less opacity
-		int amplifier = (totalOpacity < 0.5) ? 1 : 0; // Higher amplifier for very low opacity
-		
-		if (durationTicks > 0) {
-			VampireMessages.debug("Applying sun effects: Duration=" + durationTicks + " ticks, Amplifier=" + amplifier);
-			player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, durationTicks, amplifier));
-			player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, durationTicks, amplifier));
-			// Consider adding fire damage for very low opacity / high sunlight
-			if (totalOpacity < 0.1 && sunlightLevel > 12) { // Example threshold
-				player.setFireTicks(Math.max(player.getFireTicks(), 40)); // 2 seconds of fire
-			}
-		}
-		
-		// Potentially send a message based on exposure level
-		// Removed calls to non-existent VampireMessages.sendActionBarMessage
-		// Action bar messages are handled in applySunDebuffs now
-		/*
-		if (totalOpacity < 0.2 && sunlightLevel > 13) {
-			// VampireMessages.sendActionBarMessage(player, "&cThe sun burns! Find shelter!"); // REMOVED
-		} else if (totalOpacity < 0.7 && sunlightLevel > 10) {
-			// VampireMessages.sendActionBarMessage(player, "&eThe sun feels uncomfortable..."); // REMOVED
-		}
-		*/
-	}
-
-	private static void applySunDebuffs(Player player, double sunExposure) {
-		VampireConfig config = VampirePlugin.getPlugin(VampirePlugin.class).getVampireConfig();
-		int durationTicks = 40; // Apply for 2 seconds, task will re-apply if needed
-
-		// Apply weakness regardless of exposure level (if exposed at all)
-		player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, durationTicks, 0));
-
-		// Apply slow based on exposure threshold
-		/* // Commented out due to missing config method
-		if (sunExposure > config.getSunSlowThreshold()) {
-			int amplifier = (sunExposure > 0.8) ? 1 : 0; // Example: higher slow at high exposure
-			player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, durationTicks, amplifier));
-		}
-		*/ // End comment
-
-		// Apply blindness at higher exposure
-		/* // Commented out due to missing config method
-		if (sunExposure > config.getSunBlindnessThreshold()) {
-			player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, durationTicks, 0));
-		}
-		*/ // End comment
-
-		// Send Action Bar message based on severity
-		/* // Commented out due to missing config method
-		if (sunExposure >= config.getSunBurnThreshold()) {
-			// TextComponent burnMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&cThe sun burns! Find shelter!")); // OLD
-			Component burnMessage = LegacyComponentSerializer.legacyAmpersand().deserialize("&cThe sun burns! Find shelter!"); // NEW
-			// player.spigot().sendMessage(ChatMessageType.ACTION_BAR, burnMessage); // OLD
-			player.sendActionBar(burnMessage); // NEW
-		} else if (sunExposure > 0.1) { // Threshold for feeling uncomfortable
-			// TextComponent discomfortMessage = new TextComponent(ChatColor.translateAlternateColorCodes('&', "&eThe sun feels uncomfortable...")); // OLD
-			Component discomfortMessage = LegacyComponentSerializer.legacyAmpersand().deserialize("&eThe sun feels uncomfortable..."); // NEW
-			// player.spigot().sendMessage(ChatMessageType.ACTION_BAR, discomfortMessage); // OLD
-			player.sendActionBar(discomfortMessage); // NEW
-		}
-		*/ // End comment
 	}
 }

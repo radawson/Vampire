@@ -1,11 +1,5 @@
 package org.clockworx.vampire.config;
 
-import org.bukkit.ChatColor;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.util.VampireMessages;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,6 +8,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Manages the loading and retrieval of localized messages from language YAML files.
