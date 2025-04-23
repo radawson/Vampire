@@ -1,3 +1,4 @@
+---
 # Vampire Plugin Language File
 # Use & for color codes
 # Use %variable% for placeholders
@@ -165,8 +166,8 @@ command:
     description: "&7Description: &f%description%"
     website: "&7Website: &f%website%"
     source: "&7Source: &f%source%"
-  
-  # List command messages  
+
+  # List command messages
   list:
     header: "&7=== &cVampire List (Page %1%/%2%) &7==="
     entry: "&7- &f%1% &7(&c%2%&7)"
@@ -180,7 +181,32 @@ command:
       health: "&aSuccessfully set %1%'s health to %2%."
       infection: "&aSuccessfully set %1%'s infection level to %2%."
       vampire: "&aSuccessfully set %1%'s vampire status to %2%."
-  
+  # Show command messages
+  show:
+    no_permission_other: "&cYou do not have permission to view other players' vampire status."
+    target_not_vampire: "&e%1% is not currently a vampire."
+    display:
+      header: "&7=== &cVampire Details [%1%] &7==="
+      blood: "&7Blood: &c%1%&7/&c%2%"
+      level: "&7Level: &e%1%"
+      modes_header: "&7Modes:"
+      mode_entry: "  %1%: %2%"
+
+  # Reset command messages
+  reset:
+    not_needed: "&ePlayer %1% is already human (not vampire or infected)."
+    success_sender: "&aSuccessfully reset vampire data for %1%."
+    success_target: "&aYour vampire status has been reset by an administrator."
+
+  # Reload command messages
+  reload:
+    success: "&aConfiguration and language files successfully reloaded!"
+    failed: "&cFailed to reload configuration. Check console for errors."
+
+  # Version command messages
+  version:
+    line1: "&6Vampire Plugin &ev%1%"
+    line2: "&7Created by %1%"
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
@@ -241,30 +267,3 @@ item:
     name: "&bHoly Water"
     lore1: "&7Blessed water, harmful to the undead."
     lore2: "&7Right-click to throw..."
-
-# Show command messages
-show:
-  no_permission_other: "&cYou do not have permission to view other players' vampire status."
-  target_not_vampire: "&e%1% is not currently a vampire."
-  display:
-    header: "&7=== &cVampire Details [%1%] &7==="
-    blood: "&7Blood: &c%1%&7/&c%2%"
-    level: "&7Level: &e%1%"
-    modes_header: "&7Modes:"
-    mode_entry: "  %1%: %2%"
-
-# Reset command messages
-reset:
-  not_needed: "&ePlayer %1% is already human (not vampire or infected)."
-  success_sender: "&aSuccessfully reset vampire data for %1%."
-  success_target: "&aYour vampire status has been reset by an administrator."
-
-# Reload command messages
-reload:
-  success: "&aConfiguration and language files successfully reloaded!"
-  failed: "&cFailed to reload configuration. Check console for errors."
-
-# Version command messages
-version:
-  line1: "&6Vampire Plugin &ev%1%"
-  line2: "&7Created by %1%"

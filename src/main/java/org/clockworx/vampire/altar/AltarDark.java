@@ -1,29 +1,29 @@
 package org.clockworx.vampire.altar;
 
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.Sound;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.event.EventVampirePlayerInfectionChange;
-import org.clockworx.vampire.util.FxUtil;
-import org.clockworx.vampire.util.ResourceUtil;
-import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.manager.VampireManager;
-import org.clockworx.vampire.VampirePermission;
-import org.bukkit.configuration.ConfigurationSection;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.potion.PotionEffectType;
+import org.clockworx.vampire.VampirePermission;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.event.EventVampirePlayerInfectionChange;
+import org.clockworx.vampire.manager.AltarManager;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.FxUtil;
+import org.clockworx.vampire.util.ResourceUtil;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Represents the Dark Altar, a structure used to infect players with vampirism 

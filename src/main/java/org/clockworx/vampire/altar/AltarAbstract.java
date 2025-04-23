@@ -1,21 +1,5 @@
 package org.clockworx.vampire.altar;
 
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.inventory.ItemStack;
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.util.ResourceUtil;
-import org.clockworx.vampire.util.FxUtil;
-import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.manager.VampireManager;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,7 +8,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.event.EventAltarUse;
+import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Abstract base class defining the structure and common functionality for all Altars 

@@ -53,7 +53,16 @@ public class LanguageConfig {
         // Ensure default English file exists
         File defaultLangFile = new File(langDir, "en.yml");
         if (!defaultLangFile.exists()) {
-            plugin.saveResource("languages/en.yml", false);
+            // Attempt to save from JAR resources
+            try {
+                 plugin.saveResource("languages/en.yml", false);
+                 plugin.getLogger().info("Default language file en.yml created.");
+            } catch (IllegalArgumentException e) {
+                 // This can happen if the resource doesn't exist in the JAR
+                 plugin.getLogger().log(Level.SEVERE, "Failed to save default en.yml from JAR. It might be missing.", e);
+                 // Optionally handle this case, maybe by creating an empty file or disabling?
+                 // For now, we'll proceed, but message loading might fail.
+            }
         }
         
         // Attempt to load the requested language file
@@ -61,19 +70,43 @@ public class LanguageConfig {
         if (!langFile.exists()) {
             plugin.getLogger().warning("Language file '" + currentLangCode + ".yml' not found. Falling back to 'en.yml'.");
             langFile = defaultLangFile;
+            // Ensure the fallback file actually exists before trying to load
+            if (!langFile.exists()) {
+                 plugin.getLogger().severe("Fallback language file 'en.yml' also does not exist! Cannot load language configuration.");
+                 return; // Cannot proceed without a language file
+            }
             this.currentLangCode = "en"; // Update code to reflect fallback
         }
         
         // Load the YAML configuration from the selected file
         langConfig = YamlConfiguration.loadConfiguration(langFile);
         
+        // --- Temporary Debugging ---
+        plugin.getLogger().info("[DEBUG_LANG] Checking version in langConfig for file: " + langFile.getName());
+        if (langConfig == null) {
+            plugin.getLogger().severe("[DEBUG_LANG] langConfig object is NULL after loading file: " + langFile.getName());
+        } else {
+            plugin.getLogger().info("[DEBUG_LANG] langConfig.contains(\"version\"): " + langConfig.contains("version"));
+            plugin.getLogger().info("[DEBUG_LANG] langConfig.isString(\"version\"): " + langConfig.isString("version"));
+            Object rawVersion = langConfig.get("version");
+            plugin.getLogger().info("[DEBUG_LANG] langConfig.get(\"version\") type: " + (rawVersion == null ? "null" : rawVersion.getClass().getName()));
+            plugin.getLogger().info("[DEBUG_LANG] langConfig.get(\"version\") value: " + rawVersion);
+        }
+        // --- End Temporary Debugging ---
+
         // --- Language File Version Check ---
-        String loadedLangVersion = langConfig.getString("version", "0.0.0"); // Read version from the file
+        String loadedLangVersion = "error"; // Default to error string
+        if (langConfig != null) { // Check if langConfig loaded successfully
+             loadedLangVersion = langConfig.getString("version", "0.0.0"); // Read version from the file
+        } else {
+             plugin.getLogger().severe("Cannot check language version because langConfig failed to load.");
+        }
         String pluginVersion = plugin.getPluginMeta().getVersion();
         
         if (!pluginVersion.equals(loadedLangVersion)) {
             plugin.getLogger().log(Level.WARNING, "*********************************************************************");
             plugin.getLogger().log(Level.WARNING, "Your language file ('" + langFile.getName() + "') version does not match the plugin version!");
+            // Display the actual value read (or the error marker)
             plugin.getLogger().log(Level.WARNING, "Language File Version: " + loadedLangVersion + ", Plugin Version: " + pluginVersion);
             plugin.getLogger().log(Level.WARNING, "Messages might be missing or incorrect. Consider backing up your file,");
             plugin.getLogger().log(Level.WARNING, "deleting it, and letting the plugin regenerate it, then merge your changes.");
@@ -81,8 +114,12 @@ public class LanguageConfig {
             // We still load the file, but warn the user.
         }
         
-        // Load messages from the file into memory
-        loadMessagesFromConfig();
+        // Load messages from the file into memory (check langConfig again)
+        if (langConfig != null) {
+            loadMessagesFromConfig();
+        } else {
+             plugin.getLogger().warning("Skipping loading messages from user file as it failed to load.");
+        }
         
         // Load default messages from the JAR to fill in missing keys
         loadDefaultMessagesFromJar();
@@ -123,14 +160,26 @@ public class LanguageConfig {
      */
     private void loadMessagesFromConfig() {
         messages.clear();
-        if (langConfig == null) return;
+        // This method is now only called if langConfig is not null
+        // if (langConfig == null) return; // Redundant check
         
         // Load all messages found in the user's language file
         for (String key : langConfig.getKeys(true)) {
-            if (langConfig.isString(key) && !key.equals("version")) { // Exclude the version key itself
-                messages.put(key, langConfig.getString(key));
+            if (langConfig.isConfigurationSection(key)) continue; // Skip sections
+            // Check if it's a direct string or representable as one
+            if (langConfig.get(key) != null) { 
+                // Let Bukkit handle converting simple types to String if possible
+                String value = langConfig.getString(key);
+                if (value != null && !key.equals("version")) { // Exclude the version key itself
+                    messages.put(key, value);
+                }
             }
+            // Old check:
+            // if (langConfig.isString(key) && !key.equals("version")) { 
+            //     messages.put(key, langConfig.getString(key));
+            // }
         }
+         plugin.getLogger().info("Loaded " + messages.size() + " messages from " + langFile.getName());
     }
 
     /**
@@ -140,17 +189,27 @@ public class LanguageConfig {
     private void loadDefaultMessagesFromJar() {
         // Load the default en.yml from the JAR
         Reader defConfigStream = null;
+        int defaultMessagesLoaded = 0;
         try {
             defConfigStream = new InputStreamReader(plugin.getResource("languages/en.yml"), StandardCharsets.UTF_8);
             if (defConfigStream != null) {
                 YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
                 // Iterate through default keys and add missing ones
                 for (String key : defConfig.getKeys(true)) {
-                     if (defConfig.isString(key) && !key.equals("version")) {
-                        // Add to map only if the key doesn't already exist from user's file
-                        messages.putIfAbsent(key, defConfig.getString(key));
+                     if (defConfig.isConfigurationSection(key)) continue; // Skip sections
+                     // Check if it's a direct string or representable as one in default config
+                     if (defConfig.get(key) != null) {
+                        String defaultValue = defConfig.getString(key);
+                         if (defaultValue != null && !key.equals("version")) {
+                            // Add to map only if the key doesn't already exist from user's file
+                            if (messages.putIfAbsent(key, defaultValue) == null) {
+                                defaultMessagesLoaded++;
+                            };
+                        }
                     }
                 }
+            } else {
+                 plugin.getLogger().warning("Could not find default languages/en.yml within the JAR.");
             }
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Could not load default language file from JAR!", e);
@@ -163,6 +222,7 @@ public class LanguageConfig {
                 }
             }
         }
+        plugin.getLogger().info("Loaded " + defaultMessagesLoaded + " default messages from JAR (for missing keys).");
     }
 
     /**
@@ -175,26 +235,34 @@ public class LanguageConfig {
              plugin.getLogger().warning("Cannot reload language config, no language was initially loaded.");
              return false;
         }
+        plugin.getLogger().info("Reloading language file: " + currentLangCode + ".yml");
         loadLanguage(currentLangCode); // Reload the same language
         VampireMessages.reloadMessages(); // Trigger reload in VampireMessages
-        return true;    
+        return langConfig != null; // Return true if loading succeeded
     }
     
     /**
      * Saves the current in-memory messages back to the language file.
-     * Primarily used if messages are modified programmatically.
+     * Primarily used if messages are modified programmatically (e.g., in-game editor).
+     * Avoids saving default messages that weren't in the original user file.
      */
     public void saveLanguage() {
         if (langFile == null || langConfig == null) {
              plugin.getLogger().warning("Cannot save language file, not properly loaded.");
              return;
         }
-        // Update langConfig object with current messages before saving
-        messages.forEach((key, value) -> langConfig.set(key, value));
-        // Set the version string explicitly
-        langConfig.set("version", plugin.getPluginMeta().getVersion());
+        // Create a new config to save, only including keys that were in the original file
+        // or keys that are currently in our message map (which includes defaults for missing keys).
+        // This logic might need refinement depending on desired save behavior.
+        FileConfiguration configToSave = new YamlConfiguration();
+        configToSave.set("version", plugin.getPluginMeta().getVersion()); // Always save current plugin version
+        
+        // Add all currently loaded messages to the save config
+        messages.forEach(configToSave::set);
+
         try {
-            langConfig.save(langFile);
+            configToSave.save(langFile);
+             plugin.getLogger().info("Saved language file: " + langFile.getName());
         } catch (IOException e) {
             plugin.getLogger().log(Level.SEVERE, "Could not save language file to " + langFile, e);
         }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.clockworx"
-version = "3.1.9"
+version = "3.1.10"
 
 repositories {
     mavenCentral()
@@ -19,13 +19,14 @@ dependencies {
     // Database - Core
     implementation("org.hibernate:hibernate-core:6.6.13.Final") 
     implementation("org.hibernate:hibernate-community-dialects:6.6.13.Final")
+    implementation("org.flywaydb:flyway-core:11.7.2")
     implementation("mysql:mysql-connector-java:8.0.33")
     implementation("org.xerial:sqlite-jdbc:3.49.1.0")
     
     // Database - Connection Pools (Shade this)
     implementation("com.zaxxer:HikariCP:6.3.0")
-    implementation("org.hibernate.orm:hibernate-hikaricp:6.6.13.Final") 
-    
+    implementation("org.hibernate.orm:hibernate-hikaricp:6.6.13.Final")
+
     // Jakarta Persistence API
     implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     

@@ -17,6 +17,9 @@ import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.SunUtil;
 import org.clockworx.vampire.util.VampireMessages;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 
 /**
  * Main plugin class for the Vampire plugin.
@@ -24,7 +27,7 @@ import org.clockworx.vampire.util.VampireMessages;
  */
 public final class VampirePlugin extends JavaPlugin {
 
-    private static VampirePlugin plugin; 
+    private static VampirePlugin plugin;
     private VampireConfig config;
     private LanguageConfig languageConfig;
     private HibernateDatabaseManager databaseManager;
@@ -39,80 +42,168 @@ public final class VampirePlugin extends JavaPlugin {
         plugin = this; // Assign in onEnable
 
         // --- Initialize Utilities ---
-        FxUtil.init(this); 
+        FxUtil.init(this);
         SunUtil.init(this);
         ResourceUtil.init(this);
-        // VampireMessages.init(this); // Moved AFTER initializeConfigs
 
         // --- Configuration ---
-        if (!initializeConfigs()) {
-            VampireMessages.init(this); // Initialize Messages AFTER configs are loaded
-            initializeDatabase();
-            initializeManagers();
-            registerCommands();
-            startTasks();
-            
-            getLogger().info("Vampire plugin enabled!");
+        // Load configurations first
+        if (!initializeConfigs()) { // Method now returns false on success, true on failure
+            getLogger().severe("Failed to initialize configurations. Disabling plugin.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
         }
+
+        // Initialize Messages AFTER configs are loaded
+        VampireMessages.init(this);
+
+        // --- Database Migrations ---
+        // Run Flyway migrations BEFORE initializing Hibernate/DatabaseManager
+        if (!runDatabaseMigrations()) {
+            getLogger().severe("Database migration failed. Disabling plugin.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        // --- Initialize Database Abstraction Layer ---
+        // This now only creates the manager instance; Hibernate session factory
+        // will be initialized lazily on first use via HibernateConfig.getSessionFactory()
+        initializeDatabaseManager();
+
+        // --- Initialize Core Components ---
+        initializeManagers();
+        registerCommands();
+        startTasks();
+
+        getLogger().info("Vampire plugin enabled successfully!");
     }
 
     @Override
     public void onDisable() {
-        if (databaseManager != null) {
-            databaseManager.shutdown();
-        }
+        // Stop tasks first
+        // TODO: Implement proper task cancellation if VampireTask.shutdown exists
+        // vampireTask.shutdown(); // Assuming task instance is stored
 
-        if (vampireManager != null) {
-            vampireManager.shutdown();
-        }
+        // Save data if needed (though Hibernate might handle this)
+        // if (vampireManager != null) {
+        //     vampireManager.shutdown(); // Assuming shutdown handles saving
+        // }
+
+        // Shutdown Hibernate SessionFactory
+        org.clockworx.vampire.database.HibernateConfig.shutdown();
 
         getLogger().info("Vampire plugin disabled!");
     }
 
     /**
-     * Initialize configurations
+     * Initialize configurations.
+     * @return true if initialization succeeds, false otherwise.
      */
     private boolean initializeConfigs() {
-        config = new VampireConfig(this);
-        // Config loading happens within its constructor now
+        try {
+            config = new VampireConfig(this);
+            // Config loading happens within its constructor now
 
-        // Load LanguageConfig immediately after main config
-        languageConfig = new LanguageConfig(this);
-        languageConfig.loadLanguage(config.getLanguage()); 
-        // Now Messages can be initialized safely AFTER this method finishes
-        // VampireMessages.init(this); // This call remains in onEnable, but must happen AFTER initializeConfigs
+            // Load LanguageConfig immediately after main config
+            languageConfig = new LanguageConfig(this);
+            languageConfig.loadLanguage(config.getLanguage());
 
-        // --- Config Version Check ---
-        // Read the "version" key (which is injected by Gradle from project version)
-        // Use a default that won't match the current version if the key is missing.
-        String loadedConfigVersionStr = config.getConfig().getString("version", "0.0.0"); 
-        
-        // Compare the loaded version string from the config with the plugin's version
-        if (!getPluginMeta().getVersion().equals(loadedConfigVersionStr)) {
-            getLogger().log(Level.WARNING, "*********************************************************************");
-            getLogger().log(Level.WARNING, "Your config.yml version does not match the plugin version!");
-            getLogger().log(Level.WARNING, "Config Version: " + loadedConfigVersionStr + ", Plugin Version: " + getPluginMeta().getVersion());
-            getLogger().log(Level.WARNING, "Please backup your current config.yml, delete it, and let the plugin generate a new one.");
-            getLogger().log(Level.WARNING, "Then, manually merge your old settings into the new file.");
-            getLogger().log(Level.WARNING, "Using a mismatched config may cause errors or unexpected behavior.");
-            getLogger().log(Level.WARNING, "*********************************************************************");
-            // You could still add a separate check for EXPECTED_CONFIG_STRUCTURE_VERSION if needed
-            // int structureVersion = config.getConfig().getInt("config-structure-version", 0); // Example key
-            // if (structureVersion < EXPECTED_CONFIG_STRUCTURE_VERSION) { ... }
+            // --- Config Version Check ---
+            String loadedConfigVersionStr = config.getConfig().getString("version", "0.0.0");
+
+            if (!getPluginMeta().getVersion().equals(loadedConfigVersionStr)) {
+                getLogger().log(Level.WARNING, "*********************************************************************");
+                getLogger().log(Level.WARNING, "Your config.yml version does not match the plugin version!");
+                getLogger().log(Level.WARNING, "Config Version: " + loadedConfigVersionStr + ", Plugin Version: " + getPluginMeta().getVersion());
+                getLogger().log(Level.WARNING, "Please backup your current config.yml, delete it, and let the plugin generate a new one.");
+                getLogger().log(Level.WARNING, "Then, manually merge your old settings into the new file.");
+                getLogger().log(Level.WARNING, "Using a mismatched config may cause errors or unexpected behavior.");
+                getLogger().log(Level.WARNING, "*********************************************************************");
+            }
+             getLogger().info("Configurations initialized!");
+             return true; // Indicate success
+        } catch (Exception e) {
+             getLogger().log(Level.SEVERE, "Error initializing configurations", e);
+             return false; // Indicate failure
         }
-
-        getLogger().info("Configurations initialized!");
-        return false;
     }
 
     /**
-     * Initialize database
+     * Executes database migrations using Flyway.
+     * @return true if migrations were successful, false otherwise.
      */
-    private void initializeDatabase() {
-        databaseManager = new HibernateDatabaseManager(this);
-        databaseManager.initialize().join();
+    private boolean runDatabaseMigrations() {
+        getLogger().info("Starting database migration check...");
+        ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            // Set context class loader for Flyway to find drivers/resources
+            Thread.currentThread().setContextClassLoader(getClassLoader());
 
-        getLogger().info("Database initialized!");
+            // Get database details from loaded config
+            String dbType = config.getDatabaseType();
+            String dbUrl = config.getDatabaseUrl();
+            String dbUser = config.getDatabaseUser();
+            String dbPassword = config.getDatabasePassword();
+            String tablePrefix = config.getDatabaseTablePrefix(); // Get the prefix
+
+            // Load the appropriate JDBC driver explicitly
+            // This ensures it's loaded by the correct classloader
+            try {
+                if ("mysql".equalsIgnoreCase(dbType)) {
+                    Class.forName("com.mysql.cj.jdbc.Driver", true, getClassLoader());
+                 } else if ("sqlite".equalsIgnoreCase(dbType)) {
+                    Class.forName("org.sqlite.JDBC", true, getClassLoader());
+                 }
+                 // Add PostgreSQL check later here
+            } catch (ClassNotFoundException e) {
+                getLogger().log(Level.SEVERE, "Could not find JDBC driver for database type: " + dbType, e);
+                return false;
+            }
+
+            FluentConfiguration flywayConfig = Flyway.configure(getClassLoader()) // Pass classloader
+                .dataSource(dbUrl, dbUser, dbPassword)
+                .locations("classpath:db/migration") // Point to migration scripts in resources
+                .encoding("UTF-8")
+                .baselineOnMigrate(true); // Creates schema history table if it doesn't exist
+
+             // Set the schema history table name with the prefix
+             // Flyway's default table is flyway_schema_history
+             String historyTableName = tablePrefix.isEmpty() ? "flyway_schema_history" : tablePrefix + "flyway_schema_history";
+             flywayConfig.table(historyTableName);
+             getLogger().info("Using Flyway history table: " + historyTableName);
+
+            Flyway flyway = flywayConfig.load();
+
+            // Run migrations
+            flyway.migrate();
+
+            getLogger().info("Database migration check completed successfully.");
+            return true; // Success
+        } catch (FlywayException e) {
+            getLogger().log(Level.SEVERE, "Database migration failed!", e);
+            // Log specific migration error details if available
+            if (e.getCause() != null) {
+                 getLogger().log(Level.SEVERE, "Cause: " + e.getCause().getMessage(), e.getCause());
+            }
+            return false; // Failure
+        } catch (Exception e) { // Catch other potential errors during setup
+            getLogger().log(Level.SEVERE, "An unexpected error occurred during database migration setup!", e);
+            return false; // Failure
+        } finally {
+             // Restore original class loader
+             Thread.currentThread().setContextClassLoader(originalClassLoader);
+        }
+    }
+
+
+    /**
+     * Initialize database manager instance.
+     * Note: This no longer initializes the Hibernate SessionFactory.
+     */
+    private void initializeDatabaseManager() {
+        databaseManager = new HibernateDatabaseManager(this);
+        // databaseManager.initialize().join(); // REMOVED - Hibernate initializes lazily now
+        getLogger().info("DatabaseManager initialized (Hibernate SessionFactory will load on first use).");
     }
 
     /**
@@ -147,7 +238,7 @@ public final class VampirePlugin extends JavaPlugin {
     private void startTasks() {
         new BloodRegenerationTask(this).runTaskTimer(this, 20L, 20L);
         new VampireTask(this).start();
-        
+
         getLogger().info("Tasks initialized!");
     }
 
@@ -176,6 +267,7 @@ public final class VampirePlugin extends JavaPlugin {
         return languageConfig;
     }
 
+    // Getter remains the same type, but initialization timing changed
     public HibernateDatabaseManager getDatabaseManager() {
         return databaseManager;
     }
@@ -198,5 +290,15 @@ public final class VampirePlugin extends JavaPlugin {
 
     public VampireCommand getVampireCommand() {
         return vampireCommand;
+    }
+
+    /**
+     * Static getter for the plugin instance.
+     * Useful for accessing the plugin from static contexts, but use with caution.
+     * Consider dependency injection where possible.
+     * @return The singleton instance of VampirePlugin.
+     */
+    public static VampirePlugin getInstance() {
+        return plugin;
     }
 } 

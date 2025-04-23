@@ -51,11 +51,11 @@
             <version>0.1.2</version>
         </dependency>
         
-        <!-- C3P0 Connection Pool -->
+        <!-- FlywayDB -->
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-c3p0</artifactId>
-            <version>6.4.1.Final</version>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>11.7.2</version> <!-- Or a recent version -->
         </dependency>
         
         <!-- HikariCP for connection pooling -->
