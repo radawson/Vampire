@@ -153,8 +153,10 @@ public final class VampirePlugin extends JavaPlugin {
                     Class.forName("com.mysql.cj.jdbc.Driver", true, getClassLoader());
                  } else if ("sqlite".equalsIgnoreCase(dbType)) {
                     Class.forName("org.sqlite.JDBC", true, getClassLoader());
+                 } else if ("postgres".equalsIgnoreCase(dbType) || "postgresql".equalsIgnoreCase(dbType)) {
+                     Class.forName("org.postgresql.Driver", true, getClassLoader());
                  }
-                 // Add PostgreSQL check later here
+                 // Add other database drivers here if needed
             } catch (ClassNotFoundException e) {
                 getLogger().log(Level.SEVERE, "Could not find JDBC driver for database type: " + dbType, e);
                 return false;

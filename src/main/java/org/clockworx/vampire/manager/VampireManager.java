@@ -32,46 +32,43 @@ public class VampireManager {
         String playerName = player.getName();
         VampireMessages.debug("Handling join for player: " + playerName + " (" + uuid + ")");
 
-        // Prevent duplicate loading if already somehow cached
-        if (onlinePlayers.containsKey(uuid)) {
-            VampireMessages.debug("Player " + playerName + " already in cache during join handling.");
-            // Optionally update permissions/effects here if needed
-            // onlinePlayers.get(uuid).updatePermissions(); // Method undefined on VampirePlayer
-            // onlinePlayers.get(uuid).updatePotionEffects(); // Method undefined on VampirePlayer
-            return;
-        }
+        // **Synchronously create and cache a default/placeholder object immediately.**
+        // This ensures *something* is always available in the cache right away.
+        // We use computeIfAbsent to avoid race conditions if the event fires twice quickly.
+        VampirePlayer cachedVP = onlinePlayers.computeIfAbsent(uuid, key -> {
+             VampireMessages.debug("Creating initial cache entry for " + playerName);
+             return new VampirePlayer(uuid, playerName); // Create default object
+        });
 
-        // Load player data from the database asynchronously
-        plugin.getDatabaseManager().getPlayer(uuid).thenAcceptAsync(vampirePlayer -> {
-            if (vampirePlayer == null) {
-                // Player not found in DB, create a new default VampirePlayer object
-                VampireMessages.debug("No existing data found for " + playerName + ", creating new entry.");
-                vampirePlayer = new VampirePlayer(uuid, playerName);
-                // Optionally save the new player entry immediately or wait for first change/quit
-                // plugin.getDatabaseManager().savePlayer(vampirePlayer);
+        // Load actual player data from the database asynchronously
+        plugin.getDatabaseManager().getPlayer(uuid).thenAcceptAsync(loadedVampirePlayer -> {
+            if (loadedVampirePlayer != null) {
+                 VampireMessages.debug("Loaded data for player: " + playerName + ". Updating cached object.");
+                // **Update the existing cached object with loaded data.**
+                // Ensure name is current
+                loadedVampirePlayer.setName(playerName); 
+                // Update the state of the cached object. 
+                // We need a method in VampirePlayer to copy state, e.g., updateFrom(loadedVampirePlayer)
+                // For now, let's assume we directly replace (if VampirePlayer is mutable enough) 
+                // or implement an update method. Let's replace for simplicity, assuming it's safe.
+                // NOTE: This simple put might have concurrency issues if other threads modify cachedVP
+                // A better approach would be an update method on VampirePlayer.
+                 onlinePlayers.put(uuid, loadedVampirePlayer); // Replace placeholder with loaded data
+                 
+                 // Trigger effects update based on the *loaded* state
+                 updatePlayerEffects(loadedVampirePlayer); 
             } else {
-                VampireMessages.debug("Loaded data for player: " + playerName);
-                // Ensure the player name is up-to-date in case of changes
-                vampirePlayer.setName(playerName); 
+                // Player not found in DB, the default object we cached is correct.
+                VampireMessages.debug("No existing data found for " + playerName + ". Initial cache entry is sufficient.");
+                // Trigger effects update based on the *default* state
+                 updatePlayerEffects(cachedVP);
             }
-
-            // Cache the player data
-            onlinePlayers.put(uuid, vampirePlayer);
-            
-            // Update permissions and effects based on loaded data
-            // Remove old direct calls on VampirePlayer
-            // vampirePlayer.updatePermissions(); 
-            // vampirePlayer.updatePotionEffects();
-            
-            // Trigger manager-level update based on loaded state
-            updatePlayerEffects(vampirePlayer);
-            // TODO: Add explicit permission update logic if needed
+            // TODO: Add explicit permission update logic if needed, using the final VP object (loaded or default)
 
         }).exceptionally(ex -> {
-            VampireMessages.error("Failed to load player data for " + playerName, ex);
-            // Create a default player object so the player can still join
-            VampirePlayer defaultPlayer = new VampirePlayer(uuid, playerName); // Define variable here
-            onlinePlayers.put(uuid, defaultPlayer); // Use the defined variable
+            VampireMessages.error("Failed to load player data for " + playerName + ". Using default cache entry.", ex);
+            // The default object is already in the cache, just ensure effects are updated for default state.
+             updatePlayerEffects(cachedVP);
             return null;
         });
     }

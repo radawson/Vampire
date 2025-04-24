@@ -78,15 +78,30 @@ public class HibernateConfig {
                     plugin.getLogger().log(Level.INFO, "Configuring Hibernate for SQLite...");
                     settings.put(Environment.DIALECT, "org.hibernate.community.dialect.SQLiteDialect");
                     // For SQLite, typically don't use HikariCP, specify driver and url directly
-                    settings.put(Environment.DRIVER, "org.sqlite.JDBC");
-                    settings.put(Environment.URL, dbUrl);
+                    // settings.put(Environment.DRIVER, "org.sqlite.JDBC"); // Deprecated - Hibernate infers from URL
+                    settings.put("jakarta.persistence.jdbc.url", dbUrl);
                     // SQLite doesn't usually need user/password
-                    // settings.put(Environment.USER, dbUser); // Generally not needed
-                    // settings.put(Environment.PASS, dbPassword); // Generally not needed
-
+                    
                     // Add specific settings for SQLite to improve performance/compatibility if needed
-                    // settings.put("hibernate.connection.autocommit", "true"); // Maybe?
+                    settings.put("hibernate.connection.autocommit", "true"); 
                     // settings.put("hibernate.connection.isolation", "READ_UNCOMMITTED"); // Potential performance gain, check implications
+
+                } else if ("postgres".equalsIgnoreCase(dbType) || "postgresql".equalsIgnoreCase(dbType)) {
+                    plugin.getLogger().log(Level.INFO, "Configuring Hibernate for PostgreSQL...");
+                    settings.put(Environment.DIALECT, "org.hibernate.dialect.PostgreSQLDialect");
+                    settings.put(Environment.CONNECTION_PROVIDER, "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
+                    
+                    // Hikari Specific Properties for PostgreSQL
+                    settings.put("hibernate.hikari.jdbcUrl", dbUrl);
+                    settings.put("hibernate.hikari.username", dbUser);
+                    settings.put("hibernate.hikari.password", dbPassword);
+                    settings.put("hibernate.hikari.driverClassName", "org.postgresql.Driver"); // Explicitly set driver
+                    settings.put("hibernate.hikari.maximumPoolSize", "10");
+                    settings.put("hibernate.hikari.minimumIdle", "5");
+                    settings.put("hibernate.hikari.idleTimeout", "300000"); // 5 minutes
+                    settings.put("hibernate.hikari.connectionTimeout", "10000"); // 10 seconds
+                    settings.put("hibernate.hikari.autoCommit", "true");
+
                 } else {
                     plugin.getLogger().log(Level.SEVERE, "Unsupported database type configured for Hibernate: '" + dbType + "'");
                     throw new IllegalArgumentException("Unsupported database type: " + dbType);

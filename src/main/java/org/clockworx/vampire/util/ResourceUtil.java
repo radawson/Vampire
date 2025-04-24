@@ -1,11 +1,9 @@
 package org.clockworx.vampire.util;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 
 import org.bukkit.Material;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;

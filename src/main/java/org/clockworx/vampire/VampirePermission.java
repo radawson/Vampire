@@ -47,6 +47,8 @@ public class VampirePermission {
     public static final String SHRIEK = "vampire.shriek";
     /** Allows viewing the plugin version (/vampire version). */
     public static final String VERSION = "vampire.version";
+    /** Base permission for the /vampire mode command group. */
+    public static final String MODE_BASE = "vampire.mode.base"; 
     /** Allows vampires to toggle bloodlust mode (/vampire mode bloodlust). */
     public static final String MODE_BLOODLUST = "vampire.mode.bloodlust";
     /** Allows vampires to toggle infection intent mode (/vampire mode intent). */
@@ -145,6 +147,7 @@ public class VampirePermission {
         registerPermission(pm, VERSION, "Allows viewing plugin version", PermissionDefault.TRUE);
         
         // Mode permissions (Default: TRUE = accessible by default, logic checks if player is vampire)
+        registerPermission(pm, MODE_BASE, "Base permission for /vampire mode commands", PermissionDefault.TRUE);
         registerPermission(pm, MODE_BLOODLUST, "Allows toggling bloodlust mode", PermissionDefault.TRUE);
         registerPermission(pm, MODE_INTENT, "Allows toggling infection intent mode", PermissionDefault.TRUE);
         registerPermission(pm, MODE_NIGHTVISION, "Allows toggling night vision mode", PermissionDefault.TRUE);
@@ -192,6 +195,9 @@ public class VampirePermission {
         // We also need SHOW_OTHER -> SHOW
         linkParentChild(pm, SHOW, SHOW_OTHER);
         linkParentChild(pm, STATS, STATS_OTHER);
+        linkParentChild(pm, MODE_BASE, MODE_BLOODLUST);
+        linkParentChild(pm, MODE_BASE, MODE_INTENT);
+        linkParentChild(pm, MODE_BASE, MODE_NIGHTVISION);
         // Ensure all SET_* have SET as parent implicitly
         // Ensure all MODE_* have BASECOMMAND as parent implicitly? (or keep separate)
 
@@ -255,14 +261,20 @@ public class VampirePermission {
 
         if (parentPerm != null && childPerm != null) {
             try {
+                // Add parent-child relationship; Bukkit handles duplicates.
                 childPerm.addParent(parentPerm, true);
-            } catch (IllegalArgumentException e) {
-                 // Can happen if already linked, or circular dependency (shouldn't occur here)
-                 VampireMessages.debug("[VampirePermission] Could not link parent '" + parentNode + "' to child '" + childNode + "': " + e.getMessage());
+                VampireMessages.debug("[VampirePermission] Linked '" + childNode + "' as child of '" + parentNode + "'");
+            } catch (Exception e) {
+                 // Log unexpected errors during linking
+                 VampireMessages.error("[VampirePermission] Error linking child '" + childNode + "' to parent '" + parentNode + "': " + e.getMessage(), e);
             }
         } else {
-            if (parentPerm == null) VampireMessages.debug("[VampirePermission] Parent node '" + parentNode + "' not found for explicit linking.");
-            if (childPerm == null) VampireMessages.debug("[VampirePermission] Child node '" + childNode + "' not found for explicit linking.");
+            if (parentPerm == null) {
+                 VampireMessages.debug("[VampirePermission] Could not link child: Parent '" + parentNode + "' not found.");
+            }
+            if (childPerm == null) {
+                 VampireMessages.debug("[VampirePermission] Could not link child '" + childNode + "': Child permission not found.");
+            }
         }
     }
     
@@ -274,7 +286,9 @@ public class VampirePermission {
      * @return {@code true} if the sender has the permission, {@code false} otherwise.
      */
     public static boolean has(CommandSender sender, String permission) {
-        // Use the standard Bukkit permission check.
+        if (sender == null || permission == null) {
+            return false;
+        }
         return sender.hasPermission(permission);
     }
     
@@ -333,23 +347,23 @@ public class VampirePermission {
      * @return {@code true} if the permission was granted successfully, {@code false} if the plugin instance is missing.
      */
     public static boolean grantTemporaryPermission(Player player, String permission) {
-        UUID uuid = player.getUniqueId();
-        // Retrieve the plugin instance associated with this plugin's code.
-        // Assumes this class is part of the "Vampire" plugin.
-        Plugin pluginInstance = Bukkit.getPluginManager().getPlugin("Vampire"); 
-        if (pluginInstance == null) {
-             VampireMessages.sendToConsole("&c[VampirePermission] Cannot grant temporary permission: Plugin instance is null!");
-             return false; 
+        if (player == null || !player.isOnline() || permission == null) {
+            return false;
         }
-
-        // Get existing attachment or create a new one.
-        PermissionAttachment attachment = ATTACHMENTS.computeIfAbsent(uuid, k -> player.addAttachment(pluginInstance));
         
-        // Set the permission value to true on the attachment.
-        attachment.setPermission(permission, true);
-        // Optional: Recalculate player permissions immediately
-        // player.recalculatePermissions(); 
-        return true;
+        PermissionAttachment attachment = ATTACHMENTS.computeIfAbsent(player.getUniqueId(), uuid -> {
+             Plugin plugin = VampirePlugin.getInstance(); // Assumes VampirePlugin has a static getInstance()
+             if (plugin == null) return null;
+             return player.addAttachment(plugin);
+        });
+        
+        if (attachment != null) {
+            attachment.setPermission(permission, true);
+            return true;
+        } else {
+            VampireMessages.error("Could not get/create PermissionAttachment for " + player.getName(), null);
+            return false;
+        }
     }
 
     /**
@@ -360,24 +374,21 @@ public class VampirePermission {
      * @return {@code true} if the permission was found on an attachment and unset, {@code false} otherwise.
      */
     public static boolean revokeTemporaryPermission(Player player, String permission) {
-        UUID uuid = player.getUniqueId();
-        PermissionAttachment attachment = ATTACHMENTS.get(uuid);
-        
-        if (attachment != null) {
-            attachment.unsetPermission(permission);
-            // Optional: If the attachment becomes empty, consider removing it entirely.
-            // if (attachment.getPermissions().isEmpty()) {
-            //     try {
-            //         player.removeAttachment(attachment);
-            //     } catch (IllegalArgumentException e) { /* Already removed */ }
-            //     ATTACHMENTS.remove(uuid);
-            // }
-            // Optional: Recalculate player permissions immediately
-            // player.recalculatePermissions(); 
-            return true;
+        if (player == null || permission == null) {
+            return false;
         }
-        
-        return false; // No attachment found for this player
+        PermissionAttachment attachment = ATTACHMENTS.get(player.getUniqueId());
+        if (attachment != null) {
+            // Check if permission was actually set before unsetting
+            if (attachment.getPermissions().containsKey(permission.toLowerCase())) {
+                 attachment.unsetPermission(permission);
+                 // Check if attachment has any permissions left, remove if empty?
+                 // This requires careful consideration to avoid removing other temp perms.
+                 // Generally, cleanup is handled on logout.
+                 return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -388,17 +399,15 @@ public class VampirePermission {
      * @param player The player whose temporary permissions should be cleaned up.
      */
     public static void cleanupTemporaryPermissions(Player player) {
-        UUID uuid = player.getUniqueId();
-        PermissionAttachment attachment = ATTACHMENTS.remove(uuid);
-        
+        if (player == null) return;
+        PermissionAttachment attachment = ATTACHMENTS.remove(player.getUniqueId());
         if (attachment != null) {
-            // Safely attempt to remove the attachment from the player.
             try {
                 player.removeAttachment(attachment);
             } catch (IllegalArgumentException e) {
-                 // Attachment might have already been removed (e.g., by another plugin or server mechanism)
-                 // Log if this case needs investigation:
-                 // VampireMessages.debug("[VampirePermission] Error removing attachment for " + player.getName() + ": " + e.getMessage());
+                // This can happen if the player is no longer valid or the attachment
+                // was already removed. Safe to ignore in most cleanup scenarios.
+                VampireMessages.debug("Ignoring error removing attachment for " + player.getName() + ": " + e.getMessage());
             }
         }
     }

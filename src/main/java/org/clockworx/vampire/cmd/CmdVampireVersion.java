@@ -3,7 +3,6 @@ package org.clockworx.vampire.cmd;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePermission;
@@ -27,8 +26,8 @@ public class CmdVampireVersion extends VCommand {
     
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        VampireMessages.sendLocalized(sender, "version.line1", plugin.getDescription().getVersion());
-        VampireMessages.sendLocalized(sender, "version.line2", String.join(", ", plugin.getDescription().getAuthors()));
+        VampireMessages.sendLocalized(sender, "version.line1", plugin.getPluginMeta().getVersion());
+        VampireMessages.sendLocalized(sender, "version.line2", String.join(", ", plugin.getPluginMeta().getAuthors()));
         return true;
     }
     

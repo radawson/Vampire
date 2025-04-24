@@ -2,11 +2,14 @@ package org.clockworx.vampire.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.altar.AltarAbstract;
+import org.clockworx.vampire.manager.AltarManager;
 import org.clockworx.vampire.util.VampireMessages;
 
 /**
@@ -39,13 +42,37 @@ public class CmdVampireInfo extends VCommand {
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // Permission check already done by VCommand superclass
 
-        // Send informational messages using localized keys
+        // Send standard informational messages
         VampireMessages.sendLocalized(sender, "command.info.header"); 
-        VampireMessages.sendLocalized(sender, "command.info.version", plugin.getDescription().getVersion());
+        VampireMessages.sendLocalized(sender, "command.info.version", plugin.getPluginMeta().getVersion());
         // Combine authors into a single string
-        String authors = String.join(", ", plugin.getDescription().getAuthors());
+        String authors = String.join(", ", plugin.getPluginMeta().getAuthors());
         VampireMessages.sendLocalized(sender, "command.info.authors", authors);
-        VampireMessages.sendLocalized(sender, "command.info.website", plugin.getDescription().getWebsite());
+        VampireMessages.sendLocalized(sender, "command.info.website", plugin.getPluginMeta().getWebsite());
+        // Add source if available in PluginMeta (might not be standard)
+        // VampireMessages.sendLocalized(sender, "command.info.source", plugin.getPluginMeta().getSource());
+
+        // --- Add Altar Information ---
+        AltarManager altarManager = plugin.getAltarManager();
+        if (altarManager != null && plugin.getVampireConfig().isAltarsEnabled()) {
+            List<AltarAbstract> altars = altarManager.getAltars();
+            if (!altars.isEmpty()) {
+                VampireMessages.sendLocalized(sender, "command.info.altars.header"); // Add this key
+
+                for (AltarAbstract altar : altars) {
+                    // Format the materials map into a readable string
+                    String materialsString = altar.getMaterialCounts().entrySet().stream()
+                        .map(entry -> String.format("%s: %d", entry.getKey().name(), entry.getValue())) // Simple format: MATERIAL_NAME: COUNT
+                        .collect(Collectors.joining(", "));
+
+                    if (materialsString.isEmpty()) {
+                        materialsString = "None specific (besides core block)"; // Or a localized key
+                    }
+
+                    VampireMessages.sendLocalized(sender, "command.info.altars.entry", altar.getName(), materialsString); // Add this key
+                }
+            }
+        }
         // Add any other relevant info here
         
         return true;

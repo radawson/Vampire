@@ -133,8 +133,10 @@ public class VampireMessages {
      * @param message The raw message string to broadcast (use '&' for color codes).
      */
     public static void broadcast(String message) {
-        // Uses Bukkit's broadcast method.
-        Bukkit.broadcastMessage(formatMessage(message));
+        // Parse the legacy string (& codes) into a Component
+        Component component = LegacyComponentSerializer.legacyAmpersand().deserialize(message);
+        // Broadcast the Component using the non-deprecated method
+        Bukkit.broadcast(component);
     }
     
     /**
@@ -160,7 +162,7 @@ public class VampireMessages {
      * 
      * @param player The {@link Player} to send the message to. Can be null.
      * @param key The key corresponding to the message in the language file.
-     * @param args Optional arguments to be inserted into the message (using {@link String#format} placeholders like %s, %d).
+     * @param args Optional arguments to be inserted into the message (using indexed placeholders like %1%, %2%).
      */
     public static void sendLocalized(Player player, String key, Object... args) {
         String message = getLocalizedMessage(key, args);
@@ -196,33 +198,26 @@ public class VampireMessages {
     /**
      * Retrieves and formats a localized message string from the cache.
      * If the key is not found, returns a default error message indicating the missing key.
-     * If arguments are provided, uses {@link String#format} to insert them.
+     * If arguments are provided, replaces indexed placeholders (%1%, %2%, etc.) with the arguments.
      * Finally, formats the message for color codes.
      * 
      * @param key The key corresponding to the message in the language file.
-     * @param args Optional arguments for formatting the message.
+     * @param args Optional arguments for replacing indexed placeholders.
      * @return The fully formatted, localized message string.
      */
     public static String getLocalizedMessage(String key, Object... args) {
-        // Retrieve the raw message from cache, or provide a default if missing.
-        String rawMessage = messageCache.getOrDefault(key, "&cMissing message: " + key);
-        String formattedMessage = rawMessage;
+        String message = messageCache.getOrDefault(key, "&cMissing message: " + key);
         
-        // If arguments are provided, attempt to format the message.
         if (args != null && args.length > 0) {
-            try {
-                // Use String.format for placeholder replacement (e.g., %s, %d).
-                formattedMessage = String.format(rawMessage, args);
-            } catch (Exception e) {
-                // Log a warning if formatting fails (e.g., wrong number/type of args).
-                plugin.getLogger().log(Level.WARNING, "Error formatting message key '" + key + "' with String.format (Check arguments and format specifiers): " + e.getMessage());
-                // Fallback to the raw message if formatting fails.
-                formattedMessage = rawMessage;
+            for (int i = 0; i < args.length; i++) {
+                String placeholder = "%" + (i + 1) + "%";
+                // Replace placeholder with string representation of the argument
+                // Ensure args[i] is not null before calling toString()
+                message = message.replace(placeholder, (args[i] == null ? "null" : String.valueOf(args[i])));
             }
         }
         
-        // Always apply color code formatting at the end.
-        return formatMessage(formattedMessage);
+        return formatMessage(message);
     }
     
     /**

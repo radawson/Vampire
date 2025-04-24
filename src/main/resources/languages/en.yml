@@ -26,6 +26,7 @@ player:
   no_pending_offer: "&cYou have no pending blood offers"
 
 vampire:
+  not_vampire: "&c%player% is not a vampire"
   status:
     header: "&7=== &cVampire Status [%player%] &7==="
     name: "&7Name: &f%player%"
@@ -161,11 +162,14 @@ command:
       topic_not_found: "&cUnknown help topic: %topic%"
   info:
     header: "&7=== &cVampire Info &7==="
-    version: "&7Version: &f%version%"
-    authors: "&7Authors: &f%authors%"
-    description: "&7Description: &f%description%"
-    website: "&7Website: &f%website%"
-    source: "&7Source: &f%source%"
+    version: "&7Version: &f%1%"
+    authors: "&7Authors: &f%1%"
+    description: "&7Description: &f%1%"
+    website: "&7Website: &f%1%"
+    ource: "&7Source: &f%1%"
+    altars:
+      header: "&7=== &6Registered Altars &7==="
+      entry: "&7- &e%1%&7: Requires &f%2%"
 
   # List command messages
   list:
@@ -174,7 +178,7 @@ command:
     none_found: "&cNo vampires found."
     page_not_found: "&cPage %1% not found."
     invalid_page: "&cInvalid page number."
-
+    player_data_not_found: "&cCould not find vampire data for player: %1%"
   set:
     success:
       food: "&aSuccessfully set %1%'s food level to %2%."
@@ -215,7 +219,7 @@ command:
   error:
     unknown_subcommand: "&cUnknown subcommand: %1%. Type /vampire help."
     must_be_player_or_specify: "&cYou must be a player or specify a player name."
-    player_data_not_found: "&cCould not find vampire data for that player."
+    player_data_not_found: "&cCould not find vampire data for player: %1%"
     missing_argument: "&cMissing argument: <%1%>"
     too_many_arguments: "&cToo many arguments provided."
     must_be_player: "&cThis command can only be run by a player."

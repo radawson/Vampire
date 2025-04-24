@@ -386,27 +386,25 @@ public abstract class AltarAbstract {
         int centerX = centerLoc.getBlockX();
         int centerY = centerLoc.getBlockY();
         int centerZ = centerLoc.getBlockZ();
-        // Add null check for world
         org.bukkit.World world = centerLoc.getWorld(); 
         if (world == null) {
             VampireMessages.error("Cannot get blocks for altar check, world is null for location: " + centerLoc, null);
             return blocks; 
         }
 
-        // Iterate through the cubic area defined by the radius.
+        VampireMessages.debug("[Altar Scan] Scanning cube centered at " + centerLoc.toVector() + " with radius " + radius);
+
         for (int x = centerX - radius; x <= centerX + radius; x++) {
             for (int y = centerY - radius; y <= centerY + radius; y++) {
                 for (int z = centerZ - radius; z <= centerZ + radius; z++) {
-                    // Get the block at the current coordinates.
                     Block block = world.getBlockAt(x, y, z);
-                    // Add the block to the list if it's not air.
-                    // Also check if the block's material is valid (not null)
                     if (block != null && block.getType() != Material.AIR && block.getBlockData().getMaterial() != null) {
                         blocks.add(block);
                     }
                 }
             }
         }
+        VampireMessages.debug("[Altar Scan] Found " + blocks.size() + " non-air blocks within radius " + radius);
         return blocks;
     }
 } 

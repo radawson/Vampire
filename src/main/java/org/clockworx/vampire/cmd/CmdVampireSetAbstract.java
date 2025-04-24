@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
+import org.clockworx.vampire.util.VampireMessages;
 
 /**
  * Abstract base class for vampire set commands.
@@ -57,12 +58,14 @@ public abstract class CmdVampireSetAbstract extends VCommand {
         // Get vampire player data synchronously
         VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
         if (targetVampirePlayer == null) {
-            sendError(sender, getMessage("command.player_data_not_found")); // Need lang key
+            // Use VampireMessages to send the localized error message
+            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", targetName); 
             return true;
         }
         
         // Call subclass to parse and set the value, passing the manager
-        boolean success = setValue(targetVampirePlayer, targetPlayer, valueStr, sender, vampireManager);
+        // The return value isn't used here as subclasses handle feedback.
+        setValue(targetVampirePlayer, targetPlayer, valueStr, sender, vampireManager);
             
         // Subclass should handle feedback messages
         // if (success) {

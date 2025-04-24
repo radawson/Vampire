@@ -14,6 +14,9 @@ import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
 
+// Import Adventure API
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 /**
  * Command for showing detailed status information about a vampire player.
  * This command specifically targets players who are currently vampires.
@@ -105,7 +108,9 @@ public class CmdVampireShow extends VCommand {
      */
     private void displayVampireStatus(CommandSender sender, VampirePlayer vampirePlayer, Player targetPlayer) {
         // Use localized messages from en.yml under 'command.show.display' or similar structure
-        VampireMessages.sendLocalized(sender, "command.show.display.header", targetPlayer.getDisplayName()); 
+        // Serialize the Component display name to a legacy string for the placeholder
+        String displayName = LegacyComponentSerializer.legacySection().serialize(targetPlayer.displayName());
+        VampireMessages.sendLocalized(sender, "command.show.display.header", displayName); 
         
         double maxBlood = vampireManager.getEffectiveMaxBlood(vampirePlayer);
         VampireMessages.sendLocalized(sender, "command.show.display.blood", 

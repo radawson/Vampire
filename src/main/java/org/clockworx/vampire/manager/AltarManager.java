@@ -103,14 +103,18 @@ public class AltarManager {
         for (AltarAbstract altar : altars) {
             // Check if the interacted block matches the core material for this altar type
             if (altar.getCoreMaterial() == coreMaterial) {
-                VampireMessages.debug("Potential " + altar.getName() + " altar found based on core material: " + coreMaterial);
+                VampireMessages.debug("[Altar Detect] Core block match: " + coreMaterial + ". Checking structure for " + altar.getName() + " at " + coreBlock.getLocation().toVector());
                 // If core matches, validate the surrounding structure
-                if (isValidAltarStructure(coreBlock, altar)) {
-                    VampireMessages.debug("Structure validated for " + altar.getName() + ".");
+                boolean isValid = isValidAltarStructure(coreBlock, altar);
+                if (isValid) {
+                    VampireMessages.debug("[Altar Detect] Structure validated for " + altar.getName() + ".");
                     return altar; // Found a matching and valid altar
+                } else {
+                     VampireMessages.debug("[Altar Detect] Structure invalid for " + altar.getName() + ".");
                 }
             }
         }
+        VampireMessages.debug("[Altar Detect] No valid altar structure found matching core material " + coreMaterial + " at " + coreBlock.getLocation().toVector());
         return null; // No registered altar matched the core block and structure
     }
 
@@ -125,43 +129,45 @@ public class AltarManager {
      */
     private boolean isValidAltarStructure(Block coreBlock, AltarAbstract altar) {
         Map<Material, Integer> requiredCounts = altar.getMaterialCounts();
+        VampireMessages.debug("[Altar Validate] Checking structure for " + altar.getName() + ". Required: " + requiredCounts);
+
         // If only the core material is required (or nothing specific), structure is inherently valid here.
         if (requiredCounts == null || requiredCounts.isEmpty() || (requiredCounts.size() == 1 && requiredCounts.containsKey(altar.getCoreMaterial()))) {
-             VampireMessages.debug("Altar " + altar.getName() + " has no specific structure requirements beyond the core block.");
+             VampireMessages.debug("[Altar Validate] No specific structure requirements beyond the core block for " + altar.getName() + ". Valid.");
              return true; 
         }
 
         int searchRadius = config.getAltarSearchRadius();
         double minRatio = config.getAltarMinRatio();
 
-        // 1. Get all non-air blocks within the search radius (excluding the core block itself for counting purposes? TBD)
-        // Let's use the static helper from AltarAbstract for now.
+        // 1. Get all non-air blocks within the search radius
         ArrayList<Block> blocks = AltarAbstract.getCubeBlocks(coreBlock, searchRadius);
 
         // 2. Count the materials found nearby that are required by this altar.
-        // We need the *deprecated* static countMaterials here, or reimplement its logic.
-        // Let's assume AltarAbstract still has the static helper for now.
         @SuppressWarnings("deprecation")
         Map<Material, Integer> nearbyMaterialCounts = AltarAbstract.countMaterials(blocks, requiredCounts.keySet());
+         VampireMessages.debug("[Altar Validate] Found nearby materials: " + nearbyMaterialCounts);
 
         // 3. Check overall ratio.
-        // Use the helper from AltarAbstract instance to calculate sum.
         int requiredMaterialCountSum = altar.sumCollection(requiredCounts.values()); 
         int nearbyMaterialCountSum = altar.sumCollection(nearbyMaterialCounts.values());
         
-        // Adjust required sum if core is part of the count, as it's not included in nearbyMaterialCountSum?
-        // This depends on whether getCubeBlocks includes the center block. Let's assume it does for now.
-
         // Handle edge case where only the core block is listed in materials (should have been caught above, but defense)
         if (requiredMaterialCountSum <= 1 && nearbyMaterialCountSum >= 1) {
+             VampireMessages.debug("[Altar Validate] Only core material required and found. Valid.");
              return true; // Only core needed, and it's present
         }
         
         // Check ratio if more than just the core is needed
-        if (requiredMaterialCountSum > 0 && // Avoid division by zero
-            (double)nearbyMaterialCountSum / requiredMaterialCountSum < minRatio) {
-            VampireMessages.debug("Altar structure failed ratio check for " + altar.getName() + ". Found: " + nearbyMaterialCountSum + ", Required: " + requiredMaterialCountSum + ", Ratio Needed: " + minRatio);
-            return false;
+        if (requiredMaterialCountSum > 0) { // Avoid division by zero
+            double currentRatio = (double) nearbyMaterialCountSum / requiredMaterialCountSum;
+             VampireMessages.debug("[Altar Validate] Ratio Check - Found: " + nearbyMaterialCountSum + ", Required: " + requiredMaterialCountSum + ", Current Ratio: " + String.format("%.2f", currentRatio) + ", Needed Ratio: " + minRatio);
+            if (currentRatio < minRatio) {
+                VampireMessages.debug("[Altar Validate] Failed ratio check.");
+                return false;
+            }
+        } else {
+             VampireMessages.debug("[Altar Validate] Skipping ratio check as required count sum is zero.");
         }
 
         // 4. Check if minimum count for *each* specific material is met.
@@ -169,17 +175,16 @@ public class AltarManager {
         if (!missingCounts.isEmpty()) {
              // Specifically check if the only missing item is the core block itself, 
              // which we know is present because determineAltarType checked it.
-             // This handles cases where the core block might be included in the configured count.
              if (missingCounts.size() == 1 && missingCounts.containsKey(altar.getCoreMaterial())) {
                  // The only missing block is the core, which isn't actually missing. Structure is valid.
-                  VampireMessages.debug("Altar structure specific counts check for " + altar.getName() + " passed (only core was technically missing in radius scan). Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
+                  VampireMessages.debug("[Altar Validate] Passed specific counts check (only core was technically 'missing' in scan).");
              } else {
-                 VampireMessages.debug("Altar structure failed specific counts check for " + altar.getName() + ". Missing: " + missingCounts + ". Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
+                 VampireMessages.debug("[Altar Validate] Failed specific counts check. Missing: " + missingCounts);
                  return false;
              }
         }
 
-        VampireMessages.debug("Altar structure passed all checks for " + altar.getName() + ". Required: " + requiredCounts + " Nearby: " + nearbyMaterialCounts);
+        VampireMessages.debug("[Altar Validate] Structure passed all checks for " + altar.getName() + ". Valid.");
         return true; // All checks passed
     }
     
