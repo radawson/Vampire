@@ -1,0 +1,71 @@
+{
+    "version": 1,
+    "rules": [
+        {
+            "name": "Java Source Files",
+            "pattern": "src/main/java/**/*.java",
+            "language": "java",
+            "tabSize": 4,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "Kotlin Source Files",
+            "pattern": "src/main/kotlin/**/*.kt",
+            "language": "kotlin",
+            "tabSize": 4,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "Gradle Build Files",
+            "pattern": "**/*.gradle.kts",
+            "language": "kotlin",
+            "tabSize": 4,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "Resource Files",
+            "pattern": "src/main/resources/**/*.{yml,yaml,json,properties}",
+            "language": "yaml",
+            "tabSize": 2,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "Documentation",
+            "pattern": "**/*.md",
+            "language": "markdown",
+            "tabSize": 2,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "XML Files",
+            "pattern": "**/*.xml",
+            "language": "xml",
+            "tabSize": 2,
+            "insertSpaces": true,
+            "trimTrailingWhitespace": true,
+            "insertFinalNewline": true
+        },
+        {
+            "name": "Ignore Build Directories",
+            "pattern": "{build,gradle,.gradle,target}/**/*",
+            "ignore": true
+        },
+        {
+            "name": "Ignore Git Files",
+            "pattern": ".git/**/*",
+            "ignore": true
+        }
+    ],
+    "formatOnSave": true,
+    "organizeImportsOnSave": true
+} 
