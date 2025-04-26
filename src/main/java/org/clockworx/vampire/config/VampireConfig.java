@@ -304,7 +304,7 @@ public class VampireConfig {
         bloodlustThreshold = validatePositiveDouble(vampireSection, "bloodlust.threshold", 15.0);
         bloodlustBloodDecrease = validatePositiveDouble(vampireSection, "bloodlust.blood-decrease-rate", 0.1);
         taskDelay = validatePositiveInteger(vampireSection, "task-delay-ticks", 20);
-        infectionRate = validatePositiveDouble(vampireSection, "infection.rate-per-second", 0.005); // e.g. 1 / (60*3) for 3 mins
+        infectionRate = validatePositiveDouble(vampireSection, "infection.rate-per-second", 0.00017);
         sunlightDamage = validatePositiveDouble(vampireSection, "daylight.damage-per-second", 1.0);
         bloodDecreaseRate = validatePositiveDouble(vampireSection, "blood.decrease-rate-per-second", 0.01); // Passive drain
         lowBloodThreshold = validatePositiveDouble(vampireSection, "blood.low-threshold", 5.0);
@@ -371,7 +371,7 @@ public class VampireConfig {
         bloodlustThreshold = 15.0;
         bloodlustBloodDecrease = 0.1;
         taskDelay = 20;
-        infectionRate = 0.1;
+        infectionRate = 0.00017;
         sunlightDamage = 1.0;
     }
     
@@ -464,9 +464,14 @@ public class VampireConfig {
         // Load Block Opacity
         ConfigurationSection blockSection = sunlightSection.getConfigurationSection("block_opacity");
         if (blockSection != null) {
+            int loadedCount = 0; // Counter for successful loads
+            VampireMessages.debug("[ConfigLoad][Sunlight] Loading block opacities...");
             for (String key : blockSection.getKeys(false)) {
+                Material material = null; // Initialize null
                 try {
-                    Material material = Material.matchMaterial(key.toUpperCase());
+                    // Try matching material - THIS is where issues might occur
+                    material = Material.matchMaterial(key.toUpperCase());
+
                     if (material != null && material.isBlock()) {
                         double opacity = blockSection.getDouble(key);
                         if (opacity < 0.0 || opacity > 1.0) {
@@ -474,13 +479,22 @@ public class VampireConfig {
                             opacity = Math.max(0.0, Math.min(1.0, opacity));
                         }
                         blockOpacity.put(material, opacity);
+                        // Log successful load
+                        VampireMessages.debug("[ConfigLoad][Sunlight] Loaded opacity for " + material.name() + ": " + String.format("%.3f", opacity));
+                        loadedCount++;
                     } else {
-                        plugin.getLogger().warning("Invalid or non-block material specified in block_opacity: " + key);
+                        // Log failure (invalid material or not a block)
+                        plugin.getLogger().warning("[ConfigLoad][Sunlight] Invalid or non-block material specified in block_opacity: " + key + " (Resolved to: " + (material != null ? material.name() : "null") + ")");
                     }
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid material specified in block_opacity: " + key);
+                    // Log failure (matchMaterial threw exception)
+                    plugin.getLogger().warning("[ConfigLoad][Sunlight] Invalid material specified in block_opacity (IllegalArgumentException): " + key);
+                } catch (Exception e) {
+                    // Catch any other unexpected errors during material processing
+                    plugin.getLogger().log(Level.WARNING, "[ConfigLoad][Sunlight] Unexpected error processing material key '" + key + "'", e);
                 }
             }
+            VampireMessages.debug("[ConfigLoad][Sunlight] Finished loading block opacities. Successfully loaded " + loadedCount + " entries.");
         } else {
             plugin.getLogger().warning("sunlight.block_opacity subsection not found. Using default block opacities.");
             setDefaultBlockOpacities();
@@ -605,6 +619,16 @@ public class VampireConfig {
         return debug;
     }
     
+    /**
+     * Sets the debug mode status in memory for the current session.
+     * Note: This does not save the change to config.yml.
+     * 
+     * @param debug The new debug status.
+     */
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+    
     public String getLanguage() {
         return language;
     }
@@ -705,8 +729,12 @@ public class VampireConfig {
     
     // Getters for block opacity settings
     public double getBlockOpacity(Material material) {
-        // Default to 1.0 (fully opaque) if material not explicitly defined
-        return blockOpacity.getOrDefault(material, 1.0); 
+        // Default to 0.0 (fully transparent) if material not explicitly defined
+        // Special case: Treat AIR as explicitly 0.0, though getOrDefault should handle it.
+        if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
+            return 0.0;
+        }
+        return blockOpacity.getOrDefault(material, 0.0); 
     }
     
     /**

@@ -63,6 +63,8 @@ public class VampirePermission {
     public static final String FLASK = "vampire.flask";
     /** Base permission for admin commands that modify player data (/vampire set ...). */
     public static final String SET = "vampire.set";
+    /** Allows admins to set the player vampire level (/vampire set [player] level [level]). */
+    public static final String SET_LEVEL = "vampire.set.level";
     /** Allows admins to turn a player into a vampire (/vampire set [player] vampire true). */
     public static final String SET_VAMPIRE_TRUE = "vampire.set.vampire.true";
     /** Allows admins to cure a player of vampirism (/vampire set [player] vampire false). */
@@ -99,6 +101,8 @@ public class VampirePermission {
     public static final String RESET = "vampire.reset";
     /** Allows creating Holy Water via command. */
     public static final String FLASK_HOLYWATER = "vampire.flask.holywater";
+    /** Allows toggling debug mode via command at runtime. */
+    public static final String DEBUG_TOGGLE = "vampire.debug.toggle";
     
     /**
      * Stores registered permission objects (Node -> Permission). 
@@ -188,6 +192,7 @@ public class VampirePermission {
         registerPermission(pm, STATS_OTHER, "Allows viewing other players' vampire statistics", PermissionDefault.OP);
         registerPermission(pm, RESET, "Allows resetting player vampire data (admin)", PermissionDefault.OP);
         registerPermission(pm, FLASK_HOLYWATER, "Allows creating Holy Water (admin command)", PermissionDefault.OP);
+        registerPermission(pm, DEBUG_TOGGLE, "Allows toggling debug mode via command", PermissionDefault.OP);
 
         // --- Setup Parent-Child Relationships ---
         // Automatically done by registerPermission based on node structure.

@@ -11,7 +11,13 @@ general:
   success: "&aSuccess: %message%"
   info: "&eInfo: %message%"
 
+# General status indicators used across commands
+status:
+  on: "&aON"
+  off: "&cOFF"
+
 player:
+  become_vampire: "&c%player% has become a vampire!"
   not_found: "&cPlayer not found: %player%"
   not_online: "&cPlayer is not online: %player%"
   not_vampire: "&c%player% is not a vampire"
@@ -108,6 +114,9 @@ altar:
     moved: "&cYou moved too much! The ritual is broken."
 
 command:
+  debug:
+      no_change: "&eDebug mode is already %1%."
+      set: "&aDebug mode set to: %1%"
   flask:
       not_vampire: "&cOnly vampires can create blood vials."
       need_water_bottle: "&cYou must be holding an empty glass bottle to create a blood vial."
@@ -166,7 +175,8 @@ command:
     authors: "&7Authors: &f%1%"
     description: "&7Description: &f%1%"
     website: "&7Website: &f%1%"
-    ource: "&7Source: &f%1%"
+    source: "&7Source: &f%1%"
+    debug_status: "&7Runtime Debug Mode: %1%" 
     altars:
       header: "&7=== &6Registered Altars &7==="
       entry: "&7- &e%1%&7: Requires &f%2%"
@@ -184,7 +194,16 @@ command:
       food: "&aSuccessfully set %1%'s food level to %2%."
       health: "&aSuccessfully set %1%'s health to %2%."
       infection: "&aSuccessfully set %1%'s infection level to %2%."
+      level: "&aSuccessfully set %1%'s vampire level to %2%."
       vampire: "&aSuccessfully set %1%'s vampire status to %2%."
+      
+    fail:
+      food: "&cFailed to set %1%'s food level to %2%. They might not be a vampire."
+      health: "&cFailed to set %1%'s health level to %2%. They might not be a vampire."
+      infection: "&cFailed to set %1%'s infection level to %2%. They might not be a vampire."
+      level: "&cFailed to set %1%'s vampire level to %2%. They might not be a vampire."
+      vampire: "&cFailed to set %1%'s vampire status to %2%. They might not be a vampire."
+     
   # Show command messages
   show:
     no_permission_other: "&cYou do not have permission to view other players' vampire status."
@@ -192,9 +211,10 @@ command:
     display:
       header: "&7=== &cVampire Details [%1%] &7==="
       blood: "&7Blood: &c%1%&7/&c%2%"
-      level: "&7Level: &e%1%"
+      level: "&7Level: &e%1% &7(&f%2%&7)"
       modes_header: "&7Modes:"
       mode_entry: "  %1%: %2%"
+      sun_level: "&7Sun Exposure: &e%1%"
 
   # Reset command messages
   reset:
@@ -214,6 +234,7 @@ command:
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
+    set: "&cUsage: /vampire set <type> <value> [player]"
   no_permission: "&cYou don't have permission to use this command!"
   player_only: "&cThis command can only be used by players!"
   error:
@@ -223,6 +244,13 @@ command:
     missing_argument: "&cMissing argument: <%1%>"
     too_many_arguments: "&cToo many arguments provided."
     must_be_player: "&cThis command can only be run by a player."
+    invalid_boolean: "&cInvalid boolean value: '%1%'. Use 'true' or 'false'."
+    invalid_number: "&cInvalid number: '%1%'."
+    invalid_integer: "&cInvalid integer: '%1%'."
+    invalid_range_01: "&cInvalid value: '%1%'. Must be between 0.0 and 1.0."
+    invalid_non_negative: "&cInvalid value: '%1%'. Must be a non-negative number."
+    invalid_non_negative_int: "&cInvalid value: '%1%'. Must be a non-negative whole number."
+    unknown_set_type: "&cUnknown set type: '%1%'. Valid types: vampire, infection, blood, level."
 
 bloodlust:
   activated: "&cBloodlust Mode activated!"
@@ -271,3 +299,17 @@ item:
     name: "&bHoly Water"
     lore1: "&7Blessed water, harmful to the undead."
     lore2: "&7Right-click to throw..."
+
+# Mode messages
+mode:
+  bloodlust:
+    activated: "&cBloodlust Mode activated!"
+    deactivated: "&7Bloodlust Mode deactivated"
+    cooldown: "&cBloodlust Mode is on cooldown for %time% seconds"
+  intent:
+    activated: "&cIntent Mode activated! You can infect humans with your bite."
+    deactivated: "&7Intent Mode deactivated. You will no longer infect humans with your bite."
+  nightvision:
+    activated: "&cNight Vision Mode activated!"
+    deactivated: "&7Night Vision Mode deactivated"
+  

@@ -161,8 +161,13 @@ public class SunUtil
 		{
 			// Note: Block.getType() is deprecated. Use Block.getBlockData().getMaterial() in modern API.
 			Material material = world.getBlockAt(x, y, z).getBlockData().getMaterial(); // MODERN API
-			// Get opacity value from plugin config. getBlockOpacity returns a primitive double (defaulting to 1.0).
+			// Get opacity value from plugin config. getBlockOpacity returns a primitive double (defaulting to 0.0).
 			double opacity = plugin.getVampireConfig().getBlockOpacity(material);
+			// --- Add Debug --- 
+			if (opacity > 0) { // Only log blocks that contribute opacity
+				VampireMessages.debug(String.format("[SunUtil][Terrain] Block at y=%d: %s, Opacity: %.3f, Current Total: %.3f", y, material.name(), opacity, ret));
+			}
+			// --- End Debug ---
 			ret += opacity;
 		}
 		
@@ -291,37 +296,80 @@ public class SunUtil
 	public static double calcPlayerIrradiation(Player player)
 	{
 		// Basic checks: Player must be online and alive.
-		if ( ! player.isOnline()) return 0;
-		if (player.isDead()) return 0;
+        if ( ! player.isOnline()) return 0;
+        if (player.isDead()) return 0;
 		
-		// 1. Calculate base solar radiation based on world, time, weather.
+		VampireMessages.debug("[SunUtil] Calculating irradiation for: " + player.getName());
+
+		// Check for invalid player or location
+		if (player == null || !player.isValid() || player.getLocation() == null) {
+			VampireMessages.debug("[SunUtil] Player invalid or location null. Irradiation = 0.0");
+			return 0.0;
+		}
+
 		World world = player.getWorld();
-		double ret = calcSolarRad(world);
-		// If base radiation is zero, no further calculation needed.
-		if (ret == 0) return 0;
+		if (world == null) {
+			VampireMessages.debug("[SunUtil] World is null. Irradiation = 0.0");
+			return 0.0;
+		}
+
+		// Check if the world has sky/sunlight (e.g., not the End)
+		if (!world.hasSkyLight()) {
+			VampireMessages.debug("[SunUtil] World has no skylight (" + world.getEnvironment().name() + "). Irradiation = 0.0");
+			return 0.0;
+		}
+
+		World.Environment environment = world.getEnvironment();
+
+		if (environment == World.Environment.NETHER || environment == World.Environment.THE_END) {
+			VampireMessages.debug("[SunUtil] World is " + world.getEnvironment().toString() + ". No sun exposure. Irradiation = 0.0");
+			return 0.0; // No sun exposure in Nether or End
+		}
+
+		// 1. Calculate Base Solar Radiation
+		double solarRad = calcSolarRad(world);
+		VampireMessages.debug("[SunUtil] Base Solar Radiation (time/weather/dim): " + String.format("%.3f", solarRad));
+		if (solarRad <= 0) 
+		{
+			VampireMessages.debug("[SunUtil] Base solar radiation is zero or less. Final Irradiation = 0.0");
+			return 0d;
+		}
 		
-		// 2. Factor in terrain opacity.
-		// Check the block directly above the player's head location.
-		Block block = player.getLocation().getBlock().getRelative(0, 1, 0); 
-		double terrainOpacity = calcTerrainOpacity(block);
-		// Reduce radiation by the terrain opacity (opacity is 0 to 1).
-		// (1 - terrainOpacity) gives the fraction of light passing through.
-		ret *= (1 - terrainOpacity);
-		// If terrain blocks all light, result is zero.
-		if (ret <= 0) return 0; // Use <= for safety with potential floating point inaccuracies
+		// 2. Calculate Terrain Opacity
+		// Use player's eye location for checking blocks directly above sight line
+		Block eyeBlock = player.getEyeLocation().getBlock();
+		double terrainOpacity = calcTerrainOpacity(eyeBlock);
+		VampireMessages.debug("[SunUtil] Terrain Opacity (blocks above eye level): " + String.format("%.3f", terrainOpacity));
+		if (terrainOpacity >= 1d)
+		{
+			VampireMessages.debug("[SunUtil] Terrain opacity is 1.0 or more. Final Irradiation = 0.0");
+			return 0d;
+		}
 		
-		// 3. Factor in armor opacity.
-		double armorOpacity = calcArmorOpacity(player, plugin.getVampireConfig());
-		// Reduce remaining radiation by the armor opacity.
-		// Clamp armor opacity effect: Max reduction is 100% (opacity >= 1.0).
-		double armorFactor = Math.max(0.0, 1.0 - armorOpacity); 
-		ret *= armorFactor;
-		// If armor blocks all remaining light, result is zero.
-		if (ret <= 0) return 0;
-		
-		// P.p.log("calcPlayerIrradiation",ret); // Leftover debug logging
-		
-		// Return the final calculated irradiation value, ensuring it's not negative.
-		return Math.max(0.0, ret);
+		// 3. Calculate Armor Opacity
+		// Ensure config is available
+		VampireConfig config = plugin.getVampireConfig();
+		if (config == null) {
+			VampireMessages.error("[SunUtil] VampireConfig is null! Cannot calculate armor opacity.", null);
+			// Decide how to handle - return 0, or proceed without armor calc?
+			// Proceeding without armor is safer than potentially allowing sun damage when it should be blocked.
+			// Let's assume config load failure means something is very wrong.
+			return 0.0;
+		}
+		double armorOpacity = calcArmorOpacity(player, config);
+		VampireMessages.debug("[SunUtil] Armor Opacity: " + String.format("%.3f", armorOpacity));
+		// Don't clamp armor opacity here; let the final calculation handle it.
+
+		// 4. Calculate Final Irradiation
+		// Formula: Irradiation = SolarRad * (1 - TerrainOpacity) * max(0, (1 - ArmorOpacity))
+		// We use max(0, 1-Armor) because high armor opacity shouldn't *increase* irradiation.
+		double finalIrradiation = solarRad * (1.0 - terrainOpacity) * Math.max(0.0, (1.0 - armorOpacity));
+
+		// Clamp final result between 0 and 1
+		finalIrradiation = Math.max(0.0, Math.min(1.0, finalIrradiation));
+
+		VampireMessages.debug("[SunUtil] Final Calculated Irradiation for " + player.getName() + ": " + String.format("%.3f", finalIrradiation));
+
+		return finalIrradiation;
 	}
 }

@@ -52,6 +52,11 @@ public class CmdVampireInfo extends VCommand {
         // Add source if available in PluginMeta (might not be standard)
         // VampireMessages.sendLocalized(sender, "command.info.source", plugin.getPluginMeta().getSource());
 
+        // Add runtime debug status
+        boolean isDebug = plugin.getVampireConfig().isDebug();
+        // Use %1% placeholder in the lang file for the status
+        VampireMessages.sendLocalized(sender, "command.info.debug_status", isDebug ? "&aOn" : "&cOff"); 
+
         // --- Add Altar Information ---
         AltarManager altarManager = plugin.getAltarManager();
         if (altarManager != null && plugin.getVampireConfig().isAltarsEnabled()) {

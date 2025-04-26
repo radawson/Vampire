@@ -374,4 +374,47 @@ public class VampirePlayer {
         this.pendingGiftOfferTime = 0L;
     }
 
+    /**
+     * Updates the state of this VampirePlayer instance from another instance.
+     * Used after loading data from the database to update the initially cached object.
+     * Copies persistent fields. Mode states and cooldowns are generally runtime states
+     * and might not need copying or should be reset appropriately.
+     *
+     * @param source The VampirePlayer instance containing the data to copy (usually loaded from DB).
+     */
+    public void updateFrom(VampirePlayer source) {
+        if (source == null || !this.uuid.equals(source.uuid)) {
+            // Log error or ignore? Safety check.
+            System.err.println("Warning: Attempted to update VampirePlayer " + this.uuid + " from invalid source: " + (source != null ? source.uuid : "null"));
+            return;
+        }
+
+        // Copy persistent fields
+        this.name = source.name; // Update name just in case
+        this.isVampire = source.isVampire;
+        this.blood = source.blood;
+        this.vampireLevel = source.vampireLevel;
+        this.infectionLevel = source.infectionLevel;
+        this.infectionReason = source.infectionReason;
+        this.infectionTime = source.infectionTime;
+        this.makerId = source.makerId;
+        this.lastShriekTime = source.lastShriekTime;
+        this.lastBloodTradeTime = source.lastBloodTradeTime;
+        this.lastBloodTradePartner = source.lastBloodTradePartner;
+        this.lastBloodTradeAmount = source.lastBloodTradeAmount;
+        this.lastBloodTradeType = source.lastBloodTradeType;
+
+        // Reset runtime state fields that are not loaded from the DB
+        this.bloodlusting = false;
+        this.usingNightVision = false;
+        this.intending = false;
+        this.lastBloodlustTime = 0L;
+        this.lastModeChange = 0L;
+        this.lastDamageTime = 0L; // Reset damage time on login
+        this.tradeOfferedFromUuid = null; // Reset trade offers
+        this.tradeOfferedAmount = 0.0;
+        this.tradeOfferedAtTime = 0L;
+        this.pendingGiftOfferUuid = null; // Reset gift offers
+        this.pendingGiftOfferTime = 0L;
+    }
 } 

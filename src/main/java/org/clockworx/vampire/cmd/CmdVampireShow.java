@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.level.LevelManager;
+import org.clockworx.vampire.level.VampireLevel;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.VampireMessages;
 
@@ -26,6 +28,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 public class CmdVampireShow extends VCommand {
     
     private final VampireManager vampireManager;
+    private final LevelManager levelManager;
 
     /**
      * Creates a new show command focused on displaying vampire status.
@@ -37,6 +40,7 @@ public class CmdVampireShow extends VCommand {
         super(plugin, "show", VampirePermission.SHOW, 
               "Show detailed vampire status", "[player]"); 
         this.vampireManager = plugin.getVampireManager();
+        this.levelManager = plugin.getLevelManager();
     }
     
     /**
@@ -59,7 +63,7 @@ public class CmdVampireShow extends VCommand {
             // Check permission specifically for viewing others
             if (!sender.hasPermission(VampirePermission.SHOW_OTHER)) { 
                 // Use a specific message key for lack of permission to see others
-                VampireMessages.sendLocalized(sender, "command.show.no_permission_other"); // Need lang key
+                VampireMessages.sendLocalized(sender, "command.show.no_permission_other");
                 return true;
             }
             
@@ -71,7 +75,7 @@ public class CmdVampireShow extends VCommand {
         } else {
             // If no arguments, target is the sender
             if (!(sender instanceof Player)) {
-                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify"); // Need lang key
+                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
                 return true;
             }
             targetPlayer = (Player) sender;
@@ -82,13 +86,14 @@ public class CmdVampireShow extends VCommand {
 
         // Check if data exists
         if (vampirePlayer == null) {
-             VampireMessages.sendLocalized(sender, "command.error.player_data_not_found"); // Use generic data not found
+            String targetName = showingOther ? args[0] : sender.getName(); // Get the target's name
+            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", targetName); // Pass name as arg
             return true;
         }
         
         // Check if the target is actually a vampire
         if (!vampirePlayer.isVampire()) {
-             VampireMessages.sendLocalized(sender, "command.show.target_not_vampire", targetPlayer.getName()); // Need lang key
+             VampireMessages.sendLocalized(sender, "command.show.target_not_vampire", targetPlayer.getName());
             return true;
         }
         
@@ -107,32 +112,41 @@ public class CmdVampireShow extends VCommand {
      * @param targetPlayer The Bukkit {@link Player} object for the target.
      */
     private void displayVampireStatus(CommandSender sender, VampirePlayer vampirePlayer, Player targetPlayer) {
-        // Use localized messages from en.yml under 'command.show.display' or similar structure
+        // Get level data
+        int currentLevel = vampirePlayer.getVampireLevel();
+        VampireLevel levelData = levelManager.getLevelData(currentLevel);
+
         // Serialize the Component display name to a legacy string for the placeholder
         String displayName = LegacyComponentSerializer.legacySection().serialize(targetPlayer.displayName());
         VampireMessages.sendLocalized(sender, "command.show.display.header", displayName); 
         
-        double maxBlood = vampireManager.getEffectiveMaxBlood(vampirePlayer);
+        // Use level data for max blood
+        double maxBlood = levelData.maxBlood();
         VampireMessages.sendLocalized(sender, "command.show.display.blood", 
             String.format("%.1f", vampirePlayer.getBlood()), 
             String.format("%.1f", maxBlood));
 
+        // Use level description or level number
         VampireMessages.sendLocalized(sender, "command.show.display.level", 
-            String.valueOf(vampirePlayer.getVampireLevel())); // Assuming level is an int
+            String.valueOf(currentLevel), 
+            levelData.description());
 
         // Display modes
         VampireMessages.sendLocalized(sender, "command.show.display.modes_header");
         VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
-            VampireMessages.getLocalizedMessage("vampire.mode.bloodlust.name"), // Get mode name from lang
+            VampireMessages.getLocalizedMessage("vampire.mode.bloodlust.name"),
             formatBoolean(vampirePlayer.isBloodlusting())); 
         VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
-            VampireMessages.getLocalizedMessage("vampire.mode.intent.name"), // Get mode name from lang
+            VampireMessages.getLocalizedMessage("vampire.mode.intent.name"),
             formatBoolean(vampirePlayer.isIntending()));
         VampireMessages.sendLocalized(sender, "command.show.display.mode_entry", 
-            VampireMessages.getLocalizedMessage("vampire.mode.nightvision.name"), // Get mode name from lang
+            VampireMessages.getLocalizedMessage("vampire.mode.nightvision.name"),
             formatBoolean(vampirePlayer.isUsingNightVision()));
             
-        // Add other details as needed (e.g., last shriek time, etc.)
+        // Calculate and display current sun exposure
+        double irradiation = org.clockworx.vampire.util.SunUtil.calcPlayerIrradiation(targetPlayer);
+        VampireMessages.sendLocalized(sender, "command.show.display.sun_level",
+            String.format("%.1f%%", irradiation * 100.0)); // Format as percentage
     }
     
     /**
@@ -142,8 +156,8 @@ public class CmdVampireShow extends VCommand {
      * @return A formatted string representing the boolean status (e.g., "&aON", "&cOFF").
      */
     private String formatBoolean(boolean value) {
-        // Consider adding keys like 'status.on' and 'status.off' to en.yml
-        return value ? "&aON" : "&cOFF"; 
+        // Use localized keys for ON/OFF
+        return VampireMessages.getLocalizedMessage(value ? "status.on" : "status.off"); 
     }
     
     /**

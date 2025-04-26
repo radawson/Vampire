@@ -7,6 +7,7 @@ import org.clockworx.vampire.cmd.VampireCommand;
 import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.database.HibernateDatabaseManager;
+import org.clockworx.vampire.level.LevelManager;
 import org.clockworx.vampire.manager.AltarManager;
 import org.clockworx.vampire.manager.BloodManager;
 import org.clockworx.vampire.manager.ItemManager;
@@ -36,6 +37,9 @@ public final class VampirePlugin extends JavaPlugin {
     private AltarManager altarManager;
     private ItemManager itemManager;
     private VampireCommand vampireCommand;
+    private LevelManager levelManager;
+    private VampireTask vampireTask;
+    private BloodRegenerationTask saveTask;
 
     @Override
     public void onEnable() {
@@ -73,24 +77,47 @@ public final class VampirePlugin extends JavaPlugin {
         // --- Initialize Core Components ---
         initializeManagers();
         registerCommands();
+        registerListeners();
         startTasks();
+
+        // Initialize Level Manager - AFTER Config and Messages
+        levelManager = new LevelManager(this);
+        levelManager.loadLevels();
 
         getLogger().info("Vampire plugin enabled successfully!");
     }
 
     @Override
     public void onDisable() {
-        // Stop tasks first
-        // TODO: Implement proper task cancellation if VampireTask.shutdown exists
-        // vampireTask.shutdown(); // Assuming task instance is stored
+        // Save data on disable
+        if (vampireManager != null) {
+            // vampireManager.saveAllVampires(); // Method doesn't seem to exist
+            // Attempting shutdown instead, assuming it handles saving
+            try {
+                 vampireManager.shutdown();
+            } catch (Exception e) {
+                 getLogger().log(Level.SEVERE, "Error during VampireManager shutdown in onDisable", e);
+            }
+        }
+        if (databaseManager != null) {
+            // databaseManager.close();
+            try {
+                databaseManager.shutdown(); // Try shutdown instead of close
+            } catch (Exception e) {
+                 getLogger().log(Level.SEVERE, "Error during DatabaseManager shutdown in onDisable", e);
+            }
+        }
 
-        // Save data if needed (though Hibernate might handle this)
-        // if (vampireManager != null) {
-        //     vampireManager.shutdown(); // Assuming shutdown handles saving
-        // }
-
-        // Shutdown Hibernate SessionFactory
-        org.clockworx.vampire.database.HibernateConfig.shutdown();
+        // Cancel tasks (Handled by plugin instance directly)
+        if (vampireTask != null) {
+            vampireTask.cancel();
+        }
+        if (saveTask != null) {
+            // Assuming saveTask is a BukkitRunnable
+            if (saveTask instanceof org.bukkit.scheduler.BukkitRunnable) {
+                ((org.bukkit.scheduler.BukkitRunnable) saveTask).cancel();
+            }
+        }
 
         getLogger().info("Vampire plugin disabled!");
     }
@@ -235,11 +262,21 @@ public final class VampirePlugin extends JavaPlugin {
     }
 
     /**
+     * Register event listeners
+     */
+    private void registerListeners() {
+        getServer().getPluginManager().registerEvents(new org.clockworx.vampire.listener.VampireListener(this, vampireManager), this);
+        getLogger().info("Registered event listeners.");
+    }
+
+    /**
      * Start tasks
      */
     private void startTasks() {
-        new BloodRegenerationTask(this).runTaskTimer(this, 20L, 20L);
-        new VampireTask(this).start();
+        vampireTask = new VampireTask(this);
+        saveTask = new BloodRegenerationTask(this);
+        vampireTask.start();
+        saveTask.runTaskTimer(this, 20L, 20L);
 
         getLogger().info("Tasks initialized!");
     }
@@ -258,6 +295,33 @@ public final class VampirePlugin extends JavaPlugin {
      */
     public void error(String message, Throwable t) {
         getLogger().log(Level.SEVERE, message, t);
+    }
+
+    /**
+     * Reloads the plugin's configuration and language files.
+     */
+    public void reload() {
+        try {
+            // Reload main config
+            config.loadConfig();
+            // Reload language files
+            VampireMessages.reloadMessages();
+            // Reload level config
+            if (levelManager != null) { 
+                 levelManager.reloadLevels();
+            }
+            // Reload altars (might depend on config changes)
+            if (altarManager != null) { 
+                 // altarManager.loadAltars(); // Method doesn't seem to exist for reloading
+                 // TODO: Determine correct way to reload AltarManager if needed
+                 getLogger().warning("Altar reloading not implemented in reload() yet."); // Add a warning
+            }
+            // Reload vampire data (optional, might not be needed on config reload)
+            // vampireManager.reloadVampires();
+            getLogger().info("Configuration and language files reloaded.");
+        } catch (Exception e) {
+            getLogger().log(Level.SEVERE, "Failed to reload plugin configuration", e);
+        }
     }
 
     // Getters
@@ -292,6 +356,10 @@ public final class VampirePlugin extends JavaPlugin {
 
     public VampireCommand getVampireCommand() {
         return vampireCommand;
+    }
+
+    public LevelManager getLevelManager() {
+        return levelManager;
     }
 
     /**

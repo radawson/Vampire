@@ -5,22 +5,35 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.database.DatabaseManager;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.level.LevelManager;
+import org.clockworx.vampire.level.VampireLevel;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.VampireMessages;
 
 public class VampireManager {
     private final VampirePlugin plugin;
+    private final VampireConfig config;
+    private final LevelManager levelManager;
+    private final DatabaseManager databaseManager;
     // Use ConcurrentHashMap as loading/saving might happen async
-    private final Map<UUID, VampirePlayer> onlinePlayers = new ConcurrentHashMap<>(); 
+    private final Map<UUID, VampirePlayer> vampireCache = new ConcurrentHashMap<>();
 
     public VampireManager(VampirePlugin plugin) {
         this.plugin = plugin;
+        this.config = plugin.getVampireConfig();
+        this.levelManager = plugin.getLevelManager();
+        this.databaseManager = plugin.getDatabaseManager();
     }
     
     /**
@@ -35,40 +48,74 @@ public class VampireManager {
         // **Synchronously create and cache a default/placeholder object immediately.**
         // This ensures *something* is always available in the cache right away.
         // We use computeIfAbsent to avoid race conditions if the event fires twice quickly.
-        VampirePlayer cachedVP = onlinePlayers.computeIfAbsent(uuid, key -> {
+        VampirePlayer cachedVP = vampireCache.computeIfAbsent(uuid, key -> {
              VampireMessages.debug("Creating initial cache entry for " + playerName);
              return new VampirePlayer(uuid, playerName); // Create default object
         });
 
+        // Add debug for initial state
+        VampireMessages.debug("[Before DB Load] Initial cached state for " + playerName + ": isVampire=" + cachedVP.isVampire() + ", blood=" + cachedVP.getBlood());
+
         // Load actual player data from the database asynchronously
-        plugin.getDatabaseManager().getPlayer(uuid).thenAcceptAsync(loadedVampirePlayer -> {
+        databaseManager.getPlayer(uuid).thenAcceptAsync(loadedVampirePlayer -> {
+            // --- IMPORTANT: Run updates modifying Bukkit state on the main thread ---
+            final VampirePlayer finalCachedVP = cachedVP;
+            final VampirePlayer finalLoadedVP = loadedVampirePlayer;
+
+            // --- DEBUG: Log DB result ---
             if (loadedVampirePlayer != null) {
-                 VampireMessages.debug("Loaded data for player: " + playerName + ". Updating cached object.");
-                // **Update the existing cached object with loaded data.**
-                // Ensure name is current
-                loadedVampirePlayer.setName(playerName); 
-                // Update the state of the cached object. 
-                // We need a method in VampirePlayer to copy state, e.g., updateFrom(loadedVampirePlayer)
-                // For now, let's assume we directly replace (if VampirePlayer is mutable enough) 
-                // or implement an update method. Let's replace for simplicity, assuming it's safe.
-                // NOTE: This simple put might have concurrency issues if other threads modify cachedVP
-                // A better approach would be an update method on VampirePlayer.
-                 onlinePlayers.put(uuid, loadedVampirePlayer); // Replace placeholder with loaded data
-                 
-                 // Trigger effects update based on the *loaded* state
-                 updatePlayerEffects(loadedVampirePlayer); 
+                VampireMessages.debug("[DB Result] Found data for " + playerName + ": isVampire=" + loadedVampirePlayer.isVampire() + ", blood=" + loadedVampirePlayer.getBlood());
             } else {
-                // Player not found in DB, the default object we cached is correct.
+                VampireMessages.debug("[DB Result] No data found for " + playerName + " (New Player or DB issue).");
+            }
+            // --- END DEBUG ---
+
+            if (loadedVampirePlayer != null) {
+                // This update modifies the cached object's state. It's safe to do async
+                // as long as reads from other threads handle potential partial updates gracefully
+                // (which our current setup should). 
+                VampireMessages.debug("Updating cached object state for " + playerName + " asynchronously...");
+                // Player FOUND in DB
+                VampireMessages.debug("Loaded data for player: " + playerName + ". Updating cached object.");
+                loadedVampirePlayer.setName(playerName); // Ensure name is current
+
+                // Use the newly added updateFrom method
+                finalCachedVP.updateFrom(finalLoadedVP); // Update the cached object
+                VampireMessages.debug("Updated cached VampirePlayer object for " + playerName + " with loaded data.");
+
+                // Schedule effects update on main thread
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    VampireMessages.debug("Running scheduled effects update for " + finalCachedVP.getName() + " after DB load.");
+                    updatePlayerEffects(finalCachedVP);
+                });
+            } else {
+                // Player NOT found in DB (NEW PLAYER)
                 VampireMessages.debug("No existing data found for " + playerName + ". Initial cache entry is sufficient.");
-                // Trigger effects update based on the *default* state
-                 updatePlayerEffects(cachedVP);
+
+                // --- DEBUG: Log state when no DB data found ---
+                VampireMessages.debug("[No DB Data] Final cached state for " + playerName + ": isVampire=" + finalCachedVP.isVampire() + ", blood=" + finalCachedVP.getBlood());
+                // --- END DEBUG ---
+
+                // Schedule effects update on main thread even for new players
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    VampireMessages.debug("Running scheduled effects update for new player " + finalCachedVP.getName() + ".");
+                    updatePlayerEffects(finalCachedVP);
+                });
             }
             // TODO: Add explicit permission update logic if needed, using the final VP object (loaded or default)
 
         }).exceptionally(ex -> {
+            // --- DEBUG: Log state before update ---
+            VampireMessages.debug("[DB Exception] Occurred for " + playerName + ". Cached state: isVampire=" + cachedVP.isVampire() + ", blood=" + cachedVP.getBlood());
+            // --- END DEBUG ---
             VampireMessages.error("Failed to load player data for " + playerName + ". Using default cache entry.", ex);
             // The default object is already in the cache, just ensure effects are updated for default state.
-             updatePlayerEffects(cachedVP);
+            // Schedule effects update to run on the main thread
+            final VampirePlayer finalCachedVP = cachedVP; // Final variable for lambda
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                VampireMessages.debug("Running scheduled effects update for " + finalCachedVP.getName() + " after DB exception.");
+                updatePlayerEffects(finalCachedVP);
+            });
             return null;
         });
     }
@@ -85,10 +132,10 @@ public class VampireManager {
         // Clean up temporary permissions regardless of save success
         VampirePermission.cleanupTemporaryPermissions(player);
 
-        VampirePlayer vampirePlayer = onlinePlayers.remove(uuid); // Remove from cache
+        VampirePlayer vampirePlayer = vampireCache.remove(uuid); // Remove from cache
         if (vampirePlayer != null) {
             // Save the player data asynchronously
-            plugin.getDatabaseManager().savePlayer(vampirePlayer).thenRunAsync(() -> {
+            databaseManager.savePlayer(vampirePlayer).thenRunAsync(() -> {
                 VampireMessages.debug("Successfully saved data for player: " + playerName);
             }).exceptionally(ex -> {
                 VampireMessages.error("Failed to save data for player " + playerName + ": " + ex.getMessage(), ex);
@@ -107,7 +154,7 @@ public class VampireManager {
      * @return The cached VampirePlayer, or null if the player is not online/cached.
      */
     public VampirePlayer getCachedVampirePlayer(UUID uuid) {
-        return onlinePlayers.get(uuid);
+        return vampireCache.get(uuid);
     }
 
     /**
@@ -118,7 +165,7 @@ public class VampireManager {
      * @return A Collection of cached VampirePlayer objects.
      */
     public Collection<VampirePlayer> getCachedOnlinePlayers() {
-        return onlinePlayers.values(); // Return the values (VampirePlayer objects)
+        return vampireCache.values(); // Return the values (VampirePlayer objects)
     }
 
     /**
@@ -132,26 +179,26 @@ public class VampireManager {
      */
     @Deprecated
     public CompletableFuture<VampirePlayer> getVampirePlayer(UUID uuid) {
-        return CompletableFuture.completedFuture(onlinePlayers.get(uuid));
+        return CompletableFuture.completedFuture(vampireCache.get(uuid));
     }
 
     public void shutdown() {
         VampireMessages.debug("Shutting down VampireManager, saving remaining players...");
         // Save all players remaining in the cache (e.g., during server stop)
-        for (VampirePlayer vp : onlinePlayers.values()) {
+        for (VampirePlayer vp : vampireCache.values()) {
              Player player = vp.getPlayer();
              if (player != null) { // Get player object for permission cleanup
                  VampirePermission.cleanupTemporaryPermissions(player);
              }
-             plugin.getDatabaseManager().savePlayer(vp); // Consider doing this synchronously on shutdown
+             databaseManager.savePlayer(vp); // Consider doing this synchronously on shutdown
         }
-        onlinePlayers.clear();
+        vampireCache.clear();
         VampireMessages.debug("VampireManager shutdown complete.");
     }
     
     public void regenerateBlood() {
         // Example: Iterate online players and increase blood
-        onlinePlayers.values().stream()
+        vampireCache.values().stream()
             .filter(VampirePlayer::isVampire)
             .forEach(vp -> {
                 // TODO: Get regen rate from config
@@ -190,7 +237,7 @@ public class VampireManager {
                 VampireMessages.debug("Set player " + vp.getName() + " vampire status to " + isVampire);
                 // TODO: Fire EventVampirePlayerVampireChange
                 // Save change to DB
-                plugin.getDatabaseManager().savePlayer(vp);
+                databaseManager.savePlayer(vp);
             } else {
                 VampireMessages.debug("Player " + vp.getName() + " already has vampire status " + isVampire);
             }
@@ -206,11 +253,15 @@ public class VampireManager {
      * @return The calculated maximum blood capacity.
      */
     public double getEffectiveMaxBlood(VampirePlayer vp) {
-        double baseMax = plugin.getVampireConfig().getMaxBlood();
-        double bonusPerLevel = plugin.getVampireConfig().getMaxBloodBonusPerLevel();
+        if (vp == null) {
+            VampireMessages.debug("[VampireManager] getEffectiveMaxBlood called with null VampirePlayer.");
+            // Return a default value or base config value if vp is null
+            return config.getMaxBlood(); // Or perhaps level 0/1 max blood?
+        }
         int level = vp.getVampireLevel();
-        // Ensure level is not negative if somehow set incorrectly
-        return baseMax + (Math.max(0, level) * bonusPerLevel);
+        VampireLevel levelData = levelManager.getLevelData(level);
+        VampireMessages.debug("[VampireManager] getEffectiveMaxBlood for level " + level + ": " + levelData.maxBlood());
+        return levelData.maxBlood();
     }
 
     /**
@@ -277,7 +328,7 @@ public class VampireManager {
                     // TODO: Update potion effects based on new infection level
                     // TODO: Fire EventVampirePlayerInfectionChange
                     // TODO: Decide save strategy
-                    // plugin.getDatabaseManager().savePlayer(vp); 
+                    // databaseManager.savePlayer(vp); 
                 }
             } else {
                  VampireMessages.debug("Cannot infect player " + vp.getName() + " because they are already a vampire.");
@@ -351,7 +402,7 @@ public class VampireManager {
 
                 // TODO: Fire EventVampirePlayerModeChange?
                 // TODO: Decide save strategy (save on mode change?)
-                // plugin.getDatabaseManager().savePlayer(vp);
+                // databaseManager.savePlayer(vp);
             } else {
                  VampireMessages.debug("Player " + vp.getName() + " bloodlust mode already " + bloodlusting);
             }
@@ -382,7 +433,7 @@ public class VampireManager {
 
                 // TODO: Fire EventVampirePlayerModeChange?
                 // TODO: Save?
-                // plugin.getDatabaseManager().savePlayer(vp);
+                // databaseManager.savePlayer(vp);
             } else {
                  VampireMessages.debug("Player " + vp.getName() + " intent mode already " + intending);
             }
@@ -419,8 +470,8 @@ public class VampireManager {
             }
 
             // Night Vision
-            if (vp.isUsingNightVision() && plugin.getVampireConfig().isNightVisionEnabled()) {
-                 int level = plugin.getVampireConfig().getNightVisionLevel();
+            if (vp.isUsingNightVision() && config.isNightVisionEnabled()) {
+                 int level = config.getNightVisionLevel();
                  player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                     org.bukkit.potion.PotionEffectType.NIGHT_VISION, Integer.MAX_VALUE, level - 1, true, false));
             } else {
@@ -467,7 +518,7 @@ public class VampireManager {
     public void setModeNightvision(UUID uuid, boolean nightVision) {
         VampirePlayer vp = getCachedVampirePlayer(uuid);
         // Check config *before* changing state
-        if (!plugin.getVampireConfig().isNightVisionEnabled()) {
+        if (!config.isNightVisionEnabled()) {
             // Optionally send message that it's disabled globally?
             VampireMessages.debug("Attempted to toggle night vision, but it's disabled globally.");
             // Ensure state is off if globally disabled
@@ -489,7 +540,7 @@ public class VampireManager {
 
                 // TODO: Fire EventVampirePlayerModeChange?
                 // TODO: Save?
-                // plugin.getDatabaseManager().savePlayer(vp);
+                // databaseManager.savePlayer(vp);
             } else {
                  VampireMessages.debug("Player " + vp.getName() + " night vision mode already " + nightVision);
             }
@@ -520,7 +571,7 @@ public class VampireManager {
 
         // Check Cooldown
         long now = System.currentTimeMillis();
-        long cooldownMillis = plugin.getVampireConfig().getShriekCooldown();
+        long cooldownMillis = config.getShriekCooldown();
         long timeSinceLast = now - vp.getLastShriekTime();
 
         if (timeSinceLast < cooldownMillis) {
@@ -548,10 +599,10 @@ public class VampireManager {
         }
         
         // TODO: Fire EventVampirePlayerShriek?
-        // plugin.getServer().getPluginManager().callEvent(new EventVampirePlayerShriek(vp));
+        // Bukkit.getServer().getPluginManager().callEvent(new EventVampirePlayerShriek(vp));
         
         // Save player state (because lastShriekTime changed)
-        plugin.getDatabaseManager().savePlayer(vp);
+        databaseManager.savePlayer(vp);
 
         // Send success message to shrieking player
         VampireMessages.sendLocalized(player, "shriek.perform"); // Need lang key
@@ -576,7 +627,7 @@ public class VampireManager {
         Player pTarget = (vpTarget != null) ? vpTarget.getPlayer() : null;
 
         // Initial Checks
-        if (!plugin.getVampireConfig().isGiftEnabled()) {
+        if (!config.isGiftEnabled()) {
             if(pSender != null) VampireMessages.sendLocalized(pSender, "gift.error.disabled");
             return false;
         }
@@ -606,14 +657,14 @@ public class VampireManager {
         }
         
         // Distance Check
-        double maxDist = plugin.getVampireConfig().getGiftMaxDistance();
+        double maxDist = config.getGiftMaxDistance();
         if (pSender.getLocation().distanceSquared(pTarget.getLocation()) > maxDist * maxDist) {
             VampireMessages.sendLocalized(pSender, "gift.error.too_far", pTarget.getName());
             return false;
         }
 
         // Blood Cost Check
-        double bloodCost = plugin.getVampireConfig().getGiftBloodCost();
+        double bloodCost = config.getGiftBloodCost();
         if (vpSender.getBlood() < bloodCost) {
             VampireMessages.sendLocalized(pSender, "gift.error.low_blood", String.valueOf(bloodCost));
             return false;
@@ -652,7 +703,7 @@ public class VampireManager {
 
         // Check Offer Expiry
         long offerTime = vpTarget.getPendingGiftOfferTime();
-        long toleranceMillis = plugin.getVampireConfig().getGiftOfferToleranceSeconds() * 1000L;
+        long toleranceMillis = config.getGiftOfferToleranceSeconds() * 1000L;
         if (System.currentTimeMillis() - offerTime > toleranceMillis) {
             vpTarget.clearPendingGiftOffer(); // Clear expired offer
             VampireMessages.sendLocalized(pTarget, "gift.error.offer_expired");
@@ -668,7 +719,7 @@ public class VampireManager {
         }
 
         // Re-check distance
-        double maxDist = plugin.getVampireConfig().getGiftMaxDistance();
+        double maxDist = config.getGiftMaxDistance();
         if (pSender.getLocation().distanceSquared(pTarget.getLocation()) > maxDist * maxDist) {
              vpTarget.clearPendingGiftOffer();
              VampireMessages.sendLocalized(pTarget, "gift.error.too_far", pSender.getName());
@@ -676,7 +727,7 @@ public class VampireManager {
         }
 
         // Re-check sender blood cost
-        double bloodCost = plugin.getVampireConfig().getGiftBloodCost();
+        double bloodCost = config.getGiftBloodCost();
         if (vpSender.getBlood() < bloodCost) {
             vpTarget.clearPendingGiftOffer();
             VampireMessages.sendLocalized(pTarget, "gift.error.sender_low_blood", pSender.getName());
@@ -733,6 +784,162 @@ public class VampireManager {
         }
         VampireMessages.debug("Gift offer rejected by " + pTarget.getName() + " from " + senderUUID);
         return true;
+    }
+
+    /**
+     * Sets the level of a vampire player.
+     * Ensures the player is actually a vampire before setting the level.
+     *
+     * @param playerUuid The UUID of the player.
+     * @param level The new level to set. Must be non-negative.
+     * @return True if the level was successfully set, false otherwise (e.g., player not found, not a vampire, invalid level).
+     */
+    public boolean setVampireLevel(UUID playerUuid, int level) {
+        if (level < 0) {
+            plugin.getLogger().warning("Attempted to set invalid level " + level + " for player " + playerUuid);
+            return false; // Level cannot be negative
+        }
+
+        VampirePlayer vp = getCachedVampirePlayer(playerUuid);
+        if (vp == null) {
+             // Attempt to load from DB if not in cache
+             vp = databaseManager.getPlayer(playerUuid).join();
+             if (vp == null) {
+                 plugin.getLogger().warning("Could not find player data for UUID: " + playerUuid + " to set level.");
+                 return false;
+             }
+             // Add to cache if loaded
+             vampireCache.put(playerUuid, vp);
+        }
+
+        if (!vp.isVampire()) {
+            plugin.getLogger().warning("Attempted to set level for non-vampire player: " + playerUuid);
+            return false; // Can only set level for vampires
+        }
+
+        int oldLevel = vp.getVampireLevel();
+        if (oldLevel == level) {
+             VampireMessages.debug("[VampireManager] setVampireLevel: Player " + playerUuid + " already at level " + level);
+             return true; // No change needed, but technically successful
+        }
+
+        vp.setVampireLevel(level);
+        saveOrUpdateVampirePlayer(vp); // Save changes using existing method
+
+        VampireMessages.debug("[VampireManager] setVampireLevel: Player " + playerUuid + " level changed from " + oldLevel + " to " + level);
+        // Optional: Fire a VampireLevelChangeEvent if needed elsewhere
+        // VampireLevelChangeEvent event = new VampireLevelChangeEvent(playerUuid, oldLevel, level);
+        // Bukkit.getPluginManager().callEvent(event);
+
+        return true;
+    }
+
+    // --- Load / Save / Cache --- 
+
+    /**
+     * Loads all vampire data from the database on startup.
+     * Populates the initial cache.
+     */
+    public void loadVampires() {
+        vampireCache.clear();
+        databaseManager.getAllVampires().thenAcceptAsync(players -> {
+            if (players != null) {
+                players.forEach(vp -> vampireCache.put(vp.getUuid(), vp));
+                plugin.getLogger().info("Loaded " + vampireCache.size() + " vampire player records from database.");
+            } else {
+                plugin.getLogger().warning("Failed to load player data from database (getAllVampires returned null).");
+            }
+        }).exceptionally(ex -> {
+             plugin.getLogger().log(Level.SEVERE, "Error loading player data from database.", ex);
+             return null;
+        });
+    }
+
+    /**
+     * Saves a single VampirePlayer to the database.
+     *
+     * @param vp The VampirePlayer to save.
+     */
+    public void saveOrUpdateVampirePlayer(VampirePlayer vp) {
+        if (vp == null) return;
+        databaseManager.savePlayer(vp);
+        // Update cache as well
+        vampireCache.put(vp.getUuid(), vp);
+        VampireMessages.debug("[VampireManager] Saved/Updated player data for UUID: " + vp.getUuid());
+    }
+
+    /**
+     * Saves all currently cached vampire player data to the database.
+     * Usually called periodically or on shutdown.
+     */
+    public void saveAllVampires() {
+        int count = 0;
+        for (VampirePlayer vp : vampireCache.values()) {
+            databaseManager.savePlayer(vp).join();
+            count++;
+        }
+        if (count > 0) {
+             plugin.getLogger().info("Saved data for " + count + " vampire players.");
+        }
+    }
+
+    /**
+     * Gets or creates the VampirePlayer object for a given UUID.
+     * Tries the cache first, then the database, then creates a new object if not found.
+     *
+     * @param uuid The player's UUID.
+     * @return The existing or newly created VampirePlayer object.
+     */
+    public VampirePlayer getOrCreateVampirePlayer(UUID uuid) {
+        VampirePlayer vp = getCachedVampirePlayer(uuid);
+        if (vp == null) {
+            vp = databaseManager.getPlayer(uuid).join();
+            if (vp == null) {
+                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+                String playerName = offlinePlayer.getName() != null ? offlinePlayer.getName() : "Unknown-" + uuid.toString().substring(0, 6);
+                vp = new VampirePlayer(uuid, playerName); // Create new with default values
+                 VampireMessages.debug("[VampireManager] Created new VampirePlayer object for " + playerName + " (" + uuid + ")");
+                 saveOrUpdateVampirePlayer(vp);
+            }
+            // Add to cache whether loaded from DB or newly created
+            vampireCache.put(uuid, vp);
+        }
+        return vp;
+    }
+
+    /**
+     * Removes a player from the cache (e.g., on player quit).
+     * Does NOT delete from the database.
+     *
+     * @param uuid The UUID of the player to remove from cache.
+     */
+    public void removeFromCache(UUID uuid) {
+        vampireCache.remove(uuid);
+         VampireMessages.debug("[VampireManager] Removed player " + uuid + " from cache.");
+    }
+
+    /**
+     * Retrieves all cached VampirePlayer objects.
+     *
+     * @return A collection of all cached VampirePlayers.
+     */
+    public Collection<VampirePlayer> getCachedVampires() {
+        return vampireCache.values();
+    }
+
+    // --- Utility Methods ---
+
+    /**
+     * Gets a collection of all online players who are currently vampires.
+     *
+     * @return A collection of {@link Player} objects representing online vampires.
+     */
+    public Collection<Player> getOnlineVampires() {
+        return vampireCache.values().stream()
+                .filter(VampirePlayer::isVampire)
+                .map(VampirePlayer::getPlayer)
+                .filter(p -> p != null && p.isOnline())
+                .collect(Collectors.toList());
     }
 
 } 

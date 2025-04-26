@@ -47,10 +47,16 @@ public class FxUtil
 	public static void ensureBurn(Player player, int ticks)
 	{
 		// Safety check for null player
-		if (player == null) return;
+		if (player == null) return; 
+		int currentTicks = player.getFireTicks(); // Get current ticks
+		VampireMessages.debug("[FxUtil][ensureBurn] Target: " + player.getName() + ", Requested Ticks: " + ticks + ", Current Ticks: " + currentTicks);
 		// Don't overwrite if already burning for longer or equal duration
-		if (player.getFireTicks() >= ticks) return; 
+		if (currentTicks >= ticks) {
+			VampireMessages.debug("[FxUtil][ensureBurn] Skipping setFireTicks, player already burning for longer.");
+			return; 
+		}
 		player.setFireTicks(ticks);
+		VampireMessages.debug("[FxUtil][ensureBurn] Called player.setFireTicks(" + ticks + "). New value: " + player.getFireTicks()); // Log after setting
 	}
 	
 	/**
