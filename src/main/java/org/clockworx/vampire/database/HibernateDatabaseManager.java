@@ -674,6 +674,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
         player.setLastBloodTradeType(entity.getLastBloodTradeType());
         player.setVampireLevel(entity.getVampireLevel());
         player.setMakerId(entity.getMakerId());
+        player.addTotalBloodConsumed(entity.getTotalBloodConsumed()); // Use adder method to initialize
         // Make sure to load ALL relevant fields from the entity
         // Example: player.setSomeOtherField(entity.getSomeOtherField());
         return player;
@@ -695,6 +696,8 @@ public class HibernateDatabaseManager implements DatabaseManager {
         entity.setLastBloodTradeType(player.getLastBloodTradeType());
         entity.setVampireLevel(player.getVampireLevel());
         entity.setMakerId(player.getMakerId());
+        // Ensure new field is saved
+        entity.setTotalBloodConsumed(player.getTotalBloodConsumed());
         // Make sure to save ALL relevant fields to the entity
         // Example: entity.setSomeOtherField(player.getSomeOtherField());
         return entity;

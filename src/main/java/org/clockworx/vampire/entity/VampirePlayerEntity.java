@@ -48,6 +48,9 @@ public class VampirePlayerEntity {
 
     @Column(name = "maker_id", nullable = true) // Allow null if player wasn't turned by another player
     private UUID makerId;
+
+    @Column(name = "total_blood_consumed")
+    private double totalBloodConsumed;
     // --- End New Persistent Fields ---
 
     // Default constructor required by Hibernate
@@ -107,5 +110,8 @@ public class VampirePlayerEntity {
 
     public UUID getMakerId() { return makerId; }
     public void setMakerId(UUID makerId) { this.makerId = makerId; }
+
+    public double getTotalBloodConsumed() { return totalBloodConsumed; }
+    public void setTotalBloodConsumed(double totalBloodConsumed) { this.totalBloodConsumed = totalBloodConsumed; }
     // --- End Getters and Setters for New Fields ---
 } 

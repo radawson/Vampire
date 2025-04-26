@@ -20,6 +20,7 @@ public class VampirePlayer {
     private boolean isVampire;
     private double blood;
     private int vampireLevel;
+    private double totalBloodConsumed;
 
     // Infection State
     private double infectionLevel;
@@ -62,6 +63,7 @@ public class VampirePlayer {
         this.blood = 0.0;
         this.infectionLevel = 0.0;
         this.vampireLevel = 0;
+        this.totalBloodConsumed = 0.0;
         this.infectionReason = null;
         this.infectionTime = 0L;
         this.makerId = null;
@@ -158,6 +160,21 @@ public class VampirePlayer {
     public void setVampireLevel(int vampireLevel) {
         // Add validation if needed (e.g., non-negative)
         this.vampireLevel = Math.max(0, vampireLevel);
+    }
+
+    public double getTotalBloodConsumed() {
+        return totalBloodConsumed;
+    }
+
+    /**
+     * Adds the given amount to the total blood consumed by this player.
+     * Ensures the total does not decrease.
+     * @param amount The positive amount of blood consumed.
+     */
+    public void addTotalBloodConsumed(double amount) {
+        if (amount > 0) {
+            this.totalBloodConsumed += amount;
+        }
     }
 
     // --- Infection State --- 
@@ -403,6 +420,7 @@ public class VampirePlayer {
         this.lastBloodTradePartner = source.lastBloodTradePartner;
         this.lastBloodTradeAmount = source.lastBloodTradeAmount;
         this.lastBloodTradeType = source.lastBloodTradeType;
+        this.totalBloodConsumed = source.totalBloodConsumed;
 
         // Reset runtime state fields that are not loaded from the DB
         this.bloodlusting = false;
