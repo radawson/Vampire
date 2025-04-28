@@ -94,20 +94,26 @@ public final class VampirePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save data on disable
+        // Save data on disable - initiate saves first
         if (vampireManager != null) {
-            // vampireManager.saveAllVampires(); // Method doesn't seem to exist
-            // Attempting shutdown instead, assuming it handles saving
             try {
-                 vampireManager.shutdown();
+                 vampireManager.shutdown(); // This initiates saves for cached players
             } catch (Exception e) {
-                 getLogger().log(Level.SEVERE, "Error during VampireManager shutdown in onDisable", e);
+                 getLogger().log(Level.SEVERE, "Error during VampireManager shutdown save initiation in onDisable", e);
+            }
+            
+            // NOW, wait for all initiated saves (from quit events and shutdown) to complete
+            try {
+                vampireManager.awaitPendingSaves(); 
+            } catch (Exception e) {
+                getLogger().log(Level.SEVERE, "Error occurred while awaiting pending saves during onDisable", e);
             }
         }
+        
+        // THEN, shut down database resources
         if (databaseManager != null) {
-            // databaseManager.close();
             try {
-                databaseManager.shutdown(); // Try shutdown instead of close
+                databaseManager.shutdown(); // Closes Hibernate SessionFactory/Pool
             } catch (Exception e) {
                  getLogger().log(Level.SEVERE, "Error during DatabaseManager shutdown in onDisable", e);
             }

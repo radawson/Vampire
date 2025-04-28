@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -28,6 +29,7 @@ public class VampireManager {
     private final DatabaseManager databaseManager;
     // Use ConcurrentHashMap as loading/saving might happen async
     private final Map<UUID, VampirePlayer> vampireCache = new ConcurrentHashMap<>();
+    private final Set<CompletableFuture<?>> pendingSaves = ConcurrentHashMap.newKeySet(); // Track pending save operations
 
     public VampireManager(VampirePlugin plugin) {
         this.plugin = plugin;
@@ -134,14 +136,13 @@ public class VampireManager {
 
         VampirePlayer vampirePlayer = vampireCache.remove(uuid); // Remove from cache
         if (vampirePlayer != null) {
-            // Save the player data asynchronously
-            databaseManager.savePlayer(vampirePlayer).thenRunAsync(() -> {
-                VampireMessages.debug("Successfully saved data for player: " + playerName);
-            }).exceptionally(ex -> {
-                VampireMessages.error("Failed to save data for player " + playerName + ": " + ex.getMessage(), ex);
-                // Maybe try to re-cache or flag for retry?
-                return null;
-            });
+            // Save the player data before removing from cache
+            VampireMessages.debug("Saving data for quitting player: " + vampirePlayer.getName());
+            // IMPORTANT: Use the tracking save method
+            savePlayerAndTrack(vampirePlayer); // Use the tracking method
+            
+            // Remove from cache immediately after initiating the save
+            vampireCache.remove(uuid);
         } else {
             VampireMessages.debug("Player " + playerName + " not found in cache during quit handling.");
         }
@@ -182,18 +183,22 @@ public class VampireManager {
         return CompletableFuture.completedFuture(vampireCache.get(uuid));
     }
 
+    /**
+     * Initiates shutdown procedures for the manager, including saving cached data.
+     * This might trigger asynchronous saves.
+     */
     public void shutdown() {
-        VampireMessages.debug("Shutting down VampireManager, saving remaining players...");
-        // Save all players remaining in the cache (e.g., during server stop)
-        for (VampirePlayer vp : vampireCache.values()) {
-             Player player = vp.getPlayer();
-             if (player != null) { // Get player object for permission cleanup
-                 VampirePermission.cleanupTemporaryPermissions(player);
-             }
-             databaseManager.savePlayer(vp); // Consider doing this synchronously on shutdown
-        }
-        vampireCache.clear();
-        VampireMessages.debug("VampireManager shutdown complete.");
+        // Save all currently cached online players
+        VampireMessages.debug("VampireManager shutdown initiated. Saving cached players...");
+        // Iterate online players, get their VP data, and save/track
+        plugin.getServer().getOnlinePlayers().forEach(player -> {
+            VampirePlayer vp = getCachedVampirePlayer(player.getUniqueId());
+            if (vp != null) {
+                savePlayerAndTrack(vp); // Save the VampirePlayer data
+            }
+        });
+        VampireMessages.debug("Initiated saves for cached players.");
+        // Note: Waiting happens in plugin.onDisable AFTER this is called
     }
     
     public void regenerateBlood() {
@@ -940,6 +945,58 @@ public class VampireManager {
                 .map(VampirePlayer::getPlayer)
                 .filter(p -> p != null && p.isOnline())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Saves the VampirePlayer data asynchronously.
+     */
+    public CompletableFuture<Void> saveVampirePlayer(VampirePlayer player) {
+        if (player == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        VampireMessages.debug("Attempting async save for player: " + player.getName() + " (" + player.getUuid() + ")");
+        CompletableFuture<Void> saveFuture = databaseManager.savePlayer(player)
+            .whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    VampireMessages.error("Failed to save data for player " + player.getName(), throwable);
+                }
+                // Removed the internal removal attempt
+            });
+        return saveFuture; // Return the future so caller can track
+    }
+
+    /**
+     * Saves player data, tracking the future.
+     * Call this from listeners or shutdown logic.
+     * @param player The player data to save.
+     */
+    public void savePlayerAndTrack(VampirePlayer player) {
+        if (player == null) return;
+        CompletableFuture<Void> future = saveVampirePlayer(player);
+        pendingSaves.add(future);
+        // Remove the future from the set once it's done.
+        future.whenComplete((res, err) -> pendingSaves.remove(future));
+    }
+
+    /**
+     * Waits for all tracked asynchronous save operations to complete.
+     * Should be called during plugin shutdown BEFORE closing database connections.
+     */
+    public void awaitPendingSaves() {
+        if (pendingSaves.isEmpty()) {
+            VampireMessages.debug("No pending saves to await.");
+            return;
+        }
+        VampireMessages.debug("Awaiting completion of " + pendingSaves.size() + " pending save operations...");
+        try {
+            CompletableFuture<?>[] futuresArray = pendingSaves.toArray(new CompletableFuture[0]);
+            CompletableFuture<Void> allOf = CompletableFuture.allOf(futuresArray);
+            allOf.join(); // Wait for all futures in the set to complete
+            VampireMessages.debug("All pending save operations completed.");
+        } catch (Exception e) {
+            VampireMessages.error("Error occurred while waiting for pending saves during shutdown", e);
+        }
+        pendingSaves.clear(); // Clear the set after waiting
     }
 
 } 
