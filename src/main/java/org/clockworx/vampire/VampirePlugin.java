@@ -1,6 +1,7 @@
 package org.clockworx.vampire;
 
 import java.util.logging.Level;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.clockworx.vampire.cmd.VampireCommand;
@@ -69,20 +70,21 @@ public final class VampirePlugin extends JavaPlugin {
             return;
         }
 
+        // --- Initialize Level Manager EARLY ---
+        // Needs to be ready before other managers or tasks that depend on it
+        levelManager = new LevelManager(this);
+        levelManager.loadLevels();
+
         // --- Initialize Database Abstraction Layer ---
         // This now only creates the manager instance; Hibernate session factory
         // will be initialized lazily on first use via HibernateConfig.getSessionFactory()
         initializeDatabaseManager();
 
         // --- Initialize Core Components ---
-        initializeManagers();
+        initializeManagers(); // VampireManager is initialized here
         registerCommands();
         registerListeners();
-        startTasks();
-
-        // Initialize Level Manager - AFTER Config and Messages
-        levelManager = new LevelManager(this);
-        levelManager.loadLevels();
+        startTasks(); // BloodRegenerationTask is started here
 
         getLogger().info("Vampire plugin enabled successfully!");
     }
@@ -193,7 +195,9 @@ public final class VampirePlugin extends JavaPlugin {
                 .dataSource(dbUrl, dbUser, dbPassword)
                 .locations("classpath:db/migration") // Point to migration scripts in resources
                 .encoding("UTF-8")
-                .baselineOnMigrate(true); // Creates schema history table if it doesn't exist
+                .baselineOnMigrate(true)
+                .baselineVersion("0")
+                .placeholders(Map.of("tablePrefix", tablePrefix));
 
              // Set the schema history table name with the prefix
              // Flyway's default table is flyway_schema_history

@@ -1,12 +1,15 @@
 package org.clockworx.vampire.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.util.UUID;
 
 @Entity
-@Table(name = "vampire_players")
+@Table(name = "players") // Explicitly define the base table name
 public class VampirePlayerEntity {
     @Id
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Ensure UUID is stored as VARCHAR
     private UUID uuid;
     
     @Column(nullable = false)
@@ -34,6 +37,7 @@ public class VampirePlayerEntity {
     private long lastBloodTradeTime;
     
     @Column(name = "last_blood_trade_partner")
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Ensure UUID is stored as VARCHAR
     private UUID lastBloodTradePartner;
     
     @Column(name = "last_blood_trade_amount")
@@ -47,6 +51,7 @@ public class VampirePlayerEntity {
     private int vampireLevel;
 
     @Column(name = "maker_id", nullable = true) // Allow null if player wasn't turned by another player
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Ensure UUID is stored as VARCHAR
     private UUID makerId;
 
     @Column(name = "total_blood_consumed")

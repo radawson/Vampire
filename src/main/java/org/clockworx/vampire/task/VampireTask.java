@@ -12,6 +12,7 @@ import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.SunUtil;
 import org.clockworx.vampire.util.VampireMessages;
+import org.clockworx.vampire.VampirePermission;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -77,6 +78,7 @@ public class VampireTask extends BukkitRunnable {
                 continue;
             }
             
+            plugin.getLogger().info("Updating vampire player: " + vampirePlayer.getName());
             updatePlayer(vampirePlayer, delta);
         }
     }
@@ -88,13 +90,14 @@ public class VampireTask extends BukkitRunnable {
      * @param delta The time since the last update in milliseconds
      */
     private void updatePlayer(VampirePlayer vampirePlayer, long delta) {
+        VampireMessages.debug(String.format("[VampireTask][UpdatePlayer] Updating vampire player: %s", vampirePlayer.getName()));
         Player player = vampirePlayer.getPlayer();
         if (player == null || !player.isValid()) {
             return;
         }
         
         if (player.getGameMode() == org.bukkit.GameMode.CREATIVE || 
-            player.hasPermission("vampire.bypass")) {
+            player.hasPermission(VampirePermission.BYPASS)) {
             return;
         }
         
@@ -107,6 +110,7 @@ public class VampireTask extends BukkitRunnable {
         updateBloodlust(vampirePlayer, player, deltaSeconds);
         updateNightVision(vampirePlayer, player, deltaSeconds);
         updateInfection(vampirePlayer, player, deltaSeconds);
+        VampireMessages.debug(String.format("[VampireTask][UpdateEnvironmentalDamage] Updating environmental damage for %s", vampirePlayer.getName()));
         updateEnvironmentalDamage(vampirePlayer, player, deltaSeconds);
 
         // NEW: Update food bar visual
@@ -372,7 +376,8 @@ public class VampireTask extends BukkitRunnable {
         VampireMessages.debug("[Sun Check] Player: " + player.getName() + ", BaseDamage: " + baseDamagePerSecond + ", Delta: " + deltaSeconds + ", Calculated Damage: " + String.format("%.3f", damage));
         
         // Apply Potion Effects based on thresholds
-        int effectDurationTicks = (int)(40 * deltaSeconds); // Short duration, ~2 seconds if task delay is 20 ticks
+        // int effectDurationTicks = (int)(40 * deltaSeconds); // Short duration, ~2 seconds if task delay is 20 ticks
+        int effectDurationTicks = 60; // NEW: Set a fixed, noticeable duration (e.g., 3 seconds)
         if (irradiation > plugin.getVampireConfig().getSunlightWeaknessThreshold()) {
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                 org.bukkit.potion.PotionEffectType.WEAKNESS, effectDurationTicks, 0, true, false));

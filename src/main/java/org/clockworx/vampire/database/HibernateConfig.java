@@ -2,6 +2,7 @@ package org.clockworx.vampire.database;
 
 import java.util.Properties;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.clockworx.vampire.VampirePlugin;
 import org.hibernate.SessionFactory;
@@ -49,42 +50,42 @@ public class HibernateConfig {
                 Properties settings = new Properties();
 
                 // Common settings
-                settings.put(Environment.SHOW_SQL, plugin.getVampireConfig().isDebug() ? "true" : "false"); // Show SQL if debug is on
-                settings.put(Environment.HBM2DDL_AUTO, "validate"); // Validate schema against entities
+                settings.put(Environment.SHOW_SQL, "false");
+                settings.put(Environment.HBM2DDL_AUTO, "none");
                 settings.put(Environment.CURRENT_SESSION_CONTEXT_CLASS, "thread");
 
                 // Apply Table Prefix
                 settings.put(Environment.PHYSICAL_NAMING_STRATEGY, new PrefixPhysicalNamingStrategy(tablePrefix));
                 plugin.getLogger().log(Level.INFO, "Applying Hibernate table prefix: '" + tablePrefix + "'");
 
+                // Configure Hibernate Logging
+                Level sqlLogLevel = plugin.getVampireConfig().isDebug() ? Level.FINE : Level.INFO;
+                Logger.getLogger("org.hibernate.SQL").setLevel(sqlLogLevel);
+                Logger.getLogger("org.hibernate.orm.jdbc.bind").setLevel(sqlLogLevel);
+                plugin.getLogger().log(Level.INFO, "Redirected Hibernate SQL logging to logger at level: " + sqlLogLevel.getName());
+
                 // Database-specific settings
                 if ("mysql".equalsIgnoreCase(dbType)) {
                     plugin.getLogger().log(Level.INFO, "Configuring Hibernate for MySQL...");
-                    settings.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect"); // Standard MySQL dialect
+                    settings.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
                     settings.put(Environment.CONNECTION_PROVIDER, "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
 
                     // Hikari Specific Properties
                     settings.put("hibernate.hikari.jdbcUrl", dbUrl);
                     settings.put("hibernate.hikari.username", dbUser);
                     settings.put("hibernate.hikari.password", dbPassword);
-                    settings.put("hibernate.hikari.driverClassName", "com.mysql.cj.jdbc.Driver"); // Explicitly set driver
+                    settings.put("hibernate.hikari.driverClassName", "com.mysql.cj.jdbc.Driver");
                     settings.put("hibernate.hikari.maximumPoolSize", "10");
                     settings.put("hibernate.hikari.minimumIdle", "5");
-                    settings.put("hibernate.hikari.idleTimeout", "300000"); // 5 minutes
-                    settings.put("hibernate.hikari.connectionTimeout", "10000"); // 10 seconds
+                    settings.put("hibernate.hikari.idleTimeout", "300000");
+                    settings.put("hibernate.hikari.connectionTimeout", "10000");
                     settings.put("hibernate.hikari.autoCommit", "true");
 
                 } else if ("sqlite".equalsIgnoreCase(dbType)) {
                     plugin.getLogger().log(Level.INFO, "Configuring Hibernate for SQLite...");
                     settings.put(Environment.DIALECT, "org.hibernate.community.dialect.SQLiteDialect");
-                    // For SQLite, typically don't use HikariCP, specify driver and url directly
-                    // settings.put(Environment.DRIVER, "org.sqlite.JDBC"); // Deprecated - Hibernate infers from URL
                     settings.put("jakarta.persistence.jdbc.url", dbUrl);
-                    // SQLite doesn't usually need user/password
-                    
-                    // Add specific settings for SQLite to improve performance/compatibility if needed
-                    settings.put("hibernate.connection.autocommit", "true"); 
-                    // settings.put("hibernate.connection.isolation", "READ_UNCOMMITTED"); // Potential performance gain, check implications
+                    settings.put("hibernate.connection.autocommit", "true");
 
                 } else if ("postgres".equalsIgnoreCase(dbType) || "postgresql".equalsIgnoreCase(dbType)) {
                     plugin.getLogger().log(Level.INFO, "Configuring Hibernate for PostgreSQL...");
@@ -95,11 +96,11 @@ public class HibernateConfig {
                     settings.put("hibernate.hikari.jdbcUrl", dbUrl);
                     settings.put("hibernate.hikari.username", dbUser);
                     settings.put("hibernate.hikari.password", dbPassword);
-                    settings.put("hibernate.hikari.driverClassName", "org.postgresql.Driver"); // Explicitly set driver
+                    settings.put("hibernate.hikari.driverClassName", "org.postgresql.Driver");
                     settings.put("hibernate.hikari.maximumPoolSize", "10");
                     settings.put("hibernate.hikari.minimumIdle", "5");
-                    settings.put("hibernate.hikari.idleTimeout", "300000"); // 5 minutes
-                    settings.put("hibernate.hikari.connectionTimeout", "10000"); // 10 seconds
+                    settings.put("hibernate.hikari.idleTimeout", "300000");
+                    settings.put("hibernate.hikari.connectionTimeout", "10000");
                     settings.put("hibernate.hikari.autoCommit", "true");
 
                 } else {
@@ -115,16 +116,14 @@ public class HibernateConfig {
 
                 // Build session factory
                 sessionFactory = configuration.buildSessionFactory();
-                initialized = true; // Mark as initialized SUCCESSFULLY
+                initialized = true;
                 plugin.getLogger().log(Level.INFO, "Hibernate SessionFactory built successfully.");
 
             } catch (Throwable ex) {
                 plugin.getLogger().log(Level.SEVERE, "Failed to initialize Hibernate SessionFactory: " + ex.getMessage(), ex);
-                // Do not set initialized = true on failure
-                // Rethrow or handle more gracefully if needed for plugin startup flow
                 throw new ExceptionInInitializerError(ex);
             }
-        } // End synchronized block
+        }
     }
 
     /**
@@ -137,33 +136,27 @@ public class HibernateConfig {
      */
     public static SessionFactory getSessionFactory() {
         if (!initialized) {
-            // Attempt initialization if not already done
             VampirePlugin pluginInstance = VampirePlugin.getPlugin(VampirePlugin.class);
             if (pluginInstance == null) {
-                 // This should ideally not happen if called after onEnable starts
                  throw new IllegalStateException("Cannot initialize Hibernate: VampirePlugin instance not available.");
             }
-            // initializeInternal is synchronized and handles the initialization logic
             initializeInternal(pluginInstance);
         }
-        // After attempting initialization (or if already initialized), check if successful
-         if (sessionFactory == null) {
-             // If initialization failed inside initializeInternal, sessionFactory will be null
+        if (sessionFactory == null) {
              throw new IllegalStateException("Hibernate SessionFactory could not be initialized. Check previous logs for errors.");
          }
         return sessionFactory;
     }
-
 
     /**
      * Shuts down Hibernate by closing the SessionFactory if it exists and is open.
      * Resets the initialized state.
      */
     public static void shutdown() {
-        synchronized (initLock) { // Synchronize shutdown as well
+        synchronized (initLock) {
             if (sessionFactory != null && !sessionFactory.isClosed()) {
                 VampirePlugin pluginInstance = VampirePlugin.getPlugin(VampirePlugin.class);
-                if (pluginInstance != null) { // Log only if plugin is still available
+                if (pluginInstance != null) {
                      pluginInstance.getLogger().log(Level.INFO, "Shutting down Hibernate SessionFactory...");
                 }
                 try {
@@ -174,7 +167,6 @@ public class HibernateConfig {
                      }
                 }
             }
-            // Reset state regardless of whether it was closed successfully
             sessionFactory = null;
             initialized = false;
         }

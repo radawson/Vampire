@@ -729,12 +729,15 @@ public class VampireConfig {
     
     // Getters for block opacity settings
     public double getBlockOpacity(Material material) {
-        // Default to 0.0 (fully transparent) if material not explicitly defined
-        // Special case: Treat AIR as explicitly 0.0, though getOrDefault should handle it.
-        if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
-            return 0.0;
+        // Default to 1.0 (fully opaque) if material not explicitly defined
+        if (material == null) { // Add null check just in case
+            return 1.0;
         }
-        return blockOpacity.getOrDefault(material, 0.0); 
+        // Special case check for AIR types is redundant now as they are in the config map
+        // if (material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR) {
+        //    return 0.0;
+        // }
+        return blockOpacity.getOrDefault(material, 1.0); // <-- Correct Default: 1.0
     }
     
     /**

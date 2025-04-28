@@ -1,5 +1,6 @@
  # Vampire Level Progression Plan
         # Defines stats and abilities gained at each level.
+        version: ${version}
         levels:
           '0': # Level number as the key
             description: "Recently turned"

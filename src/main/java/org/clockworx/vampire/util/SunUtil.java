@@ -163,9 +163,10 @@ public class SunUtil
 			Material material = world.getBlockAt(x, y, z).getBlockData().getMaterial(); // MODERN API
 			// Get opacity value from plugin config. getBlockOpacity returns a primitive double (defaulting to 0.0).
 			double opacity = plugin.getVampireConfig().getBlockOpacity(material);
-			// --- Add Debug --- 
-			if (opacity > 0) { // Only log blocks that contribute opacity
-				VampireMessages.debug(String.format("[SunUtil][Terrain] Block at y=%d: %s, Opacity: %.3f, Current Total: %.3f", y, material.name(), opacity, ret));
+			// --- Modify Debug --- 
+			if (opacity > 0.0)
+			{
+				VampireMessages.debug(String.format("[SunUtil][Terrain] Checked y=%d: %s, Opacity returned: %.3f, Current Total: %.3f", y, material.name(), opacity, ret));
 			}
 			// --- End Debug ---
 			ret += opacity;

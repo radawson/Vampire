@@ -103,6 +103,8 @@ public class VampirePermission {
     public static final String FLASK_HOLYWATER = "vampire.flask.holywater";
     /** Allows toggling debug mode via command at runtime. */
     public static final String DEBUG_TOGGLE = "vampire.debug.toggle";
+    /** Allows bypassing vampire updates/effects (damage, drain, etc.). Should be used sparingly. */
+    public static final String BYPASS = "vampire.bypass";
     
     /**
      * Stores registered permission objects (Node -> Permission). 
@@ -193,6 +195,7 @@ public class VampirePermission {
         registerPermission(pm, RESET, "Allows resetting player vampire data (admin)", PermissionDefault.OP);
         registerPermission(pm, FLASK_HOLYWATER, "Allows creating Holy Water (admin command)", PermissionDefault.OP);
         registerPermission(pm, DEBUG_TOGGLE, "Allows toggling debug mode via command", PermissionDefault.OP);
+        registerPermission(pm, BYPASS, "Bypasses vampire effects and updates", PermissionDefault.FALSE);
 
         // --- Setup Parent-Child Relationships ---
         // Automatically done by registerPermission based on node structure.

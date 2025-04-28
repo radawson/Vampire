@@ -6,6 +6,7 @@ import org.hibernate.engine.jdbc.env.spi.JdbcEnvironment;
 
 /**
  * A Hibernate PhysicalNamingStrategy that adds a configured prefix to all table names.
+ * Ensures the prefix is applied *after* the standard conversion (e.g., CamelCase to snake_case).
  * Used to avoid naming collisions in shared databases.
  */
 public class PrefixPhysicalNamingStrategy extends PhysicalNamingStrategyStandardImpl {
@@ -22,12 +23,23 @@ public class PrefixPhysicalNamingStrategy extends PhysicalNamingStrategyStandard
 
     @Override
     public Identifier toPhysicalTableName(Identifier logicalName, JdbcEnvironment context) {
-        if (logicalName == null) {
+        // 1. Get the standard physical name without the prefix (e.g., "vampire_player_entity")
+        Identifier standardPhysicalName = super.toPhysicalTableName(logicalName, context);
+
+        if (standardPhysicalName == null) {
             return null;
         }
-        // Apply prefix only if it's not empty
-        String prefixedName = tablePrefix.isEmpty() ? logicalName.getText() : tablePrefix + logicalName.getText();
-        // Return the identifier, respecting case sensitivity settings from standard strategy
-        return super.toPhysicalTableName(Identifier.toIdentifier(prefixedName), context);
+
+        // 2. Apply prefix only if it's not empty
+        String prefixedName = tablePrefix.isEmpty() 
+            ? standardPhysicalName.getText() 
+            : tablePrefix + standardPhysicalName.getText();
+        
+        // 3. Use the context's identifier helper to create the final Identifier.
+        return context.getIdentifierHelper().toIdentifier(prefixedName);
     }
+
+    // Optional: Apply the same logic to other naming strategy methods if needed
+    // (e.g., toPhysicalSequenceName, toPhysicalColumnName, etc.)
+    // For now, we only focus on table names as that was the issue.
 } 

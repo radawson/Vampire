@@ -260,7 +260,7 @@ public class VampireManager {
         }
         int level = vp.getVampireLevel();
         VampireLevel levelData = levelManager.getLevelData(level);
-        VampireMessages.debug("[VampireManager] getEffectiveMaxBlood for level " + level + ": " + levelData.maxBlood());
+        //VampireMessages.debug("[VampireManager] getEffectiveMaxBlood for level " + level + ": " + levelData.maxBlood());
         return levelData.maxBlood();
     }
 

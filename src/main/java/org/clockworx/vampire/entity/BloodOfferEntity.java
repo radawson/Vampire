@@ -1,19 +1,23 @@
 package org.clockworx.vampire.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.util.UUID;
 
 @Entity
-@Table(name = "blood_offers")
+@Table(name = "blood_offers") // REMOVED: Let Hibernate derive name + prefix strategy apply
 public class BloodOfferEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @Column(name = "sender_uuid", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Ensure UUID is stored as VARCHAR
     private UUID senderUuid;
     
     @Column(name = "target_uuid", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR) // Ensure UUID is stored as VARCHAR
     private UUID targetUuid;
     
     @Column(nullable = false)
