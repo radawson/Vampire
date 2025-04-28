@@ -6,13 +6,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.SunUtil;
 import org.clockworx.vampire.util.VampireMessages;
-import org.clockworx.vampire.VampirePermission;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -78,7 +78,7 @@ public class VampireTask extends BukkitRunnable {
                 continue;
             }
             
-            plugin.getLogger().info("Updating vampire player: " + vampirePlayer.getName());
+            VampireMessages.debug(String.format("[VampireTask][Run] Updating vampire player: %s", vampirePlayer.getName()));
             updatePlayer(vampirePlayer, delta);
         }
     }
