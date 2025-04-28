@@ -3,6 +3,7 @@ package org.clockworx.vampire.cmd;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.bukkit.command.Command;
@@ -18,16 +19,19 @@ public class CmdVampireHelp extends VCommand {
     
     // Define base permission needed for any help
     private static final String BASE_HELP_PERMISSION = VampirePermission.HELP_COMMAND;
+    private final Map<String, VCommand> registeredSubcommands;
 
     /**
      * Creates a new help command.
      * 
      * @param plugin The plugin instance
+     * @param subcommands A map of registered subcommands (lowercase name -> VCommand instance)
      */
-    public CmdVampireHelp(VampirePlugin plugin) {
+    public CmdVampireHelp(VampirePlugin plugin, Map<String, VCommand> subcommands) {
         // Pass the base permission required to use the help command at all
         super(plugin, "help", BASE_HELP_PERMISSION, 
               "Displays command help or lore information", "[topic]");
+        this.registeredSubcommands = subcommands; // Store the map
         // Aliases can be set here if needed
         // setAliases(Arrays.asList("?")); 
         // Set usage message key
@@ -67,27 +71,53 @@ public class CmdVampireHelp extends VCommand {
      * Sends the list of available commands to the sender.
      */
     private void sendHelpList(CommandSender sender) {
-        // Get the header message
-        VampireMessages.sendLocalized(sender, "command.help.header");
+        // Get the header message, mentioning the alias
+        VampireMessages.sendLocalized(sender, "command.help.header_alias"); // Assuming key exists: "&6--- Vampire Help (Alias: /v) ---&r"
 
-        // Get registered subcommands from the base VCommand class
-        // This requires access to the registered subcommands map, maybe add a getter to VCommand?
-        // For now, let's assume we can get them or list them manually based on language file.
+        List<String> helpLines = new ArrayList<>();
+
+        // Add standard subcommands the sender has permission for
+        // Sort by name for consistent order
+        registeredSubcommands.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> {
+                String name = entry.getKey();
+                VCommand cmd = entry.getValue();
+                if (sender.hasPermission(cmd.getPermission())) {
+                    // Format: /vampire <name> <usage> - <description>
+                    String usage = cmd.getUsage().isEmpty() ? "" : " " + cmd.getUsage();
+                    helpLines.add(VampireMessages.getLocalizedMessage("command.help.line_format", name, usage, cmd.getDescription()));
+                }
+            });
+
+        // Add mode shortcuts if sender has permission for them
+        CmdVampireMode modeHandler = (CmdVampireMode) registeredSubcommands.get("mode");
+        if (modeHandler != null) {
+            for (String modeName : Arrays.asList("intent", "bloodlust", "nightvision")) {
+                CmdVampireModeAbstract specificModeCmd = modeHandler.getSpecificModeCommand(modeName);
+                if (specificModeCmd != null && sender.hasPermission(specificModeCmd.getPermission())) {
+                    // Format: /vampire <modeName> - <description>
+                    // Check if it's already listed (it shouldn't be, as they aren't direct subcommands)
+                    String shortcutLine = VampireMessages.getLocalizedMessage("command.help.line_format_shortcut", 
+                        modeName, specificModeCmd.getDescription()); // Assuming key exists: "&e/vampire %1$s &7- %2$s"
+                    if (!helpLines.contains(shortcutLine)) { // Basic check to avoid duplicates if logic changes
+                         helpLines.add(shortcutLine);
+                    }
+                }
+            }
+        }
         
-        // Example: Manually listing based on keys in language file
-        VampireMessages.sendLocalized(sender, "command.help.info");
-        VampireMessages.sendLocalized(sender, "command.help.list");
-        VampireMessages.sendLocalized(sender, "command.help.offer");
-        VampireMessages.sendLocalized(sender, "command.help.accept");
-        // ... list other commands defined in en.yml command.help section ...
-        VampireMessages.sendLocalized(sender, "command.help.mode");
-        VampireMessages.sendLocalized(sender, "command.help.shriek");
-        VampireMessages.sendLocalized(sender, "command.help.reload");
-        // Add more as needed
+        // Sort the combined list alphabetically? Or keep standard commands first?
+        // Let's keep standard commands first, then shortcuts as found.
+
+        // Send the formatted lines
+        for (String line : helpLines) {
+            sender.sendMessage(line); // Send pre-formatted message
+        }
 
         // Add info about lore help if they have permission
         if (sender.hasPermission(VampirePermission.HELP_LORE)) {
-            VampireMessages.sendLocalized(sender, "command.help.lore_hint"); // Need to add this key to en.yml
+            VampireMessages.sendLocalized(sender, "command.help.lore_hint");
         }
     }
 

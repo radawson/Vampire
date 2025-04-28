@@ -28,11 +28,19 @@ public abstract class CmdVampireModeAbstract extends VCommand {
      * @param permission The permission required to use this command
      * @param description A brief description of the command.
      * @param usage A string indicating the command's arguments/usage pattern.
+     * @param toggleable Whether the command represents a toggleable state.
      */
-    public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission, String description, String usage) {
-        super(plugin, modeName.toLowerCase(), permission, description, usage);
+    public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission, String description, String usage, boolean toggleable) {
+        super(plugin, modeName.toLowerCase(), permission, description, usage, toggleable);
         this.modeName = modeName;
         this.vampireManager = plugin.getVampireManager();
+    }
+
+    /**
+     * Overloaded constructor, defaulting toggleable to false.
+     */
+    public CmdVampireModeAbstract(VampirePlugin plugin, String modeName, String permission, String description, String usage) {
+        this(plugin, modeName, permission, description, usage, false);
     }
 
     @Override

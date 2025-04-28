@@ -2,7 +2,7 @@
 # Vampire Plugin Language File
 # Use & for color codes
 # Use %variable% for placeholders
-version: "${version}"
+version: ${version}
 
 general:
   prefix: "&8[&cVampire&8]"
@@ -127,22 +127,18 @@ command:
       success: "&aYou sacrifice some of your blood to create a Blood Vial."
       holy_success: "&aYou have created Holy Water."
       inventory_full_holy: "&cInventory full! Holy Water dropped nearby."
+      invalid_vial_type: "&cInvalid vial type. Use 'blood' or 'holy'."
+      failed_to_create_item: "&cFailed to create the requested item."
 
   help:
-    header: "&7=== &cVampire Commands &7==="
-    no_base_permission: "&cYou do not have permission to use Vampire commands."
-    info: "&7/vampire info &8- &fShow plugin information"
-    list: "&7/vampire list [page] &8- &fShow list of vampires"
-    offer: "&7/vampire offer <player> <amount> &8- &fOffer blood to a player"
-    accept: "&7/vampire accept &8- &fAccept a blood offer"
-    reject: "&7/vampire reject &8- &fReject a blood offer"
-    shriek: "&7/vampire shriek &8- &fShriek to infect nearby players"
-    mode: "&7/vampire mode <bloodlust|nightvision|intent> &8- &fSet vampire mode"
-    reload: "&7/vampire reload &8- &fReload plugin configuration"
-    format: "&7/%1% %2% &8- &f%3%"
-    show: "&7/vampire show [player] &8- &fShow detailed status if player is a vampire"
-    set: "&7/vampire set <type> <value> [player] &8- &fSet vampire properties"
-    lore_hint: "&7Use &f/vampire help <topic>&7 for more information on specific topics"
+    header_alias: "&6--- Vampire Help (Alias: /v) ---"
+    # Format: %1$s=name, %2$s=usage, %3$s=description
+    line_format: "&e/vampire %1$s%2$s &7- %3$s" 
+    # Format: %1$s=modeName, %2$s=description
+    line_format_shortcut: "&e/vampire %1$s &7- %2$s" 
+    lore_hint: "&7Use &e/vampire help <topic> &7for more info on mechanics."
+    topic_not_found: "&cHelp topic '%1$s' not found."
+    no_base_permission: "&cYou do not have permission to view help."
     lore:
       # Example entry for blood regeneration
       blood_regeneration:
@@ -251,6 +247,8 @@ command:
     invalid_non_negative: "&cInvalid value: '%1%'. Must be a non-negative number."
     invalid_non_negative_int: "&cInvalid value: '%1%'. Must be a non-negative whole number."
     unknown_set_type: "&cUnknown set type: '%1%'. Valid types: vampire, infection, blood, level."
+    empty_input: "&cInput cannot be empty."
+    number_range: "&cValue must be between %1$s and %2$s."
 
 bloodlust:
   activated: "&cBloodlust Mode activated!"
@@ -293,12 +291,12 @@ gift:
 item:
   blood_vial:
     name: "&cBlood Vial"
-    lore1: "&7A vial filled with potent vampire blood."
-    lore2: "&7Right-click to throw..."
+    lore1: "&7A vial containing potent vampire blood."
+    lore2: "&7Use with caution..."
   holy_water:
     name: "&bHoly Water"
     lore1: "&7Blessed water, harmful to the undead."
-    lore2: "&7Right-click to throw..."
+    lore2: "&7May cure infection."
 
 # Mode messages
 mode:
@@ -312,6 +310,4 @@ mode:
   nightvision:
     activated: "&cNight Vision Mode activated!"
     deactivated: "&7Night Vision Mode deactivated"
-
-
   

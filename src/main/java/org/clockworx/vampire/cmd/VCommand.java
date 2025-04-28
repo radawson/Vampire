@@ -46,13 +46,18 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
     protected final String description;
 
     /**
+     * Whether the command is toggleable.
+     */
+    protected final boolean toggleable;
+
+    /**
      * A string indicating the command's arguments/usage pattern.
      * Example: "<player> <value>"
      */
     protected final String usage;
     
     /**
-     * Creates a new command.
+     * Creates a new command, defaulting toggleable to false.
      * 
      * @param plugin The plugin instance
      * @param name The command name
@@ -61,11 +66,26 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      * @param usage A string indicating the command's arguments/usage pattern (e.g., "<player> <value>"). Leave empty ("") if no arguments.
      */
     public VCommand(VampirePlugin plugin, String name, String permission, String description, String usage) {
+        this(plugin, name, permission, description, usage, false);
+    }
+
+    /**
+     * Creates a new command with an explicit toggleable setting.
+     * 
+     * @param plugin The plugin instance
+     * @param name The command name
+     * @param permission The permission required to use the command
+     * @param description A brief description of the command.
+     * @param usage A string indicating the command's arguments/usage pattern.
+     * @param toggleable Whether this command represents a toggleable state.
+     */
+    public VCommand(VampirePlugin plugin, String name, String permission, String description, String usage, boolean toggleable) {
         this.plugin = plugin;
         this.name = name;
         this.permission = permission;
         this.description = description;
-        this.usage = (usage != null) ? usage : ""; // Ensure usage is not null
+        this.toggleable = toggleable;
+        this.usage = (usage != null) ? usage : "";
     }
     
     /**
@@ -102,6 +122,15 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      */
     public String getUsage() {
         return usage;
+    }
+    
+    /**
+     * Checks if this command is marked as toggleable.
+     * 
+     * @return true if the command is toggleable, false otherwise.
+     */
+    public boolean isToggleable() {
+        return toggleable;
     }
     
     /**

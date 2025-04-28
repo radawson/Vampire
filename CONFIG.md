@@ -324,4 +324,26 @@ items:
 
 ---
 
+## Vampire Level System (`levels.yml`)
+
+This file defines the progression path for vampires. Each level can grant different stats, abilities, or modify existing mechanics.
+
+**Structure:**
+- The file contains a `levels:` map.
+- Each key under `levels:` is the level number (as a string, e.g., '0', '1').
+- Each level has nested keys defining its properties.
+
+**Current Properties (WIP):**
+- `description`: A short text description for the level (used in `/vampire show`).
+- `max_blood`: The maximum blood capacity at this level.
+- `blood_regen_rate`: A multiplier applied to the base blood regeneration rate from `config.yml`.
+- `sun_modifier`: A multiplier applied to incoming sun damage (1.0 = normal, <1.0 = less damage, >1.0 = more damage).
+- `speed_boost`: A multiplier intended to affect movement speed (Implementation likely uses potion effects).
+- `can_use_shriek`: Boolean (`true`/`false`) determining if the shriek ability is usable.
+- `shriek_cooldown_modifier`: A multiplier applied to the base shriek cooldown from `config.yml` (e.g., 0.8 = 20% shorter cooldown).
+
+*More stats and ability flags may be added to this system in the future.*
+
+---
+
 *This covers the main configuration sections. Refer to the `config.yml` file itself for all available options and default values.* 

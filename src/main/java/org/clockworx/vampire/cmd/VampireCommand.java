@@ -36,7 +36,7 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         // Register subcommands
         registerSubcommand(new CmdVampireAcceptGift(plugin));
         registerSubcommand(new CmdVampireFlask(plugin));
-        registerSubcommand(new CmdVampireHelp(plugin));
+        registerSubcommand(new CmdVampireHelp(plugin, this.subcommands));
         registerSubcommand(new CmdVampireInfo(plugin));
         registerSubcommand(new CmdVampireList(plugin));
         registerSubcommand(new CmdVampireMode(plugin));
@@ -92,29 +92,59 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         String subcommandName = args[0].toLowerCase();
         VCommand cmd = subcommands.get(subcommandName);
         
+        // Check for direct command execution or potential toggle shortcuts
         if (cmd == null) {
-             VampireMessages.sendLocalized(sender, "command.error.unknown_subcommand", subcommandName);
+            // Check if the input name matches any registered TOGGLEABLE command
+            for (VCommand potentialToggleCmd : subcommands.values()) {
+                if (potentialToggleCmd.isToggleable() && potentialToggleCmd.getName().equalsIgnoreCase(subcommandName)) {
+                    // Found a match! Execute it as a shortcut.
+                    cmd = potentialToggleCmd;
+                    break;
+                }
+            }
+            // If we found a toggleable command via the loop, cmd is no longer null
+        }
+
+        // Proceed if a command (regular or toggle shortcut) was found
+        if (cmd != null) {
+            if (!sender.hasPermission(cmd.getPermission())) {
+                VampireMessages.sendLocalized(sender, "command.no_permission");
+                return true;
+            }
+            // Determine arguments: empty for toggle shortcuts, subArgs otherwise
+            String[] executionArgs = (cmd.isToggleable() && cmd.getName().equalsIgnoreCase(subcommandName)) 
+                                     ? new String[0] 
+                                     : Arrays.copyOfRange(args, 1, args.length);
+            return cmd.execute(sender, command, label, executionArgs);
+        } else {
+            // No matching subcommand or toggleable command found
+            VampireMessages.sendLocalized(sender, "command.error.unknown_subcommand", subcommandName);
             return true;
         }
-        
-        if (!sender.hasPermission(cmd.getPermission())) {
-             VampireMessages.sendLocalized(sender, "command.no_permission");
-            return true;
-        }
-        
-        String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
-        return cmd.execute(sender, command, label, subArgs);
     }
     
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             String input = args[0].toLowerCase();
-            return subcommands.keySet().stream()
+            // Get standard subcommands sender has permission for
+            List<String> suggestions = subcommands.keySet().stream()
                 .filter(name -> name.startsWith(input))
                 .filter(name -> sender.hasPermission(subcommands.get(name).getPermission()))
-                .sorted()
+                .filter(name -> !subcommands.get(name).isToggleable())
                 .collect(Collectors.toList());
+            
+            // Add any toggleable command shortcuts the sender has permission for
+            for (VCommand toggleCmd : subcommands.values()) {
+                if (toggleCmd.isToggleable() && toggleCmd.getName().startsWith(input) && sender.hasPermission(toggleCmd.getPermission())) {
+                    if (!suggestions.contains(toggleCmd.getName())) { // Avoid duplicates
+                        suggestions.add(toggleCmd.getName());
+                    }
+                }
+            }
+            
+            suggestions.sort(String.CASE_INSENSITIVE_ORDER);
+            return suggestions;
         }
         
         if (args.length > 1) {

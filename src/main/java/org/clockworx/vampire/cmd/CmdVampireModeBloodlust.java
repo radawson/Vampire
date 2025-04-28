@@ -25,7 +25,7 @@ public class CmdVampireModeBloodlust extends CmdVampireModeAbstract
     public CmdVampireModeBloodlust(VampirePlugin plugin)
     {
         super(plugin, "Bloodlust", VampirePermission.MODE_BLOODLUST, 
-              "Toggle bloodlust mode (combat boost)", "");
+              "Toggle bloodlust mode (combat boost)", "", true);
     }
     
     @Override

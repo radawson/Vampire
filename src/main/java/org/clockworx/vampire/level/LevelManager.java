@@ -78,6 +78,8 @@ public class LevelManager {
                 double speedBoost = section.getDouble("speed_boost", 1.0);
                 boolean canUseShriek = section.getBoolean("can_use_shriek", true);
                 double shriekCooldownModifier = section.getDouble("shriek_cooldown_modifier", 1.0);
+                // Load fall damage reduction, defaulting to 0.0
+                double fallDamageReduction = section.getDouble("fall_damage_reduction", 0.0);
 
                 // Create and store the VampireLevel object
                 VampireLevel levelData = new VampireLevel(
@@ -88,8 +90,8 @@ public class LevelManager {
                     sunModifier,
                     speedBoost,
                     canUseShriek,
-                    shriekCooldownModifier
-                    // Add other fields here...
+                    shriekCooldownModifier,
+                    fallDamageReduction
                 );
                 levelDataMap.put(level, levelData);
                 VampireMessages.debug("Loaded level " + level + ": " + levelData);

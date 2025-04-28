@@ -159,7 +159,7 @@ tasks {
     
     // Process resources
     processResources {
-        filesMatching(listOf("*.yml", "languages/**")) {
+        filesMatching(listOf("config.yml", "plugin.yml", "levels.yml", "languages/**")) {
             expand(
                 "version" to project.version
             )

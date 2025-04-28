@@ -5,10 +5,14 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.clockworx.vampire.VampirePermission;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.level.LevelManager;
+import org.clockworx.vampire.level.VampireLevel;
 import org.clockworx.vampire.manager.VampireManager;
 import org.clockworx.vampire.util.FxUtil;
 import org.clockworx.vampire.util.SunUtil;
@@ -25,6 +29,7 @@ public class VampireTask extends BukkitRunnable {
     
     private final VampirePlugin plugin;
     private final VampireManager vampireManager;
+    private final LevelManager levelManager;
     private int taskId = -1;
     private long lastRun = 0;
     
@@ -36,6 +41,7 @@ public class VampireTask extends BukkitRunnable {
     public VampireTask(VampirePlugin plugin) {
         this.plugin = plugin;
         this.vampireManager = plugin.getVampireManager();
+        this.levelManager = plugin.getLevelManager();
     }
     
     /**
@@ -110,6 +116,10 @@ public class VampireTask extends BukkitRunnable {
         updateBloodlust(vampirePlayer, player, deltaSeconds);
         updateNightVision(vampirePlayer, player, deltaSeconds);
         updateInfection(vampirePlayer, player, deltaSeconds);
+
+        // NEW: Handle level-based passive effects like speed
+        updateLevelBasedEffects(vampirePlayer, player, deltaSeconds);
+
         VampireMessages.debug(String.format("[VampireTask][UpdateEnvironmentalDamage] Updating environmental damage for %s", vampirePlayer.getName()));
         updateEnvironmentalDamage(vampirePlayer, player, deltaSeconds);
 
@@ -341,6 +351,70 @@ public class VampireTask extends BukkitRunnable {
             Component messageComponent = LegacyComponentSerializer.legacySection().deserialize(broadcastMessage);
             Bukkit.broadcast(messageComponent);
         }
+    }
+    
+    /**
+     * Applies passive effects based on the player's vampire level, like speed boosts.
+     */
+    private void updateLevelBasedEffects(VampirePlayer vampirePlayer, Player player, double deltaSeconds) {
+        if (!vampirePlayer.isVampire()) {
+            // Ensure effects are removed if player is cured
+            if (player.hasPotionEffect(PotionEffectType.SPEED)) {
+                 player.removePotionEffect(PotionEffectType.SPEED);
+            }
+            // Add removal for other level-based effects here if needed
+            return;
+        }
+
+        int level = vampirePlayer.getVampireLevel();
+        VampireLevel levelData = levelManager.getLevelData(level);
+        if (levelData == null) {
+             plugin.getLogger().warning("No level data found for vampire " + player.getName() + " at level " + level);
+             return;
+        }
+
+        // --- Speed Boost ---
+        double speedBoostMultiplier = levelData.speedBoost();
+        int speedAmplifier = -1; // Default to no effect
+
+        // Determine amplifier based on multiplier thresholds
+        if (speedBoostMultiplier >= 1.6) { // Speed III equivalent
+            speedAmplifier = 2;
+        } else if (speedBoostMultiplier >= 1.4) { // Speed II equivalent
+            speedAmplifier = 1;
+        } else if (speedBoostMultiplier >= 1.2) { // Speed I equivalent
+            speedAmplifier = 0;
+        }
+        // Multipliers below 1.2 grant no bonus
+
+        // Apply or remove Speed effect
+        if (speedAmplifier >= 0) {
+            // Duration slightly longer than task interval to prevent gaps
+            int durationTicks = plugin.getVampireConfig().getTaskDelay() * 2 + 20; // ~2-3 seconds buffer
+            PotionEffect speedEffect = new PotionEffect(
+                PotionEffectType.SPEED,
+                durationTicks,
+                speedAmplifier,
+                true,  // Ambient (less particles)
+                false, // No particles
+                false  // No icon - make it feel passive
+            );
+            // Use force=true to overwrite existing lower-level/shorter-duration effects from the plugin itself
+            player.addPotionEffect(speedEffect, true);
+            VampireMessages.debug("Applied Speed " + (speedAmplifier + 1) + " to " + player.getName() + " for level " + level);
+        } else {
+            // If boost is 1.0 or less, remove any speed effect potentially applied by this plugin
+            // Check if the current effect might be from us (difficult to be certain)
+            // Safer to just remove if amplifier should be < 0
+            if (player.hasPotionEffect(PotionEffectType.SPEED)) {
+                 // We could check amplifier/duration, but simply removing is easier if no boost is required
+                 player.removePotionEffect(PotionEffectType.SPEED);
+                 VampireMessages.debug("Removed Speed effect from " + player.getName() + " (level " + level + " grants no boost).");
+            }
+        }
+
+        // --- Add other level-based effects here (e.g., strength, jump boost) ---
+
     }
     
     /**

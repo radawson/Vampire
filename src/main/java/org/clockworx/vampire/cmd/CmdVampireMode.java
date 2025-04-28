@@ -53,6 +53,17 @@ public class CmdVampireMode extends VCommand {
         }
     }
 
+    /**
+     * Retrieves a specific mode command instance by its name.
+     * Used by the main VampireCommand handler to implement shortcut commands.
+     * 
+     * @param modeName The lowercase name of the mode (e.g., "intent").
+     * @return The CmdVampireModeAbstract instance, or null if not found.
+     */
+    public CmdVampireModeAbstract getSpecificModeCommand(String modeName) {
+        return specificModes.get(modeName.toLowerCase());
+    }
+
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // Base permission (VampirePermission.MODE_BASE) checked by VCommand superclass

@@ -24,7 +24,7 @@ public class CmdVampireModeNightvision extends CmdVampireModeAbstract {
      */
     public CmdVampireModeNightvision(VampirePlugin plugin) {
         super(plugin, "Nightvision", VampirePermission.MODE_NIGHTVISION, 
-              "Toggle permanent night vision", ""); // Added desc/usage
+              "Toggle permanent night vision", "", true); // Added toggleable=true
     }
     
     @Override

@@ -12,7 +12,8 @@ public record VampireLevel(
     double sunModifier,    // Multiplier for sun damage (lower is better)
     double speedBoost,     // Multiplier for base speed
     boolean canUseShriek,
-    double shriekCooldownModifier // Multiplier for base cooldown (lower is faster)
+    double shriekCooldownModifier, // Multiplier for base cooldown (lower is faster)
+    double fallDamageReduction // Add fall damage reduction field
     // Add more fields here as needed, matching levels.yml keys
 ) {
     /**
@@ -21,6 +22,6 @@ public record VampireLevel(
      * @return A default VampireLevel instance.
      */
     public static VampireLevel defaultLevel() {
-        return new VampireLevel(0, "Default", 20.0, 1.0, 1.0, 1.0, true, 1.0); // Sensible defaults
+        return new VampireLevel(0, "Default", 20.0, 1.0, 1.0, 1.0, true, 1.0, 0.0); // Sensible defaults
     }
 }

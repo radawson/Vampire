@@ -24,7 +24,7 @@ public class CmdVampireModeIntend extends CmdVampireModeAbstract {
      */
     public CmdVampireModeIntend(VampirePlugin plugin) {
         super(plugin, "Intent", VampirePermission.MODE_INTENT, 
-              "Toggle infection intent mode", "");
+              "Toggle infection intent mode", "", true);
     }
     
     @Override

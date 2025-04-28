@@ -1,7 +1,7 @@
 package org.clockworx.vampire;
 
-import java.util.logging.Level;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.clockworx.vampire.cmd.VampireCommand;
@@ -9,6 +9,9 @@ import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
 import org.clockworx.vampire.database.HibernateDatabaseManager;
 import org.clockworx.vampire.level.LevelManager;
+import org.clockworx.vampire.listener.AltarListener;
+import org.clockworx.vampire.listener.VampireDamageListener;
+import org.clockworx.vampire.listener.VampireListener;
 import org.clockworx.vampire.manager.AltarManager;
 import org.clockworx.vampire.manager.BloodManager;
 import org.clockworx.vampire.manager.ItemManager;
@@ -269,7 +272,9 @@ public final class VampirePlugin extends JavaPlugin {
      * Register event listeners
      */
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new org.clockworx.vampire.listener.VampireListener(this, vampireManager), this);
+        getServer().getPluginManager().registerEvents(new AltarListener(this), this);
+        getServer().getPluginManager().registerEvents(new VampireListener(this, vampireManager), this);
+        getServer().getPluginManager().registerEvents(new VampireDamageListener(this), this);
         getLogger().info("Registered event listeners.");
     }
 
