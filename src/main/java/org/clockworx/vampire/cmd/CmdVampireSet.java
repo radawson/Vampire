@@ -54,7 +54,7 @@ public class CmdVampireSet extends VCommand {
             targetUuid = targetPlayer.getUniqueId();
         } else {
             if (!(sender instanceof Player)) {
-                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
+                VampireMessages.sendLocalized(sender, "command.error.player_only_or_specify");
                 return true;
             }
             targetPlayer = (Player) sender;

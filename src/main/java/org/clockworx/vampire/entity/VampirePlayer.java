@@ -162,6 +162,10 @@ public class VampirePlayer {
         this.vampireLevel = Math.max(0, vampireLevel);
     }
 
+    /**
+     * Gets the total blood consumed by this player.
+     * @return The total blood consumed.
+     */
     public double getTotalBloodConsumed() {
         return totalBloodConsumed;
     }

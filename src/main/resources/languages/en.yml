@@ -2,7 +2,7 @@
 # Vampire Plugin Language File
 # Use & for color codes
 # Use %variable% for placeholders
-version: ${version}
+version: 3.1.17
 
 general:
   prefix: "&8[&cVampire&8]"
@@ -10,11 +10,9 @@ general:
   error: "&cError: %message%"
   success: "&aSuccess: %message%"
   info: "&eInfo: %message%"
-
-# General status indicators used across commands
-status:
-  on: "&aON"
-  off: "&cOFF"
+  status:
+    active: "&aACTIVE"
+    inactive: "&cINACTIVE"
 
 player:
   become_vampire: "&c%player% has become a vampire!"
@@ -223,32 +221,29 @@ command:
     success: "&aConfiguration and language files successfully reloaded!"
     failed: "&cFailed to reload configuration. Check console for errors."
 
-  # Version command messages
-  version:
-    line1: "&6Vampire Plugin &ev%1%"
-    line2: "&7Created by %1%"
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"
     set: "&cUsage: /vampire set <type> <value> [player]"
-  no_permission: "&cYou don't have permission to use this command!"
-  player_only: "&cThis command can only be used by players!"
+
   error:
-    unknown_subcommand: "&cUnknown subcommand: %1%. Type /vampire help."
-    must_be_player_or_specify: "&cYou must be a player or specify a player name."
-    player_data_not_found: "&cCould not find vampire data for player: %1%"
-    missing_argument: "&cMissing argument: <%1%>"
-    too_many_arguments: "&cToo many arguments provided."
-    must_be_player: "&cThis command can only be run by a player."
+    empty_input: "&cInput cannot be empty."
     invalid_boolean: "&cInvalid boolean value: '%1%'. Use 'true' or 'false'."
     invalid_number: "&cInvalid number: '%1%'."
     invalid_integer: "&cInvalid integer: '%1%'."
     invalid_range_01: "&cInvalid value: '%1%'. Must be between 0.0 and 1.0."
     invalid_non_negative: "&cInvalid value: '%1%'. Must be a non-negative number."
     invalid_non_negative_int: "&cInvalid value: '%1%'. Must be a non-negative whole number."
-    unknown_set_type: "&cUnknown set type: '%1%'. Valid types: vampire, infection, blood, level."
-    empty_input: "&cInput cannot be empty."
+    missing_argument: "&cMissing argument: <%1%>"
+    must_be_player_or_specify: "&cYou must be a player or specify a player name."
+    no_permission: "&cYou don't have permission to use this command!"
     number_range: "&cValue must be between %1$s and %2$s."
+    player_data_not_found: "&cCould not find vampire data for player: %1%"    
+    player_only: "&cThis command can only be used by players!"  
+    too_many_arguments: "&cToo many arguments provided."
+    unknown_subcommand: "&cUnknown subcommand: %1%. Type /vampire help."
+    unknown_set_type: "&cUnknown set type: '%1%'. Valid types: vampire, infection, blood, level."
+    
 
 bloodlust:
   activated: "&cBloodlust Mode activated!"

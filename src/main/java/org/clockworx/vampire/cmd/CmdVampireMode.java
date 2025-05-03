@@ -76,7 +76,7 @@ public class CmdVampireMode extends VCommand {
 
         // Check if sender is a player (required for all mode commands)
         if (!isPlayer(sender)) {
-             sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
+             sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_only"));
              return true;
         }
         Player player = (Player) sender;

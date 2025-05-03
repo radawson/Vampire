@@ -1,12 +1,12 @@
 package org.clockworx.vampire.listener;
 
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.clockworx.vampire.VampirePlugin;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 
 /**
  * Listener class for handling altar-related interactions in the Vampire plugin.

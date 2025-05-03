@@ -157,7 +157,7 @@ public class CmdVampireShow extends VCommand {
      */
     private String formatBoolean(boolean value) {
         // Use localized keys for ON/OFF
-        return VampireMessages.getLocalizedMessage(value ? "status.on" : "status.off"); 
+        return VampireMessages.getLocalizedMessage(value ? "general.status.active" : "general.status.inactive"); 
     }
     
     /**

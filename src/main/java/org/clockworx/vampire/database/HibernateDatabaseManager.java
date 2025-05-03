@@ -1,22 +1,22 @@
 package org.clockworx.vampire.database;
 
-import org.clockworx.vampire.VampirePlugin;
-import org.clockworx.vampire.entity.VampirePlayer;
-import org.clockworx.vampire.entity.VampirePlayerEntity;
-import org.clockworx.vampire.entity.BloodOffer;
-import org.clockworx.vampire.entity.BloodOfferEntity;
-import org.clockworx.vampire.config.VampireConfig;
-import org.clockworx.vampire.config.LanguageConfig;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.hibernate.query.Query;
-import org.hibernate.query.MutationQuery;
-
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
+import org.clockworx.vampire.VampirePlugin;
+import org.clockworx.vampire.config.LanguageConfig;
+import org.clockworx.vampire.config.VampireConfig;
+import org.clockworx.vampire.entity.BloodOffer;
+import org.clockworx.vampire.entity.BloodOfferEntity;
+import org.clockworx.vampire.entity.VampirePlayer;
+import org.clockworx.vampire.entity.VampirePlayerEntity;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.MutationQuery;
+import org.hibernate.query.Query;
 
 public class HibernateDatabaseManager implements DatabaseManager {
     private final VampirePlugin plugin;

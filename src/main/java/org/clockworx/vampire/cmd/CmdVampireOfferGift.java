@@ -31,7 +31,7 @@ public class CmdVampireOfferGift extends VCommand {
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!isPlayer(sender)) {
-            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_only"));
             return true;
         }
         Player senderPlayer = (Player) sender;

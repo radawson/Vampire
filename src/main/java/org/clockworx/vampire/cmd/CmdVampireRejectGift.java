@@ -30,7 +30,7 @@ public class CmdVampireRejectGift extends VCommand {
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // Manual sender check
         if (!isPlayer(sender)) {
-            sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player"));
+            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_only"));
             return true;
         }
         Player senderPlayer = (Player) sender;

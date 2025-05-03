@@ -1,7 +1,7 @@
 package org.clockworx.vampire.event;
 
-import org.clockworx.vampire.entity.VampirePlayer;
 import org.bukkit.event.HandlerList;
+import org.clockworx.vampire.entity.VampirePlayer;
 
 /**
  * Event triggered when a player's vampirism infection level changes.

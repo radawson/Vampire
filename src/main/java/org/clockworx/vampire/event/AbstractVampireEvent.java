@@ -1,8 +1,8 @@
 package org.clockworx.vampire.event;
 
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Cancellable;
 import org.clockworx.vampire.entity.VampirePlayer;
 
 public abstract class AbstractVampireEvent extends Event implements Cancellable {
