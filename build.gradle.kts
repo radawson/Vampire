@@ -190,11 +190,6 @@ tasks {
     
     // Process resources
     processResources {
-        // Copy plugin.yml from root to resources if it exists there
-        from(project.rootDir) {
-            include("plugin.yml")
-            into(".")
-        }
         // Process all resource files for version expansion
         // Note: ${project.version} will be replaced with the version value
         filesMatching(listOf("config.yml", "plugin.yml", "levels.yml")) {
