@@ -8,4 +8,4 @@ echo "Using Java:"
 $JAVA_HOME/bin/java -version
 
 # Run the build with the correct Java version
-./gradlew build --info 
+./gradlew build --info

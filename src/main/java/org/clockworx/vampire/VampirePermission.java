@@ -191,7 +191,6 @@ public class VampirePermission {
         registerPermission(pm, GIFT_ACCEPT, "Allows accepting/rejecting the Dark Gift", PermissionDefault.TRUE);
 
         // Stats/Reset permissions
-        registerPermission(pm, INFO, "Allows viewing Vampire plugin information", PermissionDefault.OP);
         registerPermission(pm, STATS, "Allows viewing own vampire statistics", PermissionDefault.TRUE);
         registerPermission(pm, STATS_OTHER, "Allows viewing other players' vampire statistics", PermissionDefault.OP);
         registerPermission(pm, RESET, "Allows resetting player vampire data (admin)", PermissionDefault.OP);

@@ -135,7 +135,7 @@ public final class VampirePlugin extends JavaPlugin {
 
     /**
      * Initialize configurations.
-     * @return true if initialization succeeds, false otherwise.
+     * @return false if initialization succeeds, true otherwise (inverted for caller convenience).
      */
     private boolean initializeConfigs() {
         try {
@@ -159,10 +159,10 @@ public final class VampirePlugin extends JavaPlugin {
                 getLogger().log(Level.WARNING, "*********************************************************************");
             }
              getLogger().info("Configurations initialized!");
-             return true; // Indicate success
+             return false; // Indicate success (inverted: false = success)
         } catch (Exception e) {
              getLogger().log(Level.SEVERE, "Error initializing configurations", e);
-             return false; // Indicate failure
+             return true; // Indicate failure (inverted: true = failure)
         }
     }
 
