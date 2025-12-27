@@ -190,10 +190,42 @@ tasks {
     
     // Process resources
     processResources {
+        // Copy plugin.yml from root to resources if it exists there
+        from(project.rootDir) {
+            include("plugin.yml")
+            into(".")
+        }
+        // Process all resource files for version expansion
+        // Note: ${project.version} will be replaced with the version value
         filesMatching(listOf("config.yml", "plugin.yml", "levels.yml")) {
+            // Replace ${project.version} with actual version
+            filter { line -> line.replace("\${project.version}", project.version.toString()) }
             expand(
                 "version" to project.version
             )
+        }
+    }
+}
+
+// Configure reobfJar to use shadowJar as input and rename output to -paper
+// This ensures all resources (plugin.yml, etc.) and dependencies are included
+tasks.named("reobfJar").configure {
+    val shadowJar = tasks.named("shadowJar")
+    val remapJar = this as io.papermc.paperweight.tasks.RemapJar
+    // Use the shadowJar output file as input for reobfuscation
+    remapJar.inputJar.set(
+        shadowJar.flatMap { task -> 
+            task.outputs.files.singleFile.let { file ->
+                layout.file(providers.provider { file })
+            }
+        }
+    )
+    // Rename output to -paper by configuring the output file
+    doLast {
+        val outputFile = remapJar.outputJar.get().asFile
+        val newFile = File(outputFile.parent, outputFile.name.replace("-reobf.jar", "-paper.jar"))
+        if (outputFile.exists() && outputFile != newFile) {
+            outputFile.renameTo(newFile)
         }
     }
 }
