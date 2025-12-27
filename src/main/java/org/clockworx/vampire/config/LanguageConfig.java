@@ -55,13 +55,29 @@ public class LanguageConfig {
         if (!defaultLangFile.exists()) {
             // Attempt to save from JAR resources
             try {
-                 plugin.saveResource("languages/en.yml", false);
-                 plugin.getLogger().info("Default language file en.yml created.");
+                plugin.saveResource("languages/en.yml", false);
+                // Verify the file was actually created
+                if (defaultLangFile.exists()) {
+                    plugin.getLogger().info("Created default language file en.yml from JAR resource.");
+                } else {
+                    // File was not created - this could indicate a file system issue
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    plugin.getLogger().log(Level.SEVERE, "Failed to create en.yml: File was not created after saveResource() call.");
+                    plugin.getLogger().log(Level.SEVERE, "Target location: " + defaultLangFile.getAbsolutePath());
+                    plugin.getLogger().log(Level.SEVERE, "Please check file permissions and available disk space.");
+                    plugin.getLogger().log(Level.SEVERE, "Language configuration may not work correctly without this file.");
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    // Don't throw - allow fallback behavior, but log the error
+                }
             } catch (IllegalArgumentException e) {
-                 // This can happen if the resource doesn't exist in the JAR
-                 plugin.getLogger().log(Level.SEVERE, "Failed to save default en.yml from JAR. It might be missing.", e);
-                 // Optionally handle this case, maybe by creating an empty file or disabling?
-                 // For now, we'll proceed, but message loading might fail.
+                // Resource not found in JAR
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                plugin.getLogger().log(Level.SEVERE, "Failed to create en.yml: Resource not found in plugin JAR.");
+                plugin.getLogger().log(Level.SEVERE, "Expected location: plugins/Vampire/languages/en.yml");
+                plugin.getLogger().log(Level.SEVERE, "Please ensure the plugin JAR contains languages/en.yml in src/main/resources/");
+                plugin.getLogger().log(Level.SEVERE, "Language configuration may not work correctly without this file.");
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                // Don't throw - allow fallback behavior, but log the error
             }
         }
         

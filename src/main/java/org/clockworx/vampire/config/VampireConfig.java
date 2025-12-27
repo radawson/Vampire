@@ -161,7 +161,31 @@ public class VampireConfig {
         
         configFile = new File(plugin.getDataFolder(), "config.yml");
         if (!configFile.exists()) {
-            plugin.saveResource("config.yml", false);
+            try {
+                plugin.saveResource("config.yml", false);
+                // Verify the file was actually created
+                if (configFile.exists()) {
+                    plugin.getLogger().info("Created default config.yml from JAR resource.");
+                } else {
+                    // File was not created - this could indicate a file system issue
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: File was not created after saveResource() call.");
+                    plugin.getLogger().log(Level.SEVERE, "Target location: " + configFile.getAbsolutePath());
+                    plugin.getLogger().log(Level.SEVERE, "Please check file permissions and available disk space.");
+                    plugin.getLogger().log(Level.SEVERE, "The plugin cannot load without a valid config.yml file.");
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    throw new IllegalStateException("config.yml was not created after saveResource() call");
+                }
+            } catch (IllegalArgumentException e) {
+                // Resource not found in JAR
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: Resource not found in plugin JAR.");
+                plugin.getLogger().log(Level.SEVERE, "Expected location: plugins/Vampire/config.yml");
+                plugin.getLogger().log(Level.SEVERE, "Please ensure the plugin JAR contains config.yml in src/main/resources/");
+                plugin.getLogger().log(Level.SEVERE, "The plugin cannot load without a valid config.yml file.");
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                throw new IllegalStateException("config.yml resource missing from JAR", e);
+            }
         }
         
         config = YamlConfiguration.loadConfiguration(configFile);

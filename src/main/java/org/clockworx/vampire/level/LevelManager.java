@@ -40,8 +40,31 @@ public class LevelManager {
     public void loadLevels() {
         levelConfigFile = new File(plugin.getDataFolder(), "levels.yml");
         if (!levelConfigFile.exists()) {
-            plugin.saveResource("levels.yml", false); // Copy default from JAR
-            plugin.getLogger().info("Created default levels.yml. Please configure vampire levels.");
+            try {
+                plugin.saveResource("levels.yml", false); // Copy default from JAR
+                // Verify the file was actually created
+                if (levelConfigFile.exists()) {
+                    plugin.getLogger().info("Created default levels.yml from JAR resource. Please configure vampire levels.");
+                } else {
+                    // File was not created - this could indicate a file system issue
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: File was not created after saveResource() call.");
+                    plugin.getLogger().log(Level.SEVERE, "Target location: " + levelConfigFile.getAbsolutePath());
+                    plugin.getLogger().log(Level.SEVERE, "Please check file permissions and available disk space.");
+                    plugin.getLogger().log(Level.SEVERE, "Vampire level progression will not work without this file.");
+                    plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                    throw new IllegalStateException("levels.yml was not created after saveResource() call");
+                }
+            } catch (IllegalArgumentException e) {
+                // Resource not found in JAR
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: Resource not found in plugin JAR.");
+                plugin.getLogger().log(Level.SEVERE, "Expected location: plugins/Vampire/levels.yml");
+                plugin.getLogger().log(Level.SEVERE, "Please ensure the plugin JAR contains levels.yml in src/main/resources/");
+                plugin.getLogger().log(Level.SEVERE, "Vampire level progression will not work without this file.");
+                plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
+                throw new IllegalStateException("levels.yml resource missing from JAR", e);
+            }
         }
 
         levelConfig = YamlConfiguration.loadConfiguration(levelConfigFile);
