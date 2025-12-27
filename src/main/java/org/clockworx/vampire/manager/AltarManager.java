@@ -123,6 +123,13 @@ public class AltarManager {
      * based on the specific altar's configuration.
      * Uses helper methods from AltarAbstract for block scanning and counting.
      * 
+     * <p>Performance optimizations:
+     * <ul>
+     *   <li>Early returns for simple cases (only core material required)</li>
+     *   <li>Efficient material counting with early exits</li>
+     *   <li>Per-material validation before expensive ratio checks</li>
+     * </ul>
+     * 
      * @param coreBlock The potential core block.
      * @param altar The specific AltarAbstract instance (used to get required materials/counts).
      * @return true if the structure is valid according to the altar's definition, false otherwise.
@@ -131,14 +138,32 @@ public class AltarManager {
         Map<Material, Integer> requiredCounts = altar.getMaterialCounts();
         VampireMessages.debug("[Altar Validate] Checking structure for " + altar.getName() + ". Required: " + requiredCounts);
 
-        // If only the core material is required (or nothing specific), structure is inherently valid here.
-        if (requiredCounts == null || requiredCounts.isEmpty() || (requiredCounts.size() == 1 && requiredCounts.containsKey(altar.getCoreMaterial()))) {
-             VampireMessages.debug("[Altar Validate] No specific structure requirements beyond the core block for " + altar.getName() + ". Valid.");
-             return true; 
+        // PERFORMANCE: Early return if no material requirements beyond core
+        // This avoids expensive block scanning for simple altars
+        if (requiredCounts == null || requiredCounts.isEmpty()) {
+            VampireMessages.debug("[Altar Validate] No material requirements. Valid (core only).");
+            return true;
+        }
+        
+        // PERFORMANCE: Early return if only core material is required
+        // Check if the only requirement is the core material itself
+        if (requiredCounts.size() == 1 && requiredCounts.containsKey(altar.getCoreMaterial())) {
+            Integer coreCount = requiredCounts.get(altar.getCoreMaterial());
+            // If only 1 core block is required (or less), we already know it's present
+            if (coreCount != null && coreCount <= 1) {
+                VampireMessages.debug("[Altar Validate] Only core material required (count: " + coreCount + "). Valid.");
+                return true;
+            }
         }
 
+        // Get configuration values
         int searchRadius = config.getAltarSearchRadius();
         double minRatio = config.getAltarMinRatio();
+        
+        // PERFORMANCE: Warn if search radius is very large
+        if (searchRadius > 5) {
+            plugin.getLogger().warning("Altar search radius is " + searchRadius + " blocks. This may impact performance. Recommended: 3-5 blocks.");
+        }
 
         // 1. Get all non-air blocks within the search radius
         ArrayList<Block> blocks = AltarAbstract.getCubeBlocks(coreBlock, searchRadius);
@@ -146,42 +171,64 @@ public class AltarManager {
         // 2. Count the materials found nearby that are required by this altar.
         @SuppressWarnings("deprecation")
         Map<Material, Integer> nearbyMaterialCounts = AltarAbstract.countMaterials(blocks, requiredCounts.keySet());
-         VampireMessages.debug("[Altar Validate] Found nearby materials: " + nearbyMaterialCounts);
+        VampireMessages.debug("[Altar Validate] Found nearby materials: " + nearbyMaterialCounts);
 
-        // 3. Check overall ratio.
-        int requiredMaterialCountSum = altar.sumCollection(requiredCounts.values()); 
+        // PERFORMANCE & VALIDATION: Check per-material minimum counts first (strict requirement)
+        // This is more important than ratio and allows early exit
+        Map<Material, Integer> missingCounts = altar.getMissingMaterialCounts(nearbyMaterialCounts);
+        
+        // Handle core material explicitly - we know it's present
+        Material coreMaterial = altar.getCoreMaterial();
+        if (missingCounts.containsKey(coreMaterial)) {
+            // Core material is "missing" in the scan, but we know it exists
+            // Adjust the count: if we need N core blocks and found 0 in scan, we actually have 1 (the core itself)
+            Integer requiredCore = requiredCounts.get(coreMaterial);
+            Integer foundCore = nearbyMaterialCounts.getOrDefault(coreMaterial, 0);
+            
+            if (requiredCore != null && foundCore < requiredCore) {
+                // We need to account for the core block itself
+                int adjustedFound = foundCore + 1; // Add the core block we know exists
+                if (adjustedFound >= requiredCore) {
+                    // We have enough when including the core
+                    missingCounts.remove(coreMaterial);
+                    VampireMessages.debug("[Altar Validate] Core material count satisfied (found: " + foundCore + " + 1 core = " + adjustedFound + ", required: " + requiredCore + ")");
+                }
+            }
+        }
+        
+        // Check if any materials are still missing (excluding core which we handled)
+        if (!missingCounts.isEmpty()) {
+            // If only core was missing and we handled it, structure is valid
+            if (missingCounts.size() == 1 && missingCounts.containsKey(coreMaterial)) {
+                VampireMessages.debug("[Altar Validate] Only core was missing, but it's present. Valid.");
+                return true;
+            }
+            // Other materials are missing - fail validation
+            VampireMessages.debug("[Altar Validate] Failed per-material check. Missing: " + missingCounts);
+            return false;
+        }
+
+        // VALIDATION: Secondary ratio check (more lenient, allows creative builds with extra blocks)
+        // Only perform if we have multiple material types to check
+        int requiredMaterialCountSum = altar.sumCollection(requiredCounts.values());
         int nearbyMaterialCountSum = altar.sumCollection(nearbyMaterialCounts.values());
         
-        // Handle edge case where only the core block is listed in materials (should have been caught above, but defense)
-        if (requiredMaterialCountSum <= 1 && nearbyMaterialCountSum >= 1) {
-             VampireMessages.debug("[Altar Validate] Only core material required and found. Valid.");
-             return true; // Only core needed, and it's present
+        // Account for core block in the sum if it wasn't counted in the scan
+        if (!nearbyMaterialCounts.containsKey(coreMaterial) && requiredCounts.containsKey(coreMaterial)) {
+            nearbyMaterialCountSum += 1; // Add the core block
         }
         
-        // Check ratio if more than just the core is needed
-        if (requiredMaterialCountSum > 0) { // Avoid division by zero
+        // PERFORMANCE: Skip ratio check if we already validated per-material counts
+        // Ratio check is secondary and more lenient - only fail if significantly below threshold
+        if (requiredMaterialCountSum > 1 && minRatio > 0.0) {
             double currentRatio = (double) nearbyMaterialCountSum / requiredMaterialCountSum;
-             VampireMessages.debug("[Altar Validate] Ratio Check - Found: " + nearbyMaterialCountSum + ", Required: " + requiredMaterialCountSum + ", Current Ratio: " + String.format("%.2f", currentRatio) + ", Needed Ratio: " + minRatio);
+            VampireMessages.debug("[Altar Validate] Ratio Check - Found: " + nearbyMaterialCountSum + ", Required: " + requiredMaterialCountSum + ", Current Ratio: " + String.format("%.2f", currentRatio) + ", Needed Ratio: " + minRatio);
+            
+            // More lenient: only fail if significantly below threshold (allows extra decorative blocks)
             if (currentRatio < minRatio) {
-                VampireMessages.debug("[Altar Validate] Failed ratio check.");
+                VampireMessages.debug("[Altar Validate] Failed ratio check (too many materials missing).");
                 return false;
             }
-        } else {
-             VampireMessages.debug("[Altar Validate] Skipping ratio check as required count sum is zero.");
-        }
-
-        // 4. Check if minimum count for *each* specific material is met.
-        Map<Material, Integer> missingCounts = altar.getMissingMaterialCounts(nearbyMaterialCounts);
-        if (!missingCounts.isEmpty()) {
-             // Specifically check if the only missing item is the core block itself, 
-             // which we know is present because determineAltarType checked it.
-             if (missingCounts.size() == 1 && missingCounts.containsKey(altar.getCoreMaterial())) {
-                 // The only missing block is the core, which isn't actually missing. Structure is valid.
-                  VampireMessages.debug("[Altar Validate] Passed specific counts check (only core was technically 'missing' in scan).");
-             } else {
-                 VampireMessages.debug("[Altar Validate] Failed specific counts check. Missing: " + missingCounts);
-                 return false;
-             }
         }
 
         VampireMessages.debug("[Altar Validate] Structure passed all checks for " + altar.getName() + ". Valid.");

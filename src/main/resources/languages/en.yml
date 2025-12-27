@@ -223,6 +223,16 @@ command:
     success: "&aConfiguration and language files successfully reloaded!"
     failed: "&cFailed to reload configuration. Check console for errors."
 
+  # Kit command messages
+  kit:
+    usage: "&cUsage: /vampire %1% %2%"
+    success: "&aAltar construction kit created for %1%!"
+    success_all: "&aAltar construction kits created for %1% altars!"
+    invalid_type: "&cInvalid altar type: %1%. Use 'dark', 'light', or 'all'."
+    player_only: "&cThis command can only be used by players!"
+    no_altars: "&cNo altars are currently registered."
+    no_space: "&cCould not find a suitable location to place the chest. Please ensure there's space nearby."
+
   usage:
     offer: "&cUsage: /vampire offer <player> <amount>"
     mode: "&cUsage: /vampire mode <bloodlust|nightvision|intent>"

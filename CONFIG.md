@@ -213,13 +213,21 @@ altar:
   # Globally enable/disable altar functionality.
   enabled: true
   # Radius (cube) around the core block to scan for structure materials.
+  # PERFORMANCE NOTE: Larger values (e.g., >5) will scan more blocks and impact performance.
+  # Recommended: 3-5 blocks for optimal balance between flexibility and performance.
+  # Validation only occurs on player interaction (right-click), not constantly.
   search-radius: 3
   # Minimum ratio (0.0-1.0) of required materials that must be present within the radius
   # for the structure to be considered valid (in addition to specific counts).
+  # This is a secondary check - per-material minimum counts are validated first.
+  # Allows creative builds with extra decorative blocks.
   min-ratio: 0.5
 
   # Dark Altar settings (Infection)
   dark:
+    # PERFORMANCE NOTE: Choose UNCOMMON materials for core blocks (e.g., OBSIDIAN, DIAMOND_BLOCK).
+    # Common materials like STONE or DIRT will trigger validation checks on every interaction
+    # with that material type, potentially impacting server performance.
     core-material: "OBSIDIAN" # Block players interact with.
     # Map of materials required for the structure (Material: Minimum Count).
     materials:
@@ -237,6 +245,9 @@ altar:
 
   # Light Altar settings (Curing)
   light:
+    # PERFORMANCE NOTE: Choose UNCOMMON materials for core blocks (e.g., DIAMOND_BLOCK, EMERALD_BLOCK).
+    # Common materials like STONE or DIRT will trigger validation checks on every interaction
+    # with that material type, potentially impacting server performance.
     core-material: "DIAMOND_BLOCK" # Changed default from LAPIS_BLOCK for consistency
     materials:
       GOLD_BLOCK: 4
@@ -248,6 +259,34 @@ altar:
     channeling_delay_ticks: 60
     max_movement_distance: 1.5
 ```
+
+### Altar Performance Considerations
+
+**Sysadmin Responsibility:**
+
+1. **Core Material Selection**: 
+   - Choose **uncommon materials** for core blocks (e.g., `OBSIDIAN`, `DIAMOND_BLOCK`, `EMERALD_BLOCK`)
+   - **Avoid common materials** like `STONE`, `DIRT`, `GRASS_BLOCK`, `COBBLESTONE`
+   - Common materials will trigger validation checks on every player interaction with that block type
+   - This can significantly impact server performance on busy servers
+
+2. **Search Radius**:
+   - Recommended: **3-5 blocks** for optimal performance
+   - Larger values (e.g., >5) scan exponentially more blocks: `(2*radius+1)^3` blocks
+   - Example: radius 3 = 343 blocks, radius 5 = 1331 blocks, radius 7 = 3375 blocks
+   - Validation only occurs on player right-click interaction, not constantly
+
+3. **Structure Flexibility**:
+   - The validation system supports creative builds with extra decorative blocks
+   - Minimum material counts are checked strictly (per-material validation)
+   - Ratio check is secondary and more lenient, allowing extra blocks beyond minimums
+   - Altars with only a core block requirement validate instantly (no scanning)
+
+4. **Performance Optimizations**:
+   - Early exits for simple cases (only core material required)
+   - Per-material validation before expensive ratio checks
+   - Core block handling optimized to avoid double-counting
+   - Block scanning only occurs when core material matches
 
 ---
 
