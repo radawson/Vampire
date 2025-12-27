@@ -3,6 +3,7 @@ package org.clockworx.vampire.database;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -18,11 +19,35 @@ import org.hibernate.Transaction;
 import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
 
+/**
+ * Hibernate-based implementation of the DatabaseManager interface.
+ * Handles all database operations for vampire player data using Hibernate ORM.
+ * 
+ * <p>This implementation uses Paper's async scheduler for all asynchronous operations
+ * to ensure proper integration with the server's task tracking system.</p>
+ */
 public class HibernateDatabaseManager implements DatabaseManager {
+    
+    /** Reference to the main plugin instance. */
     private final VampirePlugin plugin;
+    
+    /**
+     * Executor that uses Paper's async scheduler for running tasks off the main thread.
+     * This ensures database operations are properly tracked by the server and don't
+     * interfere with the main server thread.
+     */
+    private final Executor asyncExecutor;
 
+    /**
+     * Creates a new HibernateDatabaseManager.
+     * 
+     * @param plugin The main VampirePlugin instance
+     */
     public HibernateDatabaseManager(VampirePlugin plugin) {
         this.plugin = plugin;
+        // Use Paper's async scheduler for better integration with server task tracking
+        this.asyncExecutor = task -> 
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
     }
 
     @Override
@@ -43,7 +68,13 @@ public class HibernateDatabaseManager implements DatabaseManager {
         return CompletableFuture.completedFuture(null);
     }
 
-    // Helper method to execute transactional code safely
+    /**
+     * Helper method to execute transactional code safely using Paper's async scheduler.
+     * 
+     * @param <T> The return type of the transaction
+     * @param function The transaction function to execute
+     * @return A CompletableFuture that completes with the transaction result
+     */
     private <T> CompletableFuture<T> executeTransaction(TransactionFunction<T> function) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction tx = null;
@@ -65,7 +96,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 // Rethrow as a RuntimeException to fail the CompletableFuture
                 throw new RuntimeException("Database transaction failed", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     // Helper functional interface for transactions
@@ -74,7 +105,12 @@ public class HibernateDatabaseManager implements DatabaseManager {
         T apply(Session session) throws Exception; // Allow checked exceptions
     }
 
-    // Simplified execute function for operations returning Void
+    /**
+     * Simplified execute function for operations returning Void using Paper's async scheduler.
+     * 
+     * @param function The void transaction function to execute
+     * @return A CompletableFuture that completes when the transaction is done
+     */
     private CompletableFuture<Void> executeTransactionVoid(VoidTransactionFunction function) {
         return CompletableFuture.runAsync(() -> {
             Transaction tx = null;
@@ -95,7 +131,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 // Rethrow as a RuntimeException to fail the CompletableFuture
                 throw new RuntimeException("Database transaction failed", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     // Helper functional interface for void transactions
@@ -115,7 +151,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get player " + uuid, e);
                 throw new RuntimeException("Failed to get player", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -151,7 +187,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to check vampire status for " + uuid, e);
                 throw new RuntimeException("Failed to check vampire status", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -165,7 +201,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to check infection status for " + uuid, e);
                 throw new RuntimeException("Failed to check infection status", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -178,7 +214,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get blood level for " + uuid, e);
                 throw new RuntimeException("Failed to get blood level", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -205,7 +241,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get infection level for " + uuid, e);
                 throw new RuntimeException("Failed to get infection level", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -231,7 +267,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get infection reason for " + uuid, e);
                 throw new RuntimeException("Failed to get infection reason", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -257,7 +293,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get infection time for " + uuid, e);
                 throw new RuntimeException("Failed to get infection time", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -286,7 +322,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get last shriek time for " + uuid, e);
                 throw new RuntimeException("Failed to get last shriek time", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -312,7 +348,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get last blood trade time for " + uuid, e);
                 throw new RuntimeException("Failed to get last blood trade time", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -338,7 +374,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get last blood trade partner for " + uuid, e);
                 throw new RuntimeException("Failed to get last blood trade partner", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -364,7 +400,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get last blood trade amount for " + uuid, e);
                 throw new RuntimeException("Failed to get last blood trade amount", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -390,7 +426,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get last blood trade type for " + uuid, e);
                 throw new RuntimeException("Failed to get last blood trade type", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -434,7 +470,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get blood offer for " + playerUuid, e);
                 throw new RuntimeException("Failed to get blood offer", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -493,7 +529,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get all blood offers", e);
                 throw new RuntimeException("Failed to get all blood offers", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @Override
@@ -587,7 +623,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
                 plugin.getLogger().log(Level.SEVERE, "Failed to get all vampires", e);
                 throw new RuntimeException("Failed to get all vampires", e);
             }
-        });
+        }, asyncExecutor);
     }
 
     // --- Config/Language Methods (Marked as not implemented) ---
