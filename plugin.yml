@@ -5,6 +5,11 @@ api-version: '1.21'
 website: https://github.com/clockworx/vampire
 description: A modern vampire plugin for Minecraft servers
 authors: [MassiveCraft, Clockworx]
+commands:
+  vampire:
+    description: Main command for the Vampire plugin
+    usage: /<command> [subcommand] [args...]
+    aliases: [v]
 permissions:
 # -------------------------------------------- #
 # THE REAL NODES
