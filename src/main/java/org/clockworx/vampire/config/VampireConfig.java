@@ -469,8 +469,24 @@ public class VampireConfig {
             for (String key : blockSection.getKeys(false)) {
                 Material material = null; // Initialize null
                 try {
-                    // Try matching material - THIS is where issues might occur
-                    material = Material.matchMaterial(key.toUpperCase());
+                    String upperKey = key.toUpperCase();
+                    // Try multiple methods to match material (handles naming changes and namespace variations)
+                    // 1. Try matchMaterial with uppercase (handles minecraft: prefix automatically)
+                    material = Material.matchMaterial(upperKey);
+                    
+                    // 2. If that fails, try with minecraft: prefix explicitly
+                    if (material == null) {
+                        material = Material.matchMaterial("minecraft:" + upperKey);
+                    }
+                    
+                    // 3. If that fails, try Material.valueOf as fallback (for enum-based matching)
+                    if (material == null) {
+                        try {
+                            material = Material.valueOf(upperKey);
+                        } catch (IllegalArgumentException e) {
+                            // valueOf failed, material remains null
+                        }
+                    }
 
                     if (material != null && material.isBlock()) {
                         double opacity = blockSection.getDouble(key);
@@ -484,7 +500,14 @@ public class VampireConfig {
                         loadedCount++;
                     } else {
                         // Log failure (invalid material or not a block)
-                        plugin.getLogger().warning("[ConfigLoad][Sunlight] Invalid or non-block material specified in block_opacity: " + key + " (Resolved to: " + (material != null ? material.name() : "null") + ")");
+                        String suggestion = "";
+                        // Provide helpful suggestion for common issues
+                        if (upperKey.equals("CHAIN")) {
+                            suggestion = " Note: CHAIN block exists in 1.16+. If this fails, verify your server version supports this material.";
+                        } else if (upperKey.contains("CHAINMAIL")) {
+                            suggestion = " Note: CHAINMAIL is for armor, not blocks. Use armor_base_material_opacities instead.";
+                        }
+                        plugin.getLogger().warning("[ConfigLoad][Sunlight] Invalid or non-block material specified in block_opacity: " + key + " (Resolved to: " + (material != null ? material.name() : "null") + ")" + suggestion);
                     }
                 } catch (IllegalArgumentException e) {
                     // Log failure (matchMaterial threw exception)
@@ -547,7 +570,23 @@ public class VampireConfig {
         blockOpacity.put(Material.STONE, 0.9);
         blockOpacity.put(Material.DIRT, 0.8);
         blockOpacity.put(Material.GLASS, 0.1);
-        blockOpacity.put(Material.WATER, 0.3); 
+        blockOpacity.put(Material.WATER, 0.3);
+        // Chain block (added in 1.16) - similar opacity to iron bars
+        // Try multiple methods to find the material (handles potential naming changes)
+        Material chainMaterial = Material.matchMaterial("CHAIN");
+        if (chainMaterial == null) {
+            chainMaterial = Material.matchMaterial("minecraft:chain");
+        }
+        if (chainMaterial == null) {
+            try {
+                chainMaterial = Material.valueOf("CHAIN");
+            } catch (IllegalArgumentException e) {
+                // CHAIN not available in this version, skip it
+            }
+        }
+        if (chainMaterial != null && chainMaterial.isBlock()) {
+            blockOpacity.put(chainMaterial, 0.15);
+        }
         // Add more defaults if needed
     }
 
