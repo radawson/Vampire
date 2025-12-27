@@ -227,7 +227,7 @@ public class VampireTask extends BukkitRunnable {
         
         if (!currentlyBloodlusting && shouldBeBloodlusting) {
             vampirePlayer.setBloodlusting(true);
-            VampireMessages.sendLocalized(player, "bloodlust.start");
+            VampireMessages.sendLocalized(player, "bloodlust.activated");
             FxUtil.playVampireEffect(player);
             currentlyBloodlusting = true;
         }
@@ -254,7 +254,7 @@ public class VampireTask extends BukkitRunnable {
             
             if (vampirePlayer.getBlood() >= plugin.getVampireConfig().getBloodlustThreshold()) {
                 vampirePlayer.setBloodlusting(false);
-                VampireMessages.sendLocalized(player, "bloodlust.end");
+                VampireMessages.sendLocalized(player, "bloodlust.deactivated");
             }
         }
     }
@@ -281,7 +281,7 @@ public class VampireTask extends BukkitRunnable {
         
         if (!currentlyUsing && isNight) {
             vampirePlayer.setUsingNightVision(true);
-            VampireMessages.sendLocalized(player, "nightvision.start");
+            VampireMessages.sendLocalized(player, "mode.nightvision.activated");
             currentlyUsing = true;
         }
         
@@ -299,7 +299,7 @@ public class VampireTask extends BukkitRunnable {
         if (currentlyUsing && !isNight) {
             vampirePlayer.setUsingNightVision(false);
             player.removePotionEffect(org.bukkit.potion.PotionEffectType.NIGHT_VISION);
-            VampireMessages.sendLocalized(player, "nightvision.end");
+            VampireMessages.sendLocalized(player, "mode.nightvision.deactivated");
         }
     }
     

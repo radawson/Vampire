@@ -2,7 +2,7 @@
 # Vampire Plugin Language File
 # Use & for color codes
 # Use %variable% for placeholders
-version: 3.1.17
+version: 3.1.20
 
 general:
   prefix: "&8[&cVampire&8]"
@@ -74,6 +74,8 @@ infection:
   complete: "&cThe infection is complete! You are now a vampire!"
   resisted: "&aYou have resisted the infection!"
   spread: "&cYou have infected %player%!"
+  fail:
+    low_blood: "&cYou don't have enough blood to infect this player!"
 
   # Message broadcast when a player becomes a vampire via infection
   broadcast: "&c%1% has succumbed to the darkness and is now a VAMPIRE!"
@@ -245,10 +247,19 @@ command:
     unknown_set_type: "&cUnknown set type: '%1%'. Valid types: vampire, infection, blood, level."
     
 
+# Blood status messages
+blood:
+  low: "&cYour blood is dangerously low! Feed soon or suffer the consequences."
+
 bloodlust:
   activated: "&cBloodlust Mode activated!"
   deactivated: "&7Bloodlust Mode deactivated"
   cooldown: "&cBloodlust Mode is on cooldown for %time% seconds"
+
+# Shriek ability messages
+shriek:
+  perform: "&cYou let out a terrifying shriek!"
+  wait: "&cYou must wait %1% seconds before shrieking again."
 
 holy_water:
   used: "&aYou have used holy water!"

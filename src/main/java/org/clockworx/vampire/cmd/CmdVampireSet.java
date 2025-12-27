@@ -54,7 +54,7 @@ public class CmdVampireSet extends VCommand {
             targetUuid = targetPlayer.getUniqueId();
         } else {
             if (!(sender instanceof Player)) {
-                VampireMessages.sendLocalized(sender, "command.error.player_only_or_specify");
+                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
                 return true;
             }
             targetPlayer = (Player) sender;
@@ -64,7 +64,7 @@ public class CmdVampireSet extends VCommand {
         // Check specific permission for the type AFTER determining type and BEFORE processing
         String requiredPermission = getPermissionForType(type);
         if (!sender.hasPermission(requiredPermission)) {
-            VampireMessages.sendLocalized(sender, "command.no_permission");
+            VampireMessages.sendLocalized(sender, "command.error.no_permission");
             return true;
         }
 

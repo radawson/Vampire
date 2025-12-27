@@ -34,7 +34,7 @@ public class CmdVampireModeIntend extends CmdVampireModeAbstract {
 
         manager.setModeIntent(player.getUniqueId(), newValue);
         
-        String messageKey = newValue ? "mode.intent.enabled" : "mode.intent.disabled";
+        String messageKey = newValue ? "vampire.mode.intent.enabled" : "vampire.mode.intent.disabled";
         VampireMessages.sendLocalized(player, messageKey);
     }
     

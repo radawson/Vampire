@@ -46,7 +46,7 @@ public abstract class CmdVampireModeAbstract extends VCommand {
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            VampireMessages.sendLocalized(sender, "command.player_only");
+            VampireMessages.sendLocalized(sender, "command.error.player_only");
             return true;
         }
 

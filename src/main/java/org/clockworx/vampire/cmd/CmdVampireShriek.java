@@ -37,7 +37,7 @@ public class CmdVampireShriek extends VCommand {
         // Permission check handled by VCommand
         
         if (!(sender instanceof Player)) {
-            VampireMessages.sendLocalized(sender, "command.player_only");
+            VampireMessages.sendLocalized(sender, "command.error.player_only");
             return true;
         }
         

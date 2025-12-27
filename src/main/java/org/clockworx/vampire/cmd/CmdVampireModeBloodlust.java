@@ -36,7 +36,7 @@ public class CmdVampireModeBloodlust extends CmdVampireModeAbstract
 
         manager.setModeBloodlust(player.getUniqueId(), newValue);
         
-        String messageKey = newValue ? "mode.bloodlust.enabled" : "mode.bloodlust.disabled";
+        String messageKey = newValue ? "vampire.mode.bloodlust.enabled" : "vampire.mode.bloodlust.disabled";
         VampireMessages.sendLocalized(player, messageKey);
     }
     

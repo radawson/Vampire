@@ -31,7 +31,7 @@ public class CmdVampireModeNightvision extends CmdVampireModeAbstract {
     protected void executeMode(Player player, VampirePlayer vampirePlayer, VampireManager manager, String[] args) {
         // Check if the feature is enabled globally first
         if (!manager.getPlugin().getVampireConfig().isNightVisionEnabled()) {
-            VampireMessages.sendLocalized(player, "mode.nightvision.globally_disabled"); // Need lang key
+            VampireMessages.sendLocalized(player, "vampire.mode.nightvision.globally_disabled");
             return;
         }
         
@@ -43,8 +43,8 @@ public class CmdVampireModeNightvision extends CmdVampireModeAbstract {
         
         // Send feedback based on the *intended* new state
         // The manager/task will handle the actual effect application
-        String messageKey = newValue ? "mode.nightvision.enabled" : "mode.nightvision.disabled";
-        VampireMessages.sendLocalized(player, messageKey); // Need lang keys
+        String messageKey = newValue ? "vampire.mode.nightvision.enabled" : "vampire.mode.nightvision.disabled";
+        VampireMessages.sendLocalized(player, messageKey);
     }
     
     @Override

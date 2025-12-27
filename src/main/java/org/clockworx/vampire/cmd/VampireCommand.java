@@ -108,7 +108,7 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         // Proceed if a command (regular or toggle shortcut) was found
         if (cmd != null) {
             if (!sender.hasPermission(cmd.getPermission())) {
-                VampireMessages.sendLocalized(sender, "command.no_permission");
+                VampireMessages.sendLocalized(sender, "command.error.no_permission");
                 return true;
             }
             // Determine arguments: empty for toggle shortcuts, subArgs otherwise
