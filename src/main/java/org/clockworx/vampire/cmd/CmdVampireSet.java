@@ -1,7 +1,6 @@
 package org.clockworx.vampire.cmd;
 
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -40,36 +39,22 @@ public class CmdVampireSet extends VCommand {
 
         String type = args[0].toLowerCase();
         String valueStr = args[1];
-        String targetName = (args.length > 2) ? args[2] : null;
-        UUID targetUuid = null;
-        OfflinePlayer targetPlayer = null;
-
-        // Determine target player
-        if (targetName != null) {
-            targetPlayer = Bukkit.getOfflinePlayer(targetName);
-            if (!targetPlayer.hasPlayedBefore() && !targetPlayer.isOnline()) {
-                VampireMessages.sendLocalized(sender, "player.not_found", targetName);
-                return true;
-            }
-            targetUuid = targetPlayer.getUniqueId();
-        } else {
-            if (!(sender instanceof Player)) {
-                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
-                return true;
-            }
-            targetPlayer = (Player) sender;
-            targetUuid = targetPlayer.getUniqueId();
-        }
-
-        // Check specific permission for the type AFTER determining type and BEFORE processing
+        
+        // Check specific permission for the type BEFORE processing
         String requiredPermission = getPermissionForType(type);
         if (!sender.hasPermission(requiredPermission)) {
             VampireMessages.sendLocalized(sender, "command.error.no_permission");
             return true;
         }
 
-        // Ensure target player name is resolved for messages
-        final String finalTargetName = targetPlayer.getName(); 
+        // Resolve target player (player name is at args[2] if provided)
+        TargetResolution target = resolveTargetPlayer(sender, args, args.length > 2 ? 2 : -1, true);
+        if (target == null) {
+            return true; // Error message already sent
+        }
+        
+        UUID targetUuid = target.uuid;
+        final String finalTargetName = target.name; 
 
         // --- Handle different set types --- 
         switch (type) {

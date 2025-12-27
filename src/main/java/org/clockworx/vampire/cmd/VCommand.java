@@ -7,8 +7,11 @@ import org.bukkit.command.TabCompleter;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.util.ResourceUtil;
 import org.clockworx.vampire.util.VampireMessages;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Base class for all Vampire plugin commands.
@@ -256,5 +259,123 @@ public abstract class VCommand implements CommandExecutor, TabCompleter {
      */
     protected String getMessage(String key) {
         return VampireMessages.getLocalizedMessage(key);
+    }
+    
+    /**
+     * Result class for player target resolution.
+     * Contains all information needed about a resolved target player.
+     */
+    protected static class TargetResolution {
+        /** The UUID of the target player. */
+        final UUID uuid;
+        /** The name of the target player. */
+        final String name;
+        /** The online Player object, or null if offline. */
+        final org.bukkit.entity.Player onlinePlayer;
+        /** The OfflinePlayer object, or null if online. */
+        final OfflinePlayer offlinePlayer;
+        /** Whether the target is the command sender themselves. */
+        final boolean isSelf;
+        
+        /**
+         * Creates a new TargetResolution.
+         * 
+         * @param uuid The player's UUID
+         * @param name The player's name
+         * @param onlinePlayer The online Player object (null if offline)
+         * @param offlinePlayer The OfflinePlayer object (null if online)
+         * @param isSelf Whether this is the command sender
+         */
+        TargetResolution(UUID uuid, String name, org.bukkit.entity.Player onlinePlayer, 
+                         OfflinePlayer offlinePlayer, boolean isSelf) {
+            this.uuid = uuid;
+            this.name = name;
+            this.onlinePlayer = onlinePlayer;
+            this.offlinePlayer = offlinePlayer;
+            this.isSelf = isSelf;
+        }
+    }
+    
+    /**
+     * Resolves the target player from command arguments.
+     * If a player name is provided in args[playerArgIndex], returns that player.
+     * If no name is provided (playerArgIndex < 0 or args.length <= playerArgIndex), 
+     * returns the sender if they are a player.
+     * 
+     * @param sender The command sender
+     * @param args Command arguments
+     * @param playerArgIndex Index in args array where player name might be (or -1 if not present)
+     * @param allowOffline If true, allows offline players; if false, requires online
+     * @return TargetResolution containing player info, or null if resolution failed (error message sent)
+     */
+    protected TargetResolution resolveTargetPlayer(CommandSender sender, String[] args, int playerArgIndex, boolean allowOffline) {
+        String playerName = null;
+        
+        // Check if player name is provided in args
+        if (playerArgIndex >= 0 && playerArgIndex < args.length && args[playerArgIndex] != null && !args[playerArgIndex].isEmpty()) {
+            playerName = args[playerArgIndex];
+        }
+        
+        // If player name provided, look up that player
+        if (playerName != null) {
+            org.bukkit.entity.Player onlinePlayer = Bukkit.getPlayer(playerName);
+            if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                // Player is online
+                return new TargetResolution(
+                    onlinePlayer.getUniqueId(),
+                    onlinePlayer.getName(),
+                    onlinePlayer,
+                    null,
+                    sender instanceof org.bukkit.entity.Player && ((org.bukkit.entity.Player) sender).getUniqueId().equals(onlinePlayer.getUniqueId())
+                );
+            } else if (allowOffline) {
+                // Try offline player
+                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+                if (offlinePlayer.hasPlayedBefore() || offlinePlayer.isOnline()) {
+                    return new TargetResolution(
+                        offlinePlayer.getUniqueId(),
+                        offlinePlayer.getName() != null ? offlinePlayer.getName() : playerName,
+                        null,
+                        offlinePlayer,
+                        sender instanceof org.bukkit.entity.Player && ((org.bukkit.entity.Player) sender).getUniqueId().equals(offlinePlayer.getUniqueId())
+                    );
+                } else {
+                    VampireMessages.sendLocalized(sender, "player.not_found", playerName);
+                    return null;
+                }
+            } else {
+                // Online required but player not online
+                VampireMessages.sendLocalized(sender, "player.not_online", playerName);
+                return null;
+            }
+        }
+        
+        // No player name provided - use sender if they are a player
+        if (sender instanceof org.bukkit.entity.Player) {
+            org.bukkit.entity.Player player = (org.bukkit.entity.Player) sender;
+            return new TargetResolution(
+                player.getUniqueId(),
+                player.getName(),
+                player,
+                null,
+                true
+            );
+        } else {
+            // Sender is not a player and no player name provided
+            VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
+            return null;
+        }
+    }
+    
+    /**
+     * Simple case: Resolves target player when player name is at args[0] or sender is target.
+     * 
+     * @param sender The command sender
+     * @param args Command arguments (player name may be at index 0)
+     * @param allowOffline If true, allows offline players; if false, requires online
+     * @return TargetResolution containing player info, or null if resolution failed (error message sent)
+     */
+    protected TargetResolution resolveTargetPlayer(CommandSender sender, String[] args, boolean allowOffline) {
+        return resolveTargetPlayer(sender, args, args.length > 0 ? 0 : -1, allowOffline);
     }
 } 

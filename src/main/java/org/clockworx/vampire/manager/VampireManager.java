@@ -800,9 +800,17 @@ public class VampireManager {
      * @return True if the level was successfully set, false otherwise (e.g., player not found, not a vampire, invalid level).
      */
     public boolean setVampireLevel(UUID playerUuid, int level) {
-        if (level < 0) {
-            plugin.getLogger().warning("Attempted to set invalid level " + level + " for player " + playerUuid);
-            return false; // Level cannot be negative
+        int minLevel = levelManager.getMinLevel();
+        int maxLevel = levelManager.getMaxLevel();
+        
+        if (level < minLevel) {
+            plugin.getLogger().warning("Attempted to set invalid level " + level + " (below minimum " + minLevel + ") for player " + playerUuid);
+            return false;
+        }
+        
+        if (level > maxLevel) {
+            plugin.getLogger().warning("Attempted to set invalid level " + level + " (above maximum " + maxLevel + ") for player " + playerUuid);
+            return false;
         }
 
         VampirePlayer vp = getCachedVampirePlayer(playerUuid);
@@ -837,6 +845,88 @@ public class VampireManager {
         // Bukkit.getPluginManager().callEvent(event);
 
         return true;
+    }
+    
+    /**
+     * Increases a vampire's level by the specified amount.
+     * Validates level bounds and ensures player is a vampire.
+     * 
+     * @param playerUuid The UUID of the player
+     * @param amount The amount to increase (must be positive)
+     * @return True if successful, false otherwise
+     */
+    public boolean increaseVampireLevel(UUID playerUuid, int amount) {
+        if (amount <= 0) {
+            plugin.getLogger().warning("Attempted to increase level by invalid amount " + amount + " for player " + playerUuid);
+            return false;
+        }
+        
+        VampirePlayer vp = getCachedVampirePlayer(playerUuid);
+        if (vp == null) {
+            vp = databaseManager.getPlayer(playerUuid).join();
+            if (vp == null) {
+                plugin.getLogger().warning("Could not find player data for UUID: " + playerUuid + " to increase level.");
+                return false;
+            }
+            vampireCache.put(playerUuid, vp);
+        }
+        
+        if (!vp.isVampire()) {
+            plugin.getLogger().warning("Attempted to increase level for non-vampire player: " + playerUuid);
+            return false;
+        }
+        
+        int currentLevel = vp.getVampireLevel();
+        int newLevel = currentLevel + amount;
+        int maxLevel = levelManager.getMaxLevel();
+        
+        if (newLevel > maxLevel) {
+            plugin.getLogger().warning("Attempted to increase level " + currentLevel + " by " + amount + " would exceed max level " + maxLevel + " for player " + playerUuid);
+            return false;
+        }
+        
+        return setVampireLevel(playerUuid, newLevel);
+    }
+    
+    /**
+     * Decreases a vampire's level by the specified amount.
+     * Validates level bounds and ensures player is a vampire.
+     * 
+     * @param playerUuid The UUID of the player
+     * @param amount The amount to decrease (must be positive)
+     * @return True if successful, false otherwise
+     */
+    public boolean decreaseVampireLevel(UUID playerUuid, int amount) {
+        if (amount <= 0) {
+            plugin.getLogger().warning("Attempted to decrease level by invalid amount " + amount + " for player " + playerUuid);
+            return false;
+        }
+        
+        VampirePlayer vp = getCachedVampirePlayer(playerUuid);
+        if (vp == null) {
+            vp = databaseManager.getPlayer(playerUuid).join();
+            if (vp == null) {
+                plugin.getLogger().warning("Could not find player data for UUID: " + playerUuid + " to decrease level.");
+                return false;
+            }
+            vampireCache.put(playerUuid, vp);
+        }
+        
+        if (!vp.isVampire()) {
+            plugin.getLogger().warning("Attempted to decrease level for non-vampire player: " + playerUuid);
+            return false;
+        }
+        
+        int currentLevel = vp.getVampireLevel();
+        int newLevel = currentLevel - amount;
+        int minLevel = levelManager.getMinLevel();
+        
+        if (newLevel < minLevel) {
+            plugin.getLogger().warning("Attempted to decrease level " + currentLevel + " by " + amount + " would go below min level " + minLevel + " for player " + playerUuid);
+            return false;
+        }
+        
+        return setVampireLevel(playerUuid, newLevel);
     }
 
     // --- Load / Save / Cache --- 

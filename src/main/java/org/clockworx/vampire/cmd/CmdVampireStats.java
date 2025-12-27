@@ -31,46 +31,37 @@ public class CmdVampireStats extends VCommand {
 
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        Player targetPlayer = null;
-        VampirePlayer targetVampirePlayer = null;
-        UUID targetUUID = null;
-
-        if (args.length == 0) {
-            // Target self
-            if (!isPlayer(sender)) {
-                sendError(sender, VampireMessages.getLocalizedMessage("command.error.must_be_player_or_specify")); // Need lang key
-                return true;
-            }
-            // Base permission VampirePermission.STATS already checked by VCommand
-            targetPlayer = (Player) sender;
-            targetUUID = targetPlayer.getUniqueId();
-            targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetUUID);
-        } else {
-            // Target other player
+        if (args.length > 0) {
+            // Target other player - check permission
             if (!sender.hasPermission(VampirePermission.STATS_OTHER)) {
-                sendError(sender, VampireMessages.getLocalizedMessage("command.no_permission"));
+                VampireMessages.sendLocalized(sender, "command.error.no_permission");
                 return true;
             }
-            String targetName = args[0];
-            targetPlayer = Bukkit.getPlayer(targetName);
-            if (targetPlayer == null || !targetPlayer.isOnline()) {
-                // Try loading offline data if implemented? For now, assume online only.
-                sendError(sender, VampireMessages.getLocalizedMessage("player.not_online", targetName));
-                return true;
-            }
-            targetUUID = targetPlayer.getUniqueId();
-            targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetUUID);
         }
+        // Base permission VampirePermission.STATS already checked by VCommand
+
+        // Resolve target player (online only for stats command)
+        TargetResolution target = resolveTargetPlayer(sender, args, args.length > 0 ? 0 : -1, false);
+        if (target == null) {
+            return true; // Error message already sent
+        }
+        
+        // Stats command requires online player
+        if (target.onlinePlayer == null) {
+            VampireMessages.sendLocalized(sender, "player.not_online", target.name);
+            return true;
+        }
+
+        VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(target.uuid);
 
         // Check if player data was found
         if (targetVampirePlayer == null) {
-            // This might happen if player joined before manager could cache them, or an error occurred.
-            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_data_not_found")); // Need lang key
+            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", target.name);
             return true;
         }
 
         // Display Stats
-        displayStats(sender, targetVampirePlayer, targetPlayer);
+        displayStats(sender, targetVampirePlayer, target.onlinePlayer);
         return true;
     }
 

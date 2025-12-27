@@ -24,6 +24,8 @@ public class LevelManager {
     private final Map<Integer, VampireLevel> levelDataMap;
     private FileConfiguration levelConfig = null;
     private File levelConfigFile = null;
+    /** Cached maximum level for performance. -1 indicates not yet calculated. */
+    private int cachedMaxLevel = -1;
 
     public LevelManager(VampirePlugin plugin) {
         this.plugin = plugin;
@@ -54,6 +56,7 @@ public class LevelManager {
         }
 
         levelDataMap.clear(); // Clear previous data before loading
+        cachedMaxLevel = -1; // Reset cache
         ConfigurationSection levelsSection = levelConfig.getConfigurationSection("levels");
 
         if (levelsSection == null) {
@@ -106,6 +109,9 @@ public class LevelManager {
         plugin.getLogger().info("Loaded " + levelDataMap.size() + " vampire levels from levels.yml.");
         if (levelDataMap.isEmpty()) {
             plugin.getLogger().warning("No vampire levels were loaded. Check levels.yml format.");
+        } else {
+            // Calculate and cache max level
+            cachedMaxLevel = levelDataMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
         }
     }
 
@@ -118,6 +124,46 @@ public class LevelManager {
     public VampireLevel getLevelData(int level) {
         // Return specific level data or default if not found/map is empty
         return levelDataMap.getOrDefault(level, VampireLevel.defaultLevel());
+    }
+    
+    /**
+     * Gets the maximum level defined in levels.yml.
+     * Uses cached value for performance.
+     * 
+     * @return The highest level number, or 0 if no levels are loaded.
+     */
+    public int getMaxLevel() {
+        if (cachedMaxLevel < 0) {
+            // Cache not set, calculate it
+            if (levelDataMap.isEmpty()) {
+                cachedMaxLevel = 0;
+            } else {
+                cachedMaxLevel = levelDataMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+            }
+        }
+        return cachedMaxLevel;
+    }
+    
+    /**
+     * Checks if a level is valid (exists in configuration).
+     * 
+     * @param level The level to check
+     * @return True if the level is valid, false otherwise
+     */
+    public boolean isValidLevel(int level) {
+        return levelDataMap.containsKey(level);
+    }
+    
+    /**
+     * Gets the minimum level (typically 0).
+     * 
+     * @return The minimum level, or 0 if no levels are loaded
+     */
+    public int getMinLevel() {
+        if (levelDataMap.isEmpty()) {
+            return 0;
+        }
+        return levelDataMap.keySet().stream().mapToInt(Integer::intValue).min().orElse(0);
     }
 
     /**

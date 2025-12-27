@@ -33,22 +33,25 @@ public class CmdVampireReset extends VCommand {
         // Permission already checked by VCommand
 
         if (args.length < 1) {
-            sendError(sender, VampireMessages.getLocalizedMessage("command.error.missing_argument", "player"));
-            // Optional: Send usage message
+            VampireMessages.sendLocalized(sender, "command.error.missing_argument", "player");
             return true;
         }
 
-        String targetName = args[0];
-        Player targetPlayer = Bukkit.getPlayer(targetName);
-
-        if (targetPlayer == null || !targetPlayer.isOnline()) {
-            sendError(sender, VampireMessages.getLocalizedMessage("player.not_online", targetName));
+        // Resolve target player (online only for reset command)
+        TargetResolution target = resolveTargetPlayer(sender, args, 0, false);
+        if (target == null) {
+            return true; // Error message already sent
+        }
+        
+        // Reset command requires online player
+        if (target.onlinePlayer == null) {
+            VampireMessages.sendLocalized(sender, "player.not_online", target.name);
             return true;
         }
 
-        VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
+        VampirePlayer targetVampirePlayer = vampireManager.getCachedVampirePlayer(target.uuid);
         if (targetVampirePlayer == null) {
-            sendError(sender, VampireMessages.getLocalizedMessage("command.error.player_data_not_found"));
+            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", target.name);
             return true;
         }
 
@@ -57,7 +60,7 @@ public class CmdVampireReset extends VCommand {
         boolean wasInfected = targetVampirePlayer.isInfected();
 
         if (!wasVampire && !wasInfected) {
-            VampireMessages.sendLocalized(sender, "command.reset.not_needed", targetName); // Need lang key
+            VampireMessages.sendLocalized(sender, "command.reset.not_needed", target.name);
             return true;
         }
 
@@ -67,10 +70,10 @@ public class CmdVampireReset extends VCommand {
         vampireManager.setVampireStatus(targetVampirePlayer.getUuid(), false, reason); 
 
         // Send feedback
-        VampireMessages.sendLocalized(sender, "command.reset.success_sender", targetName);
-        VampireMessages.sendLocalized(targetPlayer, "command.reset.success_target");
+        VampireMessages.sendLocalized(sender, "command.reset.success_sender", target.name);
+        VampireMessages.sendLocalized(target.onlinePlayer, "command.reset.success_target");
         
-        VampireMessages.debug("Reset player " + targetName + " requested by " + sender.getName());
+        VampireMessages.debug("Reset player " + target.name + " requested by " + sender.getName());
 
         return true;
     }

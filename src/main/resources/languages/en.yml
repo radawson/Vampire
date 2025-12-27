@@ -223,6 +223,21 @@ command:
     success: "&aConfiguration and language files successfully reloaded!"
     failed: "&cFailed to reload configuration. Check console for errors."
 
+  # Level command messages
+  level:
+    usage: "&cUsage: /vampire %1% %2%"
+    success:
+      increase: "&aIncreased %1%'s level by %2% (from %3% to %4%)"
+      decrease: "&aDecreased %1%'s level by %2% (from %3% to %4%)"
+      set: "&aSet %1%'s level to %2%"
+    error:
+      invalid_operation: "&cInvalid operation: %1%. Use 'increase', 'decrease', or 'set'."
+      invalid_amount: "&cInvalid amount: %1%. Amount must be a positive number."
+      below_min: "&cCannot set %1%'s level below minimum (%2%)."
+      above_max: "&cCannot set %1%'s level above maximum (%2%)."
+      not_vampire: "&c%1% is not a vampire."
+      failed: "&cFailed to change %1%'s level."
+
   # Kit command messages
   kit:
     usage: "&cUsage: /vampire %1% %2%"

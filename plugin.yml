@@ -30,6 +30,7 @@ permissions:
   vampire.set.infection:     {description: Set player infection level (0 to 1), default: op}
   vampire.set.food:          {description: Set player food level (0 to 20), default: op}
   vampire.set.health:        {description: Set player health level (0 to max), default: op}
+  vampire.set.level:         {description: Set player vampire level, default: op}
   vampire.config:            {description: Reload config (/vampire reload), default: op}
   vampire.lang:              {description: Reload language files (/vampire reload), default: op}
 # OTHER PERMISSIONS
@@ -43,6 +44,9 @@ permissions:
   vampire.stats.other:       {description: Allows viewing other players' vampire statistics, default: op}
   vampire.reset:             {description: Allows resetting a player's vampire data (cure, remove infection/blood), default: op}
   vampire.flask.holywater:   {description: Allows creating Holy Water via command, default: op}
+  vampire.kit.rank1:         {description: Can view extended info, default: op}
+  vampire.kit.rank2:         {description: Can manage players, default: op}
+  vampire.kit.rank3:         {description: Allows giving altar kits and managing levels, default: op}
 # INDICATOR PERMISSIONS (Maintained by plugin, not granted manually)
   vampire.is.vampire:        {description: Indicator - player is a vampire, default: false}
   vampire.is.human:          {description: Indicator - player is a human, default: false}
@@ -89,6 +93,7 @@ permissions:
       vampire.set.infection: true
       vampire.set.food: true
       vampire.set.health: true
+      vampire.set.level: true
 
 # -------------------------------------------- #
 # KITS (Example permission bundles)

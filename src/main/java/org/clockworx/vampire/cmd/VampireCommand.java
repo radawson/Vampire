@@ -50,6 +50,7 @@ public class VampireCommand implements CommandExecutor, TabCompleter {
         registerSubcommand(new CmdVampireStats(plugin));
         registerSubcommand(new CmdVampireDebug(plugin));
         registerSubcommand(new CmdVampireKit(plugin));
+        registerSubcommand(new CmdVampireLevel(plugin));
     }
     
     /**

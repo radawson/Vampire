@@ -56,7 +56,6 @@ public class CmdVampireShow extends VCommand {
      */
     @Override
     protected boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        Player targetPlayer;
         boolean showingOther = args.length > 0;
 
         if (showingOther) {
@@ -66,34 +65,33 @@ public class CmdVampireShow extends VCommand {
                 VampireMessages.sendLocalized(sender, "command.show.no_permission_other");
                 return true;
             }
-            
-            targetPlayer = Bukkit.getPlayer(args[0]);
-            if (targetPlayer == null) {
-                VampireMessages.sendLocalized(sender, "player.not_online", args[0]);
-                return true;
-            }
-        } else {
-            // If no arguments, target is the sender
-            if (!(sender instanceof Player)) {
-                VampireMessages.sendLocalized(sender, "command.error.must_be_player_or_specify");
-                return true;
-            }
-            targetPlayer = (Player) sender;
-            // Basic 'vampire.show' permission checked by VCommand superclass
+        }
+        // Basic 'vampire.show' permission checked by VCommand superclass
+
+        // Resolve target player (online only for show command)
+        TargetResolution target = resolveTargetPlayer(sender, args, args.length > 0 ? 0 : -1, false);
+        if (target == null) {
+            return true; // Error message already sent
         }
         
-        VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(targetPlayer.getUniqueId());
+        // Show command requires online player
+        if (target.onlinePlayer == null) {
+            VampireMessages.sendLocalized(sender, "player.not_online", target.name);
+            return true;
+        }
+        
+        Player targetPlayer = target.onlinePlayer;
+        VampirePlayer vampirePlayer = vampireManager.getCachedVampirePlayer(target.uuid);
 
         // Check if data exists
         if (vampirePlayer == null) {
-            String targetName = showingOther ? args[0] : sender.getName(); // Get the target's name
-            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", targetName); // Pass name as arg
+            VampireMessages.sendLocalized(sender, "command.error.player_data_not_found", target.name);
             return true;
         }
         
         // Check if the target is actually a vampire
         if (!vampirePlayer.isVampire()) {
-             VampireMessages.sendLocalized(sender, "command.show.target_not_vampire", targetPlayer.getName());
+             VampireMessages.sendLocalized(sender, "command.show.target_not_vampire", target.name);
             return true;
         }
         
