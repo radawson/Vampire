@@ -22,6 +22,8 @@ The Vampire plugin uses `/vampire` (or `/v`) as the base command, with various s
 | `/vampire reset <player>` | `vampire.reset` | Reset player's vampire data (Admin) | No |
 | `/vampire reload` | `vampire.config` | Reload plugin configuration (Admin) | No |
 | `/vampire debug` | `vampire.base` | Toggle debug mode (Admin) | No |
+| `/vampire level <op> [amount] [player]` | `vampire.kit.rank3` | Manage vampire levels (Admin) | No |
+| `/vampire kit <type>` | `vampire.kit.rank3` | Get altar construction kit (Admin) | Yes |
 | `/vampire offergift <player>` | `vampire.gift.offer` | Offer the Dark Gift (Admin) | Yes |
 | `/vampire acceptgift` | `vampire.gift.accept` | Accept Dark Gift offer | Yes |
 | `/vampire rejectgift` | `vampire.gift.accept` | Reject Dark Gift offer | Yes |
@@ -45,6 +47,8 @@ Commands for server administrators:
 - [Reset Command](commands/reset.md) - Reset player vampire data
 - [Reload Command](commands/reload.md) - Reload configuration
 - [Debug Command](commands/debug.md) - Toggle debug mode
+- [Level Command](commands/level.md) - Manage vampire levels (Rank3)
+- [Kit Command](commands/kit.md) - Get altar construction kits (Rank3)
 
 ### Gift Commands
 Commands for the Dark Gift feature:

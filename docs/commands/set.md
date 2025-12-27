@@ -143,6 +143,7 @@ Tab completion provides suggestions for:
 
 ## See Also
 
+- [Level Command](level.md) - Alternative way to manage levels with increase/decrease operations (Rank3)
 - [Reset Command](reset.md) - Reset all vampire data for a player
 - [Configuration Guide](../CONFIG.md) - Plugin configuration options
 
