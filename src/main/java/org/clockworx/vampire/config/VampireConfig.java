@@ -155,31 +155,48 @@ public class VampireConfig {
     }
     
     public void loadConfig() {
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdir();
+        // Use SimpleDataLib FileTools if available, otherwise fall back to manual operations
+        regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
+        
+        if (sdl != null && sdl.getFileTools() != null) {
+            // Use FileTools for directory creation
+            sdl.getFileTools().makeFolder(plugin.getDataFolder().getAbsolutePath());
+        } else {
+            // Fallback to manual directory creation
+            if (!plugin.getDataFolder().exists()) {
+                plugin.getDataFolder().mkdir();
+            }
         }
         
         configFile = new File(plugin.getDataFolder(), "config.yml");
         if (!configFile.exists()) {
             try {
-                plugin.saveResource("config.yml", false);
+                // Use FileTools if available, otherwise use Bukkit's saveResource
+                if (sdl != null && sdl.getFileTools() != null) {
+                    String resourcePath = "config.yml";
+                    String destPath = configFile.getAbsolutePath();
+                    sdl.getFileTools().copyFileFromJar(resourcePath, destPath);
+                } else {
+                    plugin.saveResource("config.yml", false);
+                }
+                
                 // Verify the file was actually created
                 if (configFile.exists()) {
                     plugin.getLogger().info("Created default config.yml from JAR resource.");
                 } else {
                     // File was not created - this could indicate a file system issue
                     plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                    plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: File was not created after saveResource() call.");
+                    plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: File was not created after resource extraction.");
                     plugin.getLogger().log(Level.SEVERE, "Target location: " + configFile.getAbsolutePath());
                     plugin.getLogger().log(Level.SEVERE, "Please check file permissions and available disk space.");
                     plugin.getLogger().log(Level.SEVERE, "The plugin cannot load without a valid config.yml file.");
                     plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                    throw new IllegalStateException("config.yml was not created after saveResource() call");
+                    throw new IllegalStateException("config.yml was not created after resource extraction");
                 }
-            } catch (IllegalArgumentException e) {
-                // Resource not found in JAR
+            } catch (Exception e) {
+                // Resource not found in JAR or other error
                 plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: Resource not found in plugin JAR.");
+                plugin.getLogger().log(Level.SEVERE, "Failed to create config.yml: Resource not found in plugin JAR or extraction failed.");
                 plugin.getLogger().log(Level.SEVERE, "Expected location: plugins/Vampire/config.yml");
                 plugin.getLogger().log(Level.SEVERE, "Please ensure the plugin JAR contains config.yml in src/main/resources/");
                 plugin.getLogger().log(Level.SEVERE, "The plugin cannot load without a valid config.yml file.");

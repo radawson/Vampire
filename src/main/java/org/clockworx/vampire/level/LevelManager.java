@@ -39,26 +39,36 @@ public class LevelManager {
      */
     public void loadLevels() {
         levelConfigFile = new File(plugin.getDataFolder(), "levels.yml");
+        regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
+        
         if (!levelConfigFile.exists()) {
             try {
-                plugin.saveResource("levels.yml", false); // Copy default from JAR
+                // Use FileTools if available, otherwise use Bukkit's saveResource
+                if (sdl != null && sdl.getFileTools() != null) {
+                    String resourcePath = "levels.yml";
+                    String destPath = levelConfigFile.getAbsolutePath();
+                    sdl.getFileTools().copyFileFromJar(resourcePath, destPath);
+                } else {
+                    plugin.saveResource("levels.yml", false); // Copy default from JAR
+                }
+                
                 // Verify the file was actually created
                 if (levelConfigFile.exists()) {
                     plugin.getLogger().info("Created default levels.yml from JAR resource. Please configure vampire levels.");
                 } else {
                     // File was not created - this could indicate a file system issue
                     plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                    plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: File was not created after saveResource() call.");
+                    plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: File was not created after resource extraction.");
                     plugin.getLogger().log(Level.SEVERE, "Target location: " + levelConfigFile.getAbsolutePath());
                     plugin.getLogger().log(Level.SEVERE, "Please check file permissions and available disk space.");
                     plugin.getLogger().log(Level.SEVERE, "Vampire level progression will not work without this file.");
                     plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                    throw new IllegalStateException("levels.yml was not created after saveResource() call");
+                    throw new IllegalStateException("levels.yml was not created after resource extraction");
                 }
-            } catch (IllegalArgumentException e) {
-                // Resource not found in JAR
+            } catch (Exception e) {
+                // Resource not found in JAR or other error
                 plugin.getLogger().log(Level.SEVERE, "*********************************************************************");
-                plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: Resource not found in plugin JAR.");
+                plugin.getLogger().log(Level.SEVERE, "Failed to create levels.yml: Resource not found in plugin JAR or extraction failed.");
                 plugin.getLogger().log(Level.SEVERE, "Expected location: plugins/Vampire/levels.yml");
                 plugin.getLogger().log(Level.SEVERE, "Please ensure the plugin JAR contains levels.yml in src/main/resources/");
                 plugin.getLogger().log(Level.SEVERE, "Vampire level progression will not work without this file.");
