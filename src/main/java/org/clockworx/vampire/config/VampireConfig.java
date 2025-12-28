@@ -190,6 +190,33 @@ public class VampireConfig {
         
         config = YamlConfiguration.loadConfiguration(configFile);
         
+        // Check for version mismatch and update config if needed
+        String loadedConfigVersion = config.getString("version", "0.0.0");
+        String pluginVersion = plugin.getPluginMeta().getVersion();
+        
+        if (!pluginVersion.equals(loadedConfigVersion)) {
+            plugin.getLogger().info("Config version mismatch detected. Updating config from " + loadedConfigVersion + " to " + pluginVersion + "...");
+            
+            // Load default config from JAR
+            FileConfiguration defaultConfig = ConfigUpdater.loadDefaultConfigFromJar(plugin, "config.yml");
+            
+            if (defaultConfig != null) {
+                // Create updater and update config
+                ConfigUpdater updater = new ConfigUpdater(plugin);
+                boolean updateSuccess = updater.updateConfig(configFile, defaultConfig, pluginVersion);
+                
+                if (updateSuccess) {
+                    // Reload the updated config
+                    config = YamlConfiguration.loadConfiguration(configFile);
+                    plugin.getLogger().info("Config updated and reloaded successfully.");
+                } else {
+                    plugin.getLogger().warning("Config update failed. Continuing with existing config (may cause errors).");
+                }
+            } else {
+                plugin.getLogger().warning("Could not load default config from JAR. Continuing with existing config (may cause errors).");
+            }
+        }
+        
         // Load database settings
         loadDatabaseSettings();
         

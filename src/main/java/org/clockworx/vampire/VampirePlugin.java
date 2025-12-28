@@ -146,19 +146,22 @@ public final class VampirePlugin extends JavaPlugin {
             languageConfig = new LanguageConfig(this);
             languageConfig.loadLanguage(config.getLanguage());
 
-            // --- Config Version Check ---
+            // --- Config Version Verification ---
+            // Note: Automatic config updates are handled in VampireConfig.loadConfig()
+            // This check is just for verification and logging
             String loadedConfigVersionStr = config.getConfig().getString("version", "0.0.0");
+            String pluginVersion = getPluginMeta().getVersion();
 
-            if (!getPluginMeta().getVersion().equals(loadedConfigVersionStr)) {
-                getLogger().log(Level.WARNING, "*********************************************************************");
-                getLogger().log(Level.WARNING, "Your config.yml version does not match the plugin version!");
-                getLogger().log(Level.WARNING, "Config Version: " + loadedConfigVersionStr + ", Plugin Version: " + getPluginMeta().getVersion());
-                getLogger().log(Level.WARNING, "Please backup your current config.yml, delete it, and let the plugin generate a new one.");
-                getLogger().log(Level.WARNING, "Then, manually merge your old settings into the new file.");
-                getLogger().log(Level.WARNING, "Using a mismatched config may cause errors or unexpected behavior.");
-                getLogger().log(Level.WARNING, "*********************************************************************");
+            if (!pluginVersion.equals(loadedConfigVersionStr)) {
+                // This should be rare - config should have been auto-updated in loadConfig()
+                getLogger().log(Level.WARNING, "Config version still mismatched after update attempt!");
+                getLogger().log(Level.WARNING, "Config Version: " + loadedConfigVersionStr + ", Plugin Version: " + pluginVersion);
+                getLogger().log(Level.WARNING, "The plugin will attempt to continue, but errors may occur.");
+            } else {
+                getLogger().info("Config version verified: " + pluginVersion);
             }
-             getLogger().info("Configurations initialized!");
+            
+            getLogger().info("Configurations initialized!");
              return false; // Indicate success (inverted: false = success)
         } catch (Exception e) {
              getLogger().log(Level.SEVERE, "Error initializing configurations", e);
