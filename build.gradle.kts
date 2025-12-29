@@ -157,7 +157,7 @@ tasks {
         // Relocate the Xerial part of SQLite driver, but NOT the core org.sqlite part
         relocate("org.xerial.sqlite", "org.clockworx.vampire.lib.xerial.sqlite")
         
-        // Relocate SimpleDataLib
+        // Relocate SimpleDataLib (includes OpenCSV transitively)
         relocate("regalowl.simpledatalib", "org.clockworx.vampire.lib.simpledatalib")
         
         // Note: SnakeYAML is used by both SimpleDataLib and Bukkit, but we'll let Bukkit's version take precedence

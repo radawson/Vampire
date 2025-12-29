@@ -1,0 +1,13 @@
+name: Vampire
+version: '${project.version}'
+main: org.clockworx.vampire.VampirePlugin
+description: A modern werewolf plugin for Minecraft
+api-version: '1.21.11'
+bootstrapper: org.clockworx.vampire.VampireBootstrap
+loader: org.clockworx.vampire.VampireLoader
+dependencies:
+  server:
+    Werewolf:
+      required: false
+      join-classpath: false
+
