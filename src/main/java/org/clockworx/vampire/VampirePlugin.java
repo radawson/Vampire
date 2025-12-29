@@ -50,6 +50,19 @@ public final class VampirePlugin extends JavaPlugin {
     public void onEnable() {
         plugin = this; // Assign in onEnable
 
+        // --- Version Validation ---
+        // Check if plugin version contains placeholders (indicates build issue)
+        String pluginVersion = getPluginMeta().getVersion();
+        if (isPlaceholderVersion(pluginVersion)) {
+            getLogger().severe("*********************************************************************");
+            getLogger().severe("CRITICAL: Plugin JAR was not built correctly!");
+            getLogger().severe("Plugin version contains placeholders: " + pluginVersion);
+            getLogger().severe("This indicates the build process did not replace version placeholders.");
+            getLogger().severe("Please rebuild the plugin with: ./gradlew clean build");
+            getLogger().severe("The plugin will attempt to continue, but version-related features may fail.");
+            getLogger().severe("*********************************************************************");
+        }
+
         // --- Initialize SimpleDataLib ---
         // Initialize SimpleDataLib early for error logging and file utilities
         try {
@@ -414,5 +427,22 @@ public final class VampirePlugin extends JavaPlugin {
      */
     public static VampirePlugin getInstance() {
         return plugin;
+    }
+    
+    /**
+     * Checks if a version string contains placeholder values that weren't replaced during build.
+     * 
+     * @param version The version string to check.
+     * @return true if the version contains placeholders, false otherwise.
+     */
+    private boolean isPlaceholderVersion(String version) {
+        if (version == null || version.isEmpty()) {
+            return false;
+        }
+        // Check for common placeholder patterns
+        return version.contains("${project.version}") 
+            || version.contains("${version}")
+            || version.contains("$project.version")
+            || version.contains("$version");
     }
 } 

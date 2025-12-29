@@ -207,9 +207,28 @@ public class VampireConfig {
         
         config = YamlConfiguration.loadConfiguration(configFile);
         
-        // Check for version mismatch and update config if needed
+        // Normalize version field - detect and fix placeholder versions
         String loadedConfigVersion = config.getString("version", "0.0.0");
         String pluginVersion = plugin.getPluginMeta().getVersion();
+        
+        // Normalize plugin version if it contains placeholders
+        pluginVersion = normalizeVersion(pluginVersion);
+        
+        // Normalize config version if it contains placeholders
+        if (isPlaceholderVersion(loadedConfigVersion)) {
+            plugin.getLogger().warning("Detected placeholder version in config.yml: " + loadedConfigVersion);
+            plugin.getLogger().info("Normalizing config version to plugin version: " + pluginVersion);
+            loadedConfigVersion = pluginVersion;
+            // Update the config in memory
+            config.set("version", pluginVersion);
+            // Save the fix immediately
+            try {
+                config.save(configFile);
+                plugin.getLogger().info("Fixed placeholder version in config.yml");
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.WARNING, "Failed to save normalized version to config.yml", e);
+            }
+        }
         
         if (!pluginVersion.equals(loadedConfigVersion)) {
             plugin.getLogger().info("Config version mismatch detected. Updating config from " + loadedConfigVersion + " to " + pluginVersion + "...");
@@ -1427,5 +1446,54 @@ public class VampireConfig {
 
     public double getSunlightBlindnessThreshold() {
         return sunlightBlindnessThreshold;
+    }
+    
+    /**
+     * Checks if a version string contains placeholder values that weren't replaced during build.
+     * 
+     * @param version The version string to check.
+     * @return true if the version contains placeholders, false otherwise.
+     */
+    private boolean isPlaceholderVersion(String version) {
+        if (version == null || version.isEmpty()) {
+            return false;
+        }
+        // Check for common placeholder patterns
+        return version.contains("${project.version}") 
+            || version.contains("${version}")
+            || version.contains("$project.version")
+            || version.contains("$version");
+    }
+    
+    /**
+     * Normalizes a version string by replacing placeholder values with the actual plugin version.
+     * If the version contains placeholders, returns the actual plugin version.
+     * Otherwise, returns the version as-is.
+     * 
+     * @param version The version string to normalize.
+     * @return The normalized version string.
+     */
+    private String normalizeVersion(String version) {
+        if (version == null || version.isEmpty()) {
+            return plugin.getPluginMeta().getVersion();
+        }
+        
+        if (isPlaceholderVersion(version)) {
+            // If plugin version itself has placeholders, we can't fix it - log warning
+            String actualVersion = plugin.getPluginMeta().getVersion();
+            if (isPlaceholderVersion(actualVersion)) {
+                plugin.getLogger().severe("*********************************************************************");
+                plugin.getLogger().severe("CRITICAL: Plugin JAR was not built correctly!");
+                plugin.getLogger().severe("Plugin version contains placeholders: " + actualVersion);
+                plugin.getLogger().severe("This indicates the build process did not replace version placeholders.");
+                plugin.getLogger().severe("Please rebuild the plugin with: ./gradlew clean build");
+                plugin.getLogger().severe("*********************************************************************");
+                // Return a safe default
+                return "0.0.0";
+            }
+            return actualVersion;
+        }
+        
+        return version;
     }
 } 

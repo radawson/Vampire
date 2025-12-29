@@ -53,10 +53,24 @@ public class ConfigUpdater {
             return false;
         }
         
+        // Normalize plugin version - ensure it's not a placeholder
+        pluginVersion = normalizeVersion(pluginVersion);
+        if (isPlaceholderVersion(pluginVersion)) {
+            plugin.getLogger().severe("Cannot update config: plugin version contains placeholders: " + pluginVersion);
+            plugin.getLogger().severe("This indicates the plugin JAR was not built correctly.");
+            return false;
+        }
+        
         try {
             // Load the user's current config
             FileConfiguration userConfig = YamlConfiguration.loadConfiguration(userConfigFile);
             String oldVersion = userConfig.getString("version", "unknown");
+            
+            // Normalize old version if it contains placeholders
+            if (isPlaceholderVersion(oldVersion)) {
+                plugin.getLogger().info("Detected placeholder version in existing config: " + oldVersion);
+                oldVersion = pluginVersion; // Use normalized plugin version
+            }
             
             // Create backup before making changes
             File backupFile = createBackup(userConfigFile, oldVersion);
@@ -77,7 +91,7 @@ public class ConfigUpdater {
             // Find removed keys (keys in user config but not in default)
             findRemovedKeys(userConfig, defaultConfig, removedKeys);
             
-            // Update version
+            // Update version - ensure it's the normalized version (never a placeholder)
             userConfig.set("version", pluginVersion);
             
             // Save the updated config
@@ -296,6 +310,51 @@ public class ConfigUpdater {
             plugin.getLogger().log(Level.SEVERE, "Failed to load default " + resourcePath + " from JAR", e);
             return null;
         }
+    }
+    
+    /**
+     * Checks if a version string contains placeholder values that weren't replaced during build.
+     * 
+     * @param version The version string to check.
+     * @return true if the version contains placeholders, false otherwise.
+     */
+    private boolean isPlaceholderVersion(String version) {
+        if (version == null || version.isEmpty()) {
+            return false;
+        }
+        // Check for common placeholder patterns
+        return version.contains("${project.version}") 
+            || version.contains("${version}")
+            || version.contains("$project.version")
+            || version.contains("$version");
+    }
+    
+    /**
+     * Normalizes a version string by replacing placeholder values with the actual plugin version.
+     * If the version contains placeholders, returns the actual plugin version from PluginMeta.
+     * Otherwise, returns the version as-is.
+     * 
+     * @param version The version string to normalize.
+     * @return The normalized version string.
+     */
+    private String normalizeVersion(String version) {
+        if (version == null || version.isEmpty()) {
+            return plugin.getPluginMeta().getVersion();
+        }
+        
+        if (isPlaceholderVersion(version)) {
+            // Get actual version from plugin metadata
+            String actualVersion = plugin.getPluginMeta().getVersion();
+            if (isPlaceholderVersion(actualVersion)) {
+                // If plugin version itself has placeholders, we can't fix it
+                plugin.getLogger().severe("CRITICAL: Plugin JAR was not built correctly! Plugin version contains placeholders: " + actualVersion);
+                // Return a safe default
+                return "0.0.0";
+            }
+            return actualVersion;
+        }
+        
+        return version;
     }
 }
 
