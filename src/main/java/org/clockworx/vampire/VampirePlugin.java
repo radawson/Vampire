@@ -3,7 +3,11 @@ package org.clockworx.vampire;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.clockworx.vampire.cmd.VampireCommand;
 import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
@@ -317,17 +321,32 @@ public final class VampirePlugin extends JavaPlugin {
     }
 
     /**
-     * Register commands
+     * Register commands using Paper's Brigadier command system
      */
+    @SuppressWarnings("UnstableApiUsage")
     private void registerCommands() {
+        LifecycleEventManager<Plugin> manager = getLifecycleManager();
+        
+        manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+            Commands commands = event.registrar();
+            
+            org.clockworx.vampire.command.VampireCommandTree commandTree = 
+                new org.clockworx.vampire.command.VampireCommandTree(this);
+            
+            try {
+                commands.register(
+                    commandTree.build().build(),
+                    "Main command for the Vampire plugin",
+                    java.util.Collections.emptyList()
+                );
+                getLogger().info("Registered 'vampire' command using Brigadier.");
+            } catch (Exception e) {
+                getLogger().log(Level.SEVERE, "Failed to register 'vampire' command", e);
+            }
+        });
+        
+        // Keep vampireCommand for backward compatibility if needed elsewhere
         vampireCommand = new VampireCommand(this);
-        if (getCommand("vampire") != null) {
-            getCommand("vampire").setExecutor(vampireCommand);
-            getCommand("vampire").setTabCompleter(vampireCommand);
-            getLogger().info("Registered 'vampire' command.");
-        } else {
-            getLogger().warning("Could not find 'vampire' command registration in plugin.yml!");
-        }
     }
 
     /**
