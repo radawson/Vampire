@@ -47,6 +47,8 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
     
+    // bStats Metrics
+    implementation("org.bstats:bstats-bukkit:3.1.0")
     
     // Add any additional dependencies here
     // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -153,6 +155,9 @@ tasks {
         relocate("ch.qos.logback", "org.clockworx.vampire.lib.logback") // Relocate Logback
         // Relocate the Xerial part of SQLite driver, but NOT the core org.sqlite part
         relocate("org.xerial.sqlite", "org.clockworx.vampire.lib.xerial.sqlite")
+        
+        // Relocate bStats to avoid conflicts with other plugins
+        relocate("org.bstats", "${project.group}.lib.bstats")
         
         // relocate("org.yaml.snakeyaml", "org.clockworx.vampire.lib.snakeyaml")
         
