@@ -14,7 +14,6 @@ repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://jitpack.io")
-    // Local Maven repository for SimpleDataLib
     mavenLocal()
 }
 
@@ -48,8 +47,6 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
     
-    // SimpleDataLib - Using local build
-    implementation("regalowl.simpledatalib:simpledatalib:0.1.088-SNAPSHOT")
     
     // Add any additional dependencies here
     // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
@@ -157,11 +154,6 @@ tasks {
         // Relocate the Xerial part of SQLite driver, but NOT the core org.sqlite part
         relocate("org.xerial.sqlite", "org.clockworx.vampire.lib.xerial.sqlite")
         
-        // Relocate SimpleDataLib (includes OpenCSV transitively)
-        relocate("regalowl.simpledatalib", "org.clockworx.vampire.lib.simpledatalib")
-        
-        // Note: SnakeYAML is used by both SimpleDataLib and Bukkit, but we'll let Bukkit's version take precedence
-        // SimpleDataLib's SnakeYAML usage will be relocated if it's bundled
         // relocate("org.yaml.snakeyaml", "org.clockworx.vampire.lib.snakeyaml")
         
         // IMPORTANT: Specifically exclude the core SQLite package from relocation

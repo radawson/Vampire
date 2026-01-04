@@ -33,7 +33,6 @@ import org.flywaydb.core.api.configuration.FluentConfiguration;
 public final class VampirePlugin extends JavaPlugin {
 
     private static VampirePlugin plugin;
-    private regalowl.simpledatalib.SimpleDataLib sdl;
     private VampireConfig config;
     private LanguageConfig languageConfig;
     private HibernateDatabaseManager databaseManager;
@@ -61,18 +60,6 @@ public final class VampirePlugin extends JavaPlugin {
             getLogger().severe("Please rebuild the plugin with: ./gradlew clean build");
             getLogger().severe("The plugin will attempt to continue, but version-related features may fail.");
             getLogger().severe("*********************************************************************");
-        }
-
-        // --- Initialize SimpleDataLib ---
-        // Initialize SimpleDataLib early for error logging and file utilities
-        try {
-            sdl = new regalowl.simpledatalib.SimpleDataLib("Vampire");
-            sdl.setPlugin(this); // Enable Bukkit integration
-            sdl.initialize();
-            getLogger().info("SimpleDataLib initialized successfully.");
-        } catch (Exception e) {
-            getLogger().log(Level.SEVERE, "Failed to initialize SimpleDataLib. Continuing without it.", e);
-            sdl = null; // Set to null if initialization fails
         }
 
         // --- Initialize Utilities ---
@@ -153,15 +140,6 @@ public final class VampirePlugin extends JavaPlugin {
             // Assuming saveTask is a BukkitRunnable
             if (saveTask instanceof org.bukkit.scheduler.BukkitRunnable) {
                 ((org.bukkit.scheduler.BukkitRunnable) saveTask).cancel();
-            }
-        }
-
-        // Shutdown SimpleDataLib
-        if (sdl != null) {
-            try {
-                sdl.shutDown();
-            } catch (Exception e) {
-                getLogger().log(Level.SEVERE, "Error during SimpleDataLib shutdown", e);
             }
         }
 
@@ -378,10 +356,6 @@ public final class VampirePlugin extends JavaPlugin {
     }
 
     // Getters
-    public regalowl.simpledatalib.SimpleDataLib getSimpleDataLib() {
-        return sdl;
-    }
-    
     public VampireConfig getVampireConfig() {
         return config;
     }

@@ -52,19 +52,11 @@ public class LanguageConfig {
         
         // Ensure default English file exists
         File defaultLangFile = new File(langDir, "en.yml");
-        regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
         
         if (!defaultLangFile.exists()) {
             // Attempt to save from JAR resources
             try {
-                // Use FileTools if available, otherwise use Bukkit's saveResource
-                if (sdl != null && sdl.getFileTools() != null) {
-                    String resourcePath = "languages/en.yml";
-                    String destPath = defaultLangFile.getAbsolutePath();
-                    sdl.getFileTools().copyFileFromJar(resourcePath, destPath);
-                } else {
-                    plugin.saveResource("languages/en.yml", false);
-                }
+                plugin.saveResource("languages/en.yml", false);
                 
                 // Verify the file was actually created
                 if (defaultLangFile.exists()) {
@@ -150,29 +142,20 @@ public class LanguageConfig {
      */
     private File setupLanguagesFolder() {
         File dataFolder = plugin.getDataFolder();
-        regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
         
-        // Use FileTools if available, otherwise fall back to manual operations
-        if (sdl != null && sdl.getFileTools() != null) {
-            sdl.getFileTools().makeFolder(dataFolder.getAbsolutePath());
-        } else {
-            if (!dataFolder.exists()) {
-                if (!dataFolder.mkdirs()) {
-                    plugin.getLogger().severe("Could not create plugin data folder!");
-                    return null;
-                }
+        // Ensure data folder exists
+        if (!dataFolder.exists()) {
+            if (!dataFolder.mkdirs()) {
+                plugin.getLogger().severe("Could not create plugin data folder!");
+                return null;
             }
         }
         
         File langDir = new File(dataFolder, "languages");
-        if (sdl != null && sdl.getFileTools() != null) {
-            sdl.getFileTools().makeFolder(langDir.getAbsolutePath());
-        } else {
-            if (!langDir.exists()) {
-                if (!langDir.mkdirs()) {
-                    plugin.getLogger().severe("Could not create languages folder!");
-                    return null;
-                }
+        if (!langDir.exists()) {
+            if (!langDir.mkdirs()) {
+                plugin.getLogger().severe("Could not create languages folder!");
+                return null;
             }
         }
         return langDir;

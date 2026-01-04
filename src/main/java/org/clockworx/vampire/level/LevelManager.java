@@ -39,18 +39,10 @@ public class LevelManager {
      */
     public void loadLevels() {
         levelConfigFile = new File(plugin.getDataFolder(), "levels.yml");
-        regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
         
         if (!levelConfigFile.exists()) {
             try {
-                // Use FileTools if available, otherwise use Bukkit's saveResource
-                if (sdl != null && sdl.getFileTools() != null) {
-                    String resourcePath = "levels.yml";
-                    String destPath = levelConfigFile.getAbsolutePath();
-                    sdl.getFileTools().copyFileFromJar(resourcePath, destPath);
-                } else {
-                    plugin.saveResource("levels.yml", false); // Copy default from JAR
-                }
+                plugin.saveResource("levels.yml", false); // Copy default from JAR
                 
                 // Verify the file was actually created
                 if (levelConfigFile.exists()) {

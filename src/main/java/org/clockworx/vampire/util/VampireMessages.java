@@ -260,7 +260,7 @@ public class VampireMessages {
     
     /**
      * Logs an error message and stack trace to the console at SEVERE level.
-     * Also writes to SimpleDataLib error log file if available.
+     * Logs errors using the plugin's logger.
      * Use this for critical errors or exceptions.
      * 
      * @param message The error message to log.
@@ -272,17 +272,6 @@ public class VampireMessages {
             plugin.getLogger().log(Level.SEVERE, message, throwable);
         } else {
             plugin.getLogger().severe(message);
-        }
-        
-        // Also write to SimpleDataLib error log file if available
-        if (plugin != null) {
-            regalowl.simpledatalib.SimpleDataLib sdl = plugin.getSimpleDataLib();
-            if (sdl != null && sdl.getErrorWriter() != null) {
-                Exception ex = (throwable instanceof Exception) ? (Exception) throwable : 
-                              (throwable != null) ? new Exception(throwable) : null;
-                sdl.getErrorWriter().writeError(ex, message, 
-                    regalowl.simpledatalib.file.ErrorWriter.LogLevel.SEVERE);
-            }
         }
     }
 } 
