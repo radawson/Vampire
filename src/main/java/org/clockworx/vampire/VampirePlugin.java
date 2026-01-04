@@ -82,7 +82,7 @@ public final class VampirePlugin extends JavaPlugin {
 
         // --- Configuration ---
         // Load configurations first
-        if (!initializeConfigs()) { // Method now returns false on success, true on failure
+        if (!initializeConfigs()) { // Method returns true on success, false on failure
             getLogger().severe("Failed to initialize configurations. Disabling plugin.");
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -197,10 +197,10 @@ public final class VampirePlugin extends JavaPlugin {
             }
             
             getLogger().info("Configurations initialized!");
-             return false; // Indicate success (inverted: false = success)
+             return true; // Indicate success
         } catch (Exception e) {
              getLogger().log(Level.SEVERE, "Error initializing configurations", e);
-             return true; // Indicate failure (inverted: true = failure)
+             return false; // Indicate failure
         }
     }
 
