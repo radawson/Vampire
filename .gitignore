@@ -60,6 +60,13 @@ desktop.ini
 
 # Local configuration files
 local.properties
+config.yml
+plugin.yml
+!src/main/resources/config.yml
+!src/main/resources/plugin.yml
+!src/main/resources/paper-plugin.yml
+!src/main/resources/levels.yml
+!src/main/resources/en.yml
 
 # Database files
 *.db
