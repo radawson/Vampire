@@ -1,0 +1,84 @@
+name: Vampire
+version: ${version}
+main: org.clockworx.vampire.VampirePlugin
+api-version: '1.21.4'
+authors: [Clockworx]
+description: A vampire plugin for Minecraft servers
+website: https://github.com/clockworx/vampire
+commands:
+  vampire:
+    description: Main command for vampire plugin
+    usage: /<command> [subcommand]
+    aliases: [v]
+    permission: vampire.use
+
+permissions:
+  vampire.use:
+    description: Allows use of basic vampire commands
+    default: true
+  vampire.admin:
+    description: Allows use of admin commands
+    default: op
+  vampire.info:
+    description: Allows viewing vampire plugin info
+    default: true
+  vampire.trade.offer:
+    description: Allows offering blood to other players
+    default: true
+  vampire.trade.accept:
+    description: Allows accepting blood offers
+    default: true
+  vampire.mode.bloodlust:
+    description: Allows toggling bloodlust mode
+    default: true
+  vampire.mode.nightvision:
+    description: Allows toggling nightvision mode
+    default: true
+  vampire.mode.intend:
+    description: Allows toggling infection intent mode
+    default: true
+  vampire.list:
+    description: Allows viewing the vampire list
+    default: true
+  vampire.lore:
+    description: Allows viewing the vampire lore via help command
+    default: true
+  vampire.show:
+    description: Allows viewing vampire status
+    default: true
+  vampire.show.other:
+    description: Allows viewing other players' vampire status
+    default: op
+  vampire.shriek:
+    description: Allows using the vampire shriek ability
+    default: true
+  vampire.set:
+    description: Allows setting vampire player data
+    default: op
+  vampire.set.level:
+    description: Allows setting a player's vampire level
+    default: op
+  vampire.set.infection:
+    description: Allows setting a player's infection level
+    default: op
+  vampire.set.blood:
+    description: Allows setting a player's blood level (uses vampire.set.food node internally)
+    default: op
+  vampire.set.vampire:
+    description: Allows setting player vampire status (true/false)
+    default: op
+  vampire.is.vampire:
+    description: Allows becoming a vampire
+    default: true
+  vampire.is.human:
+    description: Allows remaining human
+    default: true
+  vampire.config:
+    description: Allows modifying plugin configuration
+    default: op
+  vampire.lang:
+    description: Allows modifying plugin language
+    default: op
+  vampire.bypass:
+    description: Bypasses vampire effects and updates (damage, blood drain, etc.)
+    default: false 

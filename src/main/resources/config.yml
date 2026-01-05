@@ -1,0 +1,382 @@
+---
+# Vampire Plugin Configuration
+# DO NOT CHANGE THIS
+version: ${version}
+
+# General settings
+general:
+  # Whether to enable debug mode
+  debug: false
+  # Default language
+  language: "en"
+  # Whether to save player data on quit
+  save-on-quit: true
+  # Whether to enable auto-save
+  auto-save: true
+  # Auto-save interval in minutes
+  auto-save-interval: 5
+
+# Database settings
+database:
+  # Database type (mysql or sqlite)
+  type: "sqlite"
+  # Database URL (for MySQL: jdbc:mysql://localhost:3306/vampire)
+  # For SQLite: jdbc:sqlite:plugins/Vampire/database.db
+  url: "jdbc:sqlite:plugins/Vampire/database.db"
+  # Database username (for MySQL)
+  user: ""
+  # Database password (for MySQL)
+  password: ""
+  # Table prefix
+  table-prefix: "vampire_"
+
+# Vampire settings
+vampire:
+  # Blood settings
+  max-blood: 20.0
+  blood-regen-rate: 0.1
+  blood-decrease-rate: 0.05
+  low-blood-threshold: 2.0
+
+  # Combat settings
+  combat:
+    damageFactor:
+      withBloodlust: 2.0
+      withoutBloodlust: 1.5
+    infectRisk:
+      withIntent: 0.3
+      withoutIntent: 0.1
+
+  # Infection settings
+  can-infect: true
+  infection-chance: 0.25
+  infection-duration: 60
+  infection-rate: 0.1
+
+  # Blood trade settings
+  can-offer-blood: true
+  max-blood-offer: 5.0
+  trade:
+    offerTolerance: 30000
+    maxDistance: 5.0
+
+  # Shriek settings
+  shriek:
+    cooldown: 30000
+    sound: "ENTITY_ENDER_DRAGON_GROWL"
+
+  # Truce settings
+  truce:
+    breakTime: 300000
+
+  # Effects settings
+  effects:
+    vampire:
+      type: "INCREASE_DAMAGE"
+      duration: 100000
+      amplifier: 1
+
+    bloodlust:
+      type: "SPEED"
+      duration: 100000
+      amplifier: 2
+
+    nightvision:
+      type: "NIGHT_VISION"
+      duration: 100000
+      amplifier: 0
+
+    infected:
+      type: "CONFUSION"
+      duration: 100000
+      amplifier: 0
+
+    human:
+      type: "DAMAGE_RESISTANCE"
+      duration: 100000
+      amplifier: 0
+
+  # Night vision settings
+  night-vision:
+    enabled: true
+    level: 1
+
+  # Bloodlust settings
+  bloodlust:
+    duration: 300
+    damage-boost: 1.5
+    speed-boost: 1.2
+    cooldown: 600
+    threshold: 15.0
+    blood-decrease: 0.1
+
+  # Sun damage settings
+  sun-damage: true
+  sun-damage-amount: 1.0
+  sunlight-damage: 1.0
+
+  # Gift Offer Settings
+  gift:
+    # Enables the /vampire offergift, acceptgift, rejectgift commands
+    enabled: true
+    # Maximum distance in blocks players can be apart to offer/accept the gift
+    max-distance: 5.0
+    # Blood cost for the offering vampire
+    blood-cost: 5.0
+    # How long (in seconds) a gift offer remains valid
+    offer-tolerance-seconds: 60
+
+  # Blood Sources
+  blood_sources:
+    # Amount of blood gained per successful hit on these entity types.
+    # Set amount to 0 to disable gaining blood from that type.
+    # Entity Types: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/entity/EntityType.html
+    gain_per_hit:
+      PLAYER: 0.5
+      VILLAGER: 1.0
+      WANDERING_TRADER: 0.8
+      COW: 0.8
+      PIG: 0.7
+      SHEEP: 0.7
+      CHICKEN: 0.3
+      RABBIT: 0.2
+      HORSE: 1.0
+      DONKEY: 0.9
+      MULE: 0.9
+      LLAMA: 0.8
+      GOAT: 0.6
+      FOX: 0.4
+      WOLF: 0.5  # Technically hostile when attacked, but gives blood
+      CAT: 0.2
+      OCELOT: 0.3
+      PANDA: 0.9
+      PARROT: 0.1
+      STRIDER: 0.0  # Lives in lava, maybe shouldn't give blood?
+      SQUID: 0.0
+      GLOW_SQUID: 0.0
+      BAT: 0.1
+      # Undead / Non-living defaults to 0
+      ZOMBIE: 0.0
+      SKELETON: 0.0
+      SPIDER: 0.0  # Often considered not blood-giving
+      CREEPER: 0.0
+      ENDERMAN: 0.0
+      IRON_GOLEM: 0.0
+      SNOW_GOLEM: 0.0
+      # Add any other specific mobs here if needed
+
+    # Damage dealt to a player when a vampire hits them to gain blood.
+    # Set to 0.0 if blood should be taken without harming the source.
+    damage_per_hit: 0.5
+    # Should hitting a creature make it aggressive?
+    anger_on_hit: true
+
+
+# Items
+items:
+  wooden-stakes:
+    - STICK
+    - WOODEN_SWORD
+  holy-water:
+    - SPLASH_POTION
+  blood-flask:
+    - GLASS_BOTTLE
+  blood_vial:
+    # Amount of infection (0.0 to 1.0) applied when splashed on a non-vampire player
+    infection_amount: 0.15  # e.g., 15%
+  holy_water:
+    # Damage dealt to vampires when splashed
+    vampire_damage: 4.0  # e.g., 2 hearts
+    # Damage dealt to standard undead (zombies, skeletons) when splashed
+    undead_damage: 6.0  # e.g., 3 hearts
+    # Amount of infection (0.0 to 1.0) cured when splashed on an infected player
+    infection_cure_amount: 0.20  # e.g., 20%
+
+# Altar settings
+altar:
+  enabled: true
+  search-radius: 5
+  min-ratio: 0.5
+
+  # Dark Altar settings
+  dark:
+    core-material: "OBSIDIAN"
+    materials:
+      OBSIDIAN: 4
+      WITHER_SKELETON_SKULL: 1
+      DIAMOND_BLOCK: 2
+    resources:
+      - "REDSTONE:10"
+      - "WITHER_ROSE:1"
+    # Delay in ticks before the ritual takes effect (60 ticks = 3 seconds)
+    channeling_delay_ticks: 60
+    # Maximum distance (in blocks) player can move before cancelling (1.5 * 1.5 = 2.25 squared)
+    max_movement_distance: 1.5
+
+  # Light Altar settings
+  light:
+    core-material: "LAPIS_BLOCK"
+    materials:
+      GOLD_BLOCK: 4
+      GLOWSTONE: 1
+      EMERALD_BLOCK: 2
+    resources:
+      - "LAPIS_LAZULI:10"
+      - "DIAMOND:1"
+    # Delay in ticks before the ritual takes effect (60 ticks = 3 seconds)
+    channeling_delay_ticks: 60
+    # Maximum distance (in blocks) player can move before cancelling (1.5 * 1.5 = 2.25 squared)
+    max_movement_distance: 1.5
+
+# Sunlight Settings
+sunlight:
+  # Base damage per second from sunlight at full irradiation (1.0).
+  base_damage: 1.0
+
+  # Irradiation thresholds (0.0 to 1.0) for applying potion effects.
+  # Effects apply if irradiation > threshold.
+  thresholds:
+    weakness: 0.15 # Apply weakness at relatively low exposure
+    slowness: 0.45 # Apply slowness at moderate exposure
+    blindness: 0.80 # Apply blindness only at high exposure
+
+  # Block Opacity Settings
+  # How much sunlight each block type blocks (0.0 = transparent, 1.0 = fully opaque).
+  # IMPORTANT: Blocks NOT listed here default to 1.0 (fully opaque) in the code.
+  # Only list blocks you want to allow *some* sunlight through (value < 1.0).
+  block_opacity:
+    # --- Absolutely Transparent --- 
+    AIR: 0.0
+    CAVE_AIR: 0.0 # Ensure cave air is also transparent
+    VOID_AIR: 0.0 # Ensure void air is also transparent
+    LIGHT: 0.0    # Light blocks themselves don't block
+    BARRIER: 0.0  # Barriers are invisible and don't block
+    STRUCTURE_VOID: 0.0
+
+    # --- Water & Ice --- 
+    WATER: 0.3 # Water blocks some light, especially deeper
+    ICE: 0.1
+    PACKED_ICE: 0.2
+    FROSTED_ICE: 0.15 # Slightly less than packed
+    BLUE_ICE: 0.3 # Denser ice
+
+    # --- Glass & Similar --- 
+    GLASS: 0.05
+    GLASS_PANE: 0.05
+    TINTED_GLASS: 0.95 # Tinted glass blocks most light
+    # Stained Glass (slightly more opaque than clear)
+    WHITE_STAINED_GLASS: 0.1
+    ORANGE_STAINED_GLASS: 0.1
+    MAGENTA_STAINED_GLASS: 0.1
+    LIGHT_BLUE_STAINED_GLASS: 0.1
+    YELLOW_STAINED_GLASS: 0.1
+    LIME_STAINED_GLASS: 0.1
+    PINK_STAINED_GLASS: 0.1
+    GRAY_STAINED_GLASS: 0.1
+    LIGHT_GRAY_STAINED_GLASS: 0.1
+    CYAN_STAINED_GLASS: 0.1
+    PURPLE_STAINED_GLASS: 0.1
+    BLUE_STAINED_GLASS: 0.1
+    BROWN_STAINED_GLASS: 0.1
+    GREEN_STAINED_GLASS: 0.1
+    RED_STAINED_GLASS: 0.1
+    BLACK_STAINED_GLASS: 0.15 # Black stained glass might block a bit more?
+    # Stained Glass Panes (same as full blocks?)
+    WHITE_STAINED_GLASS_PANE: 0.1
+    # ... (Add other stained glass panes if needed, following the pattern)
+    BLACK_STAINED_GLASS_PANE: 0.15
+
+    # --- Natural Transparent --- 
+    # Leaves (provide some cover, density varies)
+    OAK_LEAVES: 0.2
+    SPRUCE_LEAVES: 0.25
+    BIRCH_LEAVES: 0.2
+    JUNGLE_LEAVES: 0.3
+    ACACIA_LEAVES: 0.2
+    DARK_OAK_LEAVES: 0.25
+    MANGROVE_LEAVES: 0.3
+    CHERRY_LEAVES: 0.2
+    AZALEA_LEAVES: 0.2
+    FLOWERING_AZALEA_LEAVES: 0.2
+    # Other natural
+    VINE: 0.1
+    LADDER: 0.1 # Ladders have gaps
+    COBWEB: 0.1
+    SNOW: 0.1 # Single layer
+    POWDER_SNOW: 0.05 # Very little opacity?
+    BIG_DRIPLEAF: 0.1
+    SMALL_DRIPLEAF: 0.05
+    MANGROVE_ROOTS: 0.2
+    SUGAR_CANE: 0.05
+    TALL_GRASS: 0.05
+    GRASS_BLOCK: 0.05 # Assuming grass block itself lets a tiny bit through
+    FERN: 0.05
+    # Mushrooms block a bit?
+    BROWN_MUSHROOM_BLOCK: 0.3
+    RED_MUSHROOM_BLOCK: 0.3
+    MUSHROOM_STEM: 0.2
+
+    # --- Other Semi-Transparent --- 
+    IRON_BARS: 0.15
+    END_ROD: 0.05 # Emits light, low opacity
+    SCAFFOLDING: 0.1
+    HONEY_BLOCK: 0.3
+    SLIME_BLOCK: 0.3
+    AMETHYST_BLOCK: 0.2 # Semi-transparent crystal
+    AMETHYST_CLUSTER: 0.1
+    # Maybe fences/walls let *some* light through gaps?
+    ACACIA_FENCE: 0.15
+    ACACIA_FENCE_GATE: 0.15
+    BIRCH_FENCE: 0.15
+    BIRCH_FENCE_GATE: 0.15
+    CRIMSON_FENCE: 0.15
+    CRIMSON_FENCE_GATE: 0.15
+    DARK_OAK_FENCE: 0.15
+    DARK_OAK_FENCE_GATE: 0.15 
+    JUNGLE_FENCE: 0.15
+    JUNGLE_FENCE_GATE: 0.15
+    MANGROVE_FENCE: 0.15
+    MANGROVE_FENCE_GATE: 0.15
+    OAK_FENCE: 0.15
+    OAK_FENCE_GATE: 0.15
+    SPRUCE_FENCE: 0.15
+    SPRUCE_FENCE_GATE: 0.15
+    WARPED_FENCE: 0.15
+    WARPED_FENCE_GATE: 0.15
+
+    # ... (Add other fence types if desired)
+    COBBLESTONE_WALL: 0.2 # Walls are thicker than fences
+    END_STONE_BRICK_WALL: 0.2
+    # STONE_WALL: 0.2 # Removed, use specific wall types or default opacity
+    # ... (Add other wall types if desired)
+
+    # Blocks like Stone, Dirt, Wood, Bricks, Concrete, Terracotta, etc.
+    # are NOT listed here and will default to 1.0 (fully opaque).
+    # Remove any entries below this line that should be fully opaque.
+
+  # Armor Opacity Settings
+  # Base opacity provided by the *material* of the armor.
+  # Value represents the opacity IF the piece covered 100% (weight 1.0).
+  # Can be > 1.0 if a material is exceptionally protective.
+  armor_base_material_opacities:
+    LEATHER: 0.15
+    CHAINMAIL: 0.25
+    IRON: 0.40
+    GOLD: 0.30  # Less protective than iron against sun?
+    DIAMOND: 0.55
+    NETHERITE: 0.70
+    TURTLE: 0.35  # Turtle Shell
+    ELYTRA: 0.05  # Elytra offers very little protection
+    # Add custom materials if needed (e.g., from other plugins)
+    # CUSTOM_MATERIAL: 0.5
+
+  # Weight modifier based on the *type/slot* of the armor piece.
+  # Represents roughly how much of the player is covered by this slot.
+  # The sum of weights for a typical full set (H,C,L,B) should be around 1.0.
+  # Final opacity contribution = base_material_opacity * type_weight
+  armor_type_weights:
+    HELMET: 0.20
+    CHESTPLATE: 0.45
+    LEGGINGS: 0.25
+    BOOTS: 0.10
+    ELYTRA: 0.45  # Uses the Chestplate weight as it occupies that slo

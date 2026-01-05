@@ -60,8 +60,6 @@ desktop.ini
 
 # Local configuration files
 local.properties
-config.yml
-plugin.yml
 
 # Database files
 *.db
