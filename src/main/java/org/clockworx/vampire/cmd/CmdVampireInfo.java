@@ -57,6 +57,22 @@ public class CmdVampireInfo extends VCommand {
         // Use %1% placeholder in the lang file for the status
         VampireMessages.sendLocalized(sender, "command.info.debug_status", isDebug ? "&aOn" : "&cOff"); 
 
+        // Database type
+        String dbType = plugin.getVampireConfig().getDatabaseType();
+        sender.sendMessage("§7Database: §f" + dbType.toUpperCase());
+
+        // Werewolf integration status
+        if (plugin.getWerewolfIntegration() != null) {
+            boolean integrationEnabled = plugin.getWerewolfIntegration().isAvailable();
+            if (integrationEnabled) {
+                sender.sendMessage("§7Werewolf Integration: §aEnabled");
+            } else {
+                sender.sendMessage("§7Werewolf Integration: §cDisabled");
+            }
+        } else {
+            sender.sendMessage("§7Werewolf Integration: §7Not Available");
+        }
+
         // --- Add Altar Information ---
         AltarManager altarManager = plugin.getAltarManager();
         if (altarManager != null && plugin.getVampireConfig().isAltarsEnabled()) {

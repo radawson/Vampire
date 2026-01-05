@@ -50,6 +50,7 @@ public final class VampirePlugin extends JavaPlugin {
     private LevelManager levelManager;
     private VampireTask vampireTask;
     private BloodRegenerationTask saveTask;
+    private org.clockworx.vampire.integration.WerewolfIntegration werewolfIntegration;
 
     @Override
     public void onEnable() {
@@ -101,6 +102,9 @@ public final class VampirePlugin extends JavaPlugin {
         // This now only creates the manager instance; Hibernate session factory
         // will be initialized lazily on first use via HibernateConfig.getSessionFactory()
         initializeDatabaseManager();
+
+        // --- Check for Werewolf Plugin ---
+        checkWerewolfPlugin();
 
         // --- Initialize Core Components ---
         initializeManagers(); // VampireManager is initialized here
@@ -309,6 +313,25 @@ public final class VampirePlugin extends JavaPlugin {
     }
 
     /**
+     * Check for Werewolf plugin and initialize integration if available.
+     */
+    private void checkWerewolfPlugin() {
+        org.bukkit.plugin.Plugin werewolfPlugin = getServer().getPluginManager().getPlugin("Werewolf");
+        if (werewolfPlugin != null && werewolfPlugin.isEnabled()) {
+            getLogger().info("Werewolf plugin detected. Initializing integration...");
+            werewolfIntegration = new org.clockworx.vampire.integration.WerewolfIntegration(this);
+            if (werewolfIntegration.isAvailable()) {
+                getLogger().info("Werewolf integration initialized successfully.");
+            } else {
+                getLogger().warning("Werewolf plugin found but integration failed. Continuing without integration.");
+                werewolfIntegration = null;
+            }
+        } else {
+            getLogger().info("Werewolf plugin not found. Continuing without integration.");
+        }
+    }
+
+    /**
      * Initialize managers
      */
     private void initializeManagers() {
@@ -450,6 +473,10 @@ public final class VampirePlugin extends JavaPlugin {
 
     public LevelManager getLevelManager() {
         return levelManager;
+    }
+
+    public org.clockworx.vampire.integration.WerewolfIntegration getWerewolfIntegration() {
+        return werewolfIntegration;
     }
 
     /**
