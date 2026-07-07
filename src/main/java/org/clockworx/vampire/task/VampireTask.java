@@ -399,8 +399,8 @@ public class VampireTask extends BukkitRunnable {
                 false, // No particles
                 false  // No icon - make it feel passive
             );
-            // Use force=true to overwrite existing lower-level/shorter-duration effects from the plugin itself
-            player.addPotionEffect(speedEffect, true);
+            // Applying the effect always overwrites any existing lower-level/shorter-duration Speed effect
+            player.addPotionEffect(speedEffect);
             VampireMessages.debug("Applied Speed " + (speedAmplifier + 1) + " to " + player.getName() + " for level " + level);
         } else {
             // If boost is 1.0 or less, remove any speed effect potentially applied by this plugin

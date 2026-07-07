@@ -4,8 +4,8 @@ import java.io.FileOutputStream
 
 plugins {
     id("java")
-    id("com.gradleup.shadow") version "9.0.0-beta12"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
+    id("com.gradleup.shadow") version "9.4.3"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
 }
 
 group = "org.clockworx.vampire"
@@ -23,14 +23,14 @@ dependencies {
     // Database - Core
     implementation("org.hibernate:hibernate-core:6.6.13.Final") 
     implementation("org.hibernate:hibernate-community-dialects:6.6.13.Final")
-    implementation("org.flywaydb:flyway-core:11.7.2")
-    implementation("org.flywaydb:flyway-mysql:11.7.2")
+    implementation("org.flywaydb:flyway-core:12.10.0")
+    implementation("org.flywaydb:flyway-mysql:12.10.0")
     implementation("mysql:mysql-connector-java:8.0.33")
-    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
-    implementation("org.postgresql:postgresql:42.7.5")
+    implementation("org.xerial:sqlite-jdbc:3.53.2.0")
+    implementation("org.postgresql:postgresql:42.7.11")
     
     // Database - Connection Pools (Shade this)
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.zaxxer:HikariCP:7.1.0")
     implementation("org.hibernate.orm:hibernate-hikaricp:6.6.13.Final")
 
     // Jakarta Persistence API
@@ -40,12 +40,12 @@ dependencies {
     implementation("org.jboss.logging:jboss-logging:3.5.3.Final")
     implementation("org.jboss.logging:jboss-logging-annotations:2.2.1.Final")
     // Use Logback for SLF4J implementation compatible with Paper
-    implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("ch.qos.logback:logback-classic:1.5.37")
     // implementation("org.slf4j:slf4j-api:2.0.9") // Provided by Paper/Logback
     
     // Lombok (for boilerplate code reduction)
-    compileOnly("org.projectlombok:lombok:1.18.34")
-    annotationProcessor("org.projectlombok:lombok:1.18.34")
+    compileOnly("org.projectlombok:lombok:1.18.46")
+    annotationProcessor("org.projectlombok:lombok:1.18.46")
     
     // bStats Metrics
     implementation("org.bstats:bstats-bukkit:3.1.0")
@@ -136,7 +136,7 @@ val incrementPatchVersion = tasks.register<IncrementPatchVersionTask>("increment
 tasks {
     // Configure shadowJar - critical for proper relocation
     shadowJar {
-        enableRelocation = false
+        enableAutoRelocation = false
         archiveClassifier.set("all")
         
         // Add mappings namespace to shadowJar manifest as well
