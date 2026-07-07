@@ -23,8 +23,8 @@ dependencies {
     // Database - Core
     implementation("org.hibernate:hibernate-core:6.6.13.Final") 
     implementation("org.hibernate:hibernate-community-dialects:6.6.13.Final")
-    implementation("org.flywaydb:flyway-core:12.10.0")
-    implementation("org.flywaydb:flyway-mysql:12.10.0")
+    implementation("org.flywaydb:flyway-core:11.7.2")
+    implementation("org.flywaydb:flyway-mysql:11.7.2")
     implementation("mysql:mysql-connector-java:8.0.33")
     implementation("org.xerial:sqlite-jdbc:3.53.2.0")
     implementation("org.postgresql:postgresql:42.7.11")
