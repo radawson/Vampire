@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("26.1.2.build.74-stable")
     
     // Database - Core
     implementation("org.hibernate:hibernate-core:6.6.13.Final") 
@@ -55,11 +55,10 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
 // Configure paperweight for Mojang-mapped production output
-paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
 // Store version at configuration time
 val projectVersion = version.toString()
@@ -211,32 +210,10 @@ tasks {
     }
 }
 
-// Configure reobfJar to use shadowJar as input and rename output to -paper
-// This ensures all resources (plugin.yml, etc.) and dependencies are included
-tasks.named("reobfJar").configure {
-    val shadowJar = tasks.named("shadowJar")
-    val remapJar = this as io.papermc.paperweight.tasks.RemapJar
-    // Use the shadowJar output file as input for reobfuscation
-    remapJar.inputJar.set(
-        shadowJar.flatMap { task -> 
-            task.outputs.files.singleFile.let { file ->
-                layout.file(providers.provider { file })
-            }
-        }
-    )
-    // Rename output to -paper by configuring the output file
-    doLast {
-        val outputFile = remapJar.outputJar.get().asFile
-        val newFile = File(outputFile.parent, outputFile.name.replace("-reobf.jar", "-paper.jar"))
-        if (outputFile.exists() && outputFile != newFile) {
-            outputFile.renameTo(newFile)
-        }
-    }
-}
-
-// Ensure the production JAR is built with the assemble task
+// Paper 1.20.5+ runs on Mojang mappings natively; no reobfuscation step is needed.
+// The Mojang-mapped shadowJar (-all.jar) is the production artifact.
 tasks.assemble {
-    dependsOn(tasks.reobfJar)
+    dependsOn(tasks.shadowJar)
 }
 
 // Ensure the 'build' task runs the increment task AFTER finishing
