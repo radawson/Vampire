@@ -6,4 +6,16 @@ pluginManagement {
     }
 }
 
-rootProject.name = "Vampire" 
+plugins {
+    // Auto-provisions the Java toolchain (JDK 25) if not installed locally
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+rootProject.name = "Vampire"
+
+// Include the shared Clockworx data library as a composite build
+includeBuild("../clockworx-data") {
+    dependencySubstitution {
+        substitute(module("org.clockworx:clockworx-data")).using(project(":"))
+    }
+}

@@ -7,6 +7,8 @@ import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import org.bukkit.plugin.IllegalPluginAccessException;
+import org.clockworx.data.hibernate.HibernateSessionManager;
 import org.clockworx.vampire.VampirePlugin;
 import org.clockworx.vampire.config.LanguageConfig;
 import org.clockworx.vampire.config.VampireConfig;
@@ -15,7 +17,6 @@ import org.clockworx.vampire.entity.BloodOfferEntity;
 import org.clockworx.vampire.entity.VampirePlayer;
 import org.clockworx.vampire.entity.VampirePlayerEntity;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
 import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
 
@@ -23,6 +24,12 @@ import org.hibernate.query.Query;
  * Hibernate-based implementation of the DatabaseManager interface.
  * Handles all database operations for vampire player data using Hibernate ORM.
  * 
+ * <p>Session/transaction infrastructure is provided by the shared clockworx-data
+ * library ({@link HibernateSessionManager}), which owns the lazily initialized
+ * SessionFactory and provides async transaction helpers with shutdown guards.
+ * This class contributes the Vampire-specific entities, queries, and
+ * entity/domain conversions.</p>
+ *
  * <p>This implementation uses Paper's async scheduler for all asynchronous operations
  * to ensure proper integration with the server's task tracking system.</p>
  */
@@ -31,6 +38,9 @@ public class HibernateDatabaseManager implements DatabaseManager {
     /** Reference to the main plugin instance. */
     private final VampirePlugin plugin;
     
+    /** Shared session/transaction manager from the clockworx-data library. */
+    private final HibernateSessionManager sessions;
+
     /**
      * Executor that uses Paper's async scheduler for running tasks off the main thread.
      * This ensures database operations are properly tracked by the server and don't
@@ -45,15 +55,40 @@ public class HibernateDatabaseManager implements DatabaseManager {
      */
     public HibernateDatabaseManager(VampirePlugin plugin) {
         this.plugin = plugin;
-        // Use Paper's async scheduler for better integration with server task tracking
-        this.asyncExecutor = task -> 
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
+        // Use Paper's async scheduler for better integration with server task tracking.
+        // If the plugin is disabled or shutting down, execute synchronously to avoid
+        // IllegalPluginAccessException.
+        this.asyncExecutor = task -> {
+            if (plugin.isEnabled() && !isShuttingDown()) {
+                try {
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
+                } catch (IllegalPluginAccessException e) {
+                    // Plugin was disabled between check and scheduling, execute synchronously
+                    task.run();
+                }
+            } else {
+                // During shutdown or when plugin is disabled, execute synchronously
+                task.run();
+            }
+        };
+        this.sessions = new HibernateSessionManager(
+                plugin.getVampireConfig().getDatabaseSettings(),
+                List.of(VampirePlayerEntity.class, BloodOfferEntity.class),
+                asyncExecutor,
+                plugin.getLogger());
+    }
+
+    /**
+     * @return true once shutdown of the shared session manager has begun
+     */
+    private boolean isShuttingDown() {
+        return sessions != null && sessions.isShuttingDown();
     }
 
     @Override
     public CompletableFuture<Void> initialize() {
         // Initialization is now effectively handled by Flyway (creating/migrating schema)
-        // and Hibernate's lazy SessionFactory initialization.
+        // and the session manager's lazy SessionFactory initialization.
         // We just need to confirm the DatabaseManager instance is ready.
         plugin.getLogger().log(Level.INFO, "HibernateDatabaseManager instance created. Schema managed by Flyway.");
         return CompletableFuture.completedFuture(null); // Indicate immediate completion
@@ -61,90 +96,38 @@ public class HibernateDatabaseManager implements DatabaseManager {
 
     @Override
     public CompletableFuture<Void> shutdown() {
-        // The actual SessionFactory shutdown is handled centrally in VampirePlugin.onDisable
-        // by calling HibernateConfig.shutdown(). This method might not be strictly needed
-        // in the interface anymore, but we keep it for consistency for now.
-        plugin.getLogger().log(Level.INFO, "HibernateDatabaseManager shutdown called (actual SessionFactory shutdown managed elsewhere).");
+        // Closes the shared SessionFactory (and its connection pool) and marks the
+        // manager as shutting down so in-flight operations short-circuit safely.
+        sessions.shutdown();
         return CompletableFuture.completedFuture(null);
     }
 
     /**
-     * Helper method to execute transactional code safely using Paper's async scheduler.
+     * Helper method to execute transactional code safely via the shared session manager.
      * 
      * @param <T> The return type of the transaction
      * @param function The transaction function to execute
      * @return A CompletableFuture that completes with the transaction result
      */
-    private <T> CompletableFuture<T> executeTransaction(TransactionFunction<T> function) {
-        return CompletableFuture.supplyAsync(() -> {
-            Transaction tx = null;
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
-                tx = session.beginTransaction();
-                T result = function.apply(session);
-                tx.commit();
-                return result;
-            } catch (Exception e) {
-                if (tx != null && tx.isActive()) {
-                    try {
-                        tx.rollback();
-                    } catch (Exception rbEx) {
-                        plugin.getLogger().log(Level.SEVERE, "Transaction rollback failed", rbEx);
-                    }
-                }
-                // Log the original error
-                plugin.getLogger().log(Level.SEVERE, "Database transaction failed", e);
-                // Rethrow as a RuntimeException to fail the CompletableFuture
-                throw new RuntimeException("Database transaction failed", e);
-            }
-        }, asyncExecutor);
-    }
-
-    // Helper functional interface for transactions
-    @FunctionalInterface
-    private interface TransactionFunction<T> {
-        T apply(Session session) throws Exception; // Allow checked exceptions
+    private <T> CompletableFuture<T> executeTransaction(HibernateSessionManager.TransactionFunction<T> function) {
+        return sessions.executeTransaction(function);
     }
 
     /**
-     * Simplified execute function for operations returning Void using Paper's async scheduler.
+     * Simplified execute function for operations returning Void via the shared session manager.
      * 
      * @param function The void transaction function to execute
      * @return A CompletableFuture that completes when the transaction is done
      */
-    private CompletableFuture<Void> executeTransactionVoid(VoidTransactionFunction function) {
-        return CompletableFuture.runAsync(() -> {
-            Transaction tx = null;
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
-                tx = session.beginTransaction();
-                function.apply(session);
-                tx.commit();
-            } catch (Exception e) {
-                if (tx != null && tx.isActive()) {
-                    try {
-                        tx.rollback();
-                    } catch (Exception rbEx) {
-                        plugin.getLogger().log(Level.SEVERE, "Transaction rollback failed", rbEx);
-                    }
-                }
-                // Log the original error
-                plugin.getLogger().log(Level.SEVERE, "Database transaction failed", e);
-                // Rethrow as a RuntimeException to fail the CompletableFuture
-                throw new RuntimeException("Database transaction failed", e);
-            }
-        }, asyncExecutor);
-    }
-
-    // Helper functional interface for void transactions
-    @FunctionalInterface
-    private interface VoidTransactionFunction {
-        void apply(Session session) throws Exception; // Allow checked exceptions
+    private CompletableFuture<Void> executeTransactionVoid(HibernateSessionManager.VoidTransactionFunction function) {
+        return sessions.executeTransactionVoid(function);
     }
 
     @Override
     public CompletableFuture<VampirePlayer> getPlayer(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             // Use try-with-resources for session management, no transaction needed for read
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? convertToVampirePlayer(entity) : null;
             } catch (Exception e) {
@@ -177,7 +160,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Boolean> isVampire(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 // Use getReference for potential performance gain if only checking existence/simple field
                 // VampirePlayerEntity entity = session.getReference(VampirePlayerEntity.class, uuid);
                 // However, get is safer if the entity might not exist
@@ -193,7 +176,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Boolean> isInfected(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 // Check infection level > 0
                 return entity != null && entity.getInfectionLevel() > 0.0;
@@ -207,7 +190,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Double> getBloodLevel(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getBloodLevel() : 0.0;
             } catch (Exception e) {
@@ -234,7 +217,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Double> getInfectionLevel(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getInfectionLevel() : 0.0;
             } catch (Exception e) {
@@ -260,7 +243,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<String> getInfectionReason(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getInfectionReason() : null;
             } catch (Exception e) {
@@ -286,7 +269,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Long> getInfectionTime(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getInfectionTime() : 0L;
             } catch (Exception e) {
@@ -315,7 +298,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Long> getLastShriekTime(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getLastShriekTime() : 0L;
             } catch (Exception e) {
@@ -341,7 +324,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Long> getLastBloodTradeTime(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getLastBloodTradeTime() : 0L;
             } catch (Exception e) {
@@ -367,7 +350,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<UUID> getLastBloodTradePartner(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getLastBloodTradePartner() : null;
             } catch (Exception e) {
@@ -393,7 +376,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<Double> getLastBloodTradeAmount(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getLastBloodTradeAmount() : 0.0;
             } catch (Exception e) {
@@ -419,7 +402,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<String> getLastBloodTradeType(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 VampirePlayerEntity entity = session.get(VampirePlayerEntity.class, uuid);
                 return entity != null ? entity.getLastBloodTradeType() : null;
             } catch (Exception e) {
@@ -457,7 +440,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<BloodOffer> getBloodOffer(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 // Query for active offers targeting the player
                 Query<BloodOfferEntity> query = session.createQuery(
                     "FROM BloodOfferEntity WHERE targetUuid = :uuid AND accepted = false AND rejected = false",
@@ -516,7 +499,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<List<BloodOffer>> getAllBloodOffers() {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 Query<BloodOfferEntity> query = session.createQuery(
                     "FROM BloodOfferEntity WHERE accepted = false AND rejected = false", // Only active offers
                     BloodOfferEntity.class);
@@ -611,7 +594,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
     @Override
     public CompletableFuture<List<VampirePlayer>> getAllVampires() {
         return CompletableFuture.supplyAsync(() -> {
-            try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+            try (Session session = sessions.getSessionFactory().openSession()) {
                 Query<VampirePlayerEntity> query = session.createQuery(
                     "FROM VampirePlayerEntity WHERE isVampire = true",
                     VampirePlayerEntity.class);
