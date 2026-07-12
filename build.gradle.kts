@@ -122,7 +122,11 @@ tasks {
     shadowJar {
         enableAutoRelocation = false
         archiveClassifier.set("all")
-        
+        // Flyway/Hibernate discover plugins via META-INF/services files; the default EXCLUDE strategy
+        // drops the duplicate service paths (flyway-core + flyway-mysql, ...) before mergeServiceFiles()
+        // combines them, leaving Flyway's PluginRegister empty -> NPE. INCLUDE lets the merge see them.
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
         // Add mappings namespace to shadowJar manifest as well
         manifest {
             attributes("paperweight-mappings-namespace" to "mojang")

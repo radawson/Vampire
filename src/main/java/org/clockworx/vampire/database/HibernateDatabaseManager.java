@@ -47,28 +47,31 @@ public class HibernateDatabaseManager implements DatabaseManager {
      * interfere with the main server thread.
      */
     private final Executor asyncExecutor;
+    /**
+     * Dedicated daemon pool for all DB work. We deliberately do NOT use Bukkit's async scheduler:
+     * its async tasks are only dispatched once the server starts ticking (after onEnable), so any
+     * DB future joined during plugin enable would deadlock the main thread. A plain executor runs
+     * immediately at both enable- and run-time.
+     */
+    private final java.util.concurrent.ExecutorService dbPool =
+            java.util.concurrent.Executors.newCachedThreadPool(r -> {
+                Thread th = new Thread(r, "vampire-db");
+                th.setDaemon(true);
+                return th;
+            });
 
     /**
      * Creates a new HibernateDatabaseManager.
-     * 
+     *
      * @param plugin The main VampirePlugin instance
      */
     public HibernateDatabaseManager(VampirePlugin plugin) {
         this.plugin = plugin;
-        // Use Paper's async scheduler for better integration with server task tracking.
-        // If the plugin is disabled or shutting down, execute synchronously to avoid
-        // IllegalPluginAccessException.
         this.asyncExecutor = task -> {
-            if (plugin.isEnabled() && !isShuttingDown()) {
-                try {
-                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
-                } catch (IllegalPluginAccessException e) {
-                    // Plugin was disabled between check and scheduling, execute synchronously
-                    task.run();
-                }
-            } else {
-                // During shutdown or when plugin is disabled, execute synchronously
-                task.run();
+            try {
+                dbPool.execute(task);
+            } catch (java.util.concurrent.RejectedExecutionException e) {
+                task.run(); // pool shut down during disable — run inline
             }
         };
         this.sessions = new HibernateSessionManager(
@@ -99,6 +102,7 @@ public class HibernateDatabaseManager implements DatabaseManager {
         // Closes the shared SessionFactory (and its connection pool) and marks the
         // manager as shutting down so in-flight operations short-circuit safely.
         sessions.shutdown();
+        dbPool.shutdown();
         return CompletableFuture.completedFuture(null);
     }
 
