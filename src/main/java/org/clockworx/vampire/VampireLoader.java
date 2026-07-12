@@ -2,42 +2,46 @@ package org.clockworx.vampire;
 
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
+import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.repository.RemoteRepository;
 
 /**
  * Plugin loader for the Vampire Paper plugin.
- * This class is responsible for setting up the plugin's classpath,
- * including any external libraries that need to be loaded.
- * 
- * Currently, this is a placeholder for future classpath management.
- * External libraries are handled via shadowJar in the build process.
+ *
+ * <p>The shared database stack (Hibernate, Flyway, HikariCP and the JDBC drivers) is no
+ * longer shaded/relocated into the plugin jar. Instead it is loaded at runtime by Paper's
+ * library-loader: each coordinate below (and its transitive dependencies) is resolved from
+ * Paper's Maven mirror into the server's shared library cache and added to this plugin's
+ * classloader. This eliminates the per-plugin relocation and {@code META-INF/services} merge
+ * that previously left Flyway's PluginRegister empty (the shading NPE), and keeps the jar tiny.
  */
 public class VampireLoader implements PluginLoader {
 
-    /**
-     * Configures the plugin's classpath by adding external libraries.
-     * This method is called during plugin loading to set up dependencies.
-     *
-     * @param classpathBuilder The classpath builder for adding libraries.
-     */
+    /** DB stack coordinates — kept in sync with clockworx-data's api() dependencies. */
+    private static final String[] LIBRARIES = {
+        "org.hibernate:hibernate-core:6.6.40.Final",
+        "org.hibernate:hibernate-community-dialects:6.6.40.Final",
+        "org.hibernate.orm:hibernate-hikaricp:6.6.40.Final",
+        "jakarta.persistence:jakarta.persistence-api:3.1.0",
+        "org.flywaydb:flyway-core:12.10.0",
+        "org.flywaydb:flyway-mysql:12.10.0",
+        "com.zaxxer:HikariCP:7.1.0",
+        "org.jboss.logging:jboss-logging:3.6.1.Final",
+        "org.xerial:sqlite-jdbc:3.53.2.0",
+        "com.mysql:mysql-connector-j:9.1.0",
+        "org.postgresql:postgresql:42.7.11",
+    };
+
     @Override
     public void classloader(PluginClasspathBuilder classpathBuilder) {
-        // External libraries are handled via shadowJar in the build process
-        // This method can be used to add libraries dynamically if needed in the future
-        
-        // Example of how to add a Maven library (commented out for now):
-        /*
         MavenLibraryResolver resolver = new MavenLibraryResolver();
-        resolver.addDependency(new Dependency(
-            new DefaultArtifact("com.example:example:version"), 
-            null
-        ));
+        for (String coordinate : LIBRARIES) {
+            resolver.addDependency(new Dependency(new DefaultArtifact(coordinate), null));
+        }
         resolver.addRepository(new RemoteRepository.Builder(
-            "paper", 
-            "default", 
-            "https://repo.papermc.io/repository/maven-public/"
-        ).build());
+            "papermc", "default", "https://repo.papermc.io/repository/maven-public/").build());
         classpathBuilder.addLibrary(resolver);
-        */
     }
 }
-
